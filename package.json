@@ -1,7 +1,7 @@
 {
   "name": "patristic",
-  "version": "2.0.0",
-  "description": "Neighbor Joining library for Node and Browser",
+  "version": "0.0.1",
+  "description": "Patristic Inference library for Node and Browser",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,8 +9,7 @@
     "demo": "node_modules/http-server/bin/http-server"
   },
   "keywords": [
-    "phylogeny",
-    "neighbor joining"
+    "phylogeny"
   ],
   "repository": {
     "type": "git",

@@ -18,7 +18,6 @@
 
   var patristic = {};
 
-  // https://github.com/jasondavies/newick.js
   patristic.parseNewick = function(newick){
     var stack = [],
         tree = {},
@@ -52,7 +51,7 @@
       }
     }
     return tree;
-  }
+  };
 
   patristic.getLeaves = function(tree){
     let leaves = [];

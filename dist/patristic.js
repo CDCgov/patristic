@@ -20,7 +20,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 })(typeof self !== 'undefined' ? self : void 0, function () {
   "use strict";
 
-  var patristic = {}; // https://github.com/jasondavies/newick.js
+  var patristic = {};
 
   patristic.parseNewick = function (newick) {
     var stack = [],
