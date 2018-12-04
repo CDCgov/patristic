@@ -22,29 +22,167 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   var patristic = {};
 
+  function Branch(data) {
+    Object.assign(this, {
+      id: '',
+      parent: null,
+      children: []
+    }, data);
+  }
+
+  Object.assign(Branch.prototype, {
+    addChild: function addChild(data) {
+      var c = new Branch(Object.assign({
+        parent: this
+      }, data));
+      this.children.push(c);
+      return c;
+    },
+    hasChild: function hasChild(child) {
+      if (_typeof(child) === "object") child = child.id;
+      return this.children.includes(child);
+    },
+    getDescendant: function getDescendant(id) {
+      var descendant;
+
+      if (this.children) {
+        for (var i = 0; i < this.children.length; i++) {
+          var child = this.children[i];
+
+          if (child.id === id) {
+            descendant = child;
+            break;
+          }
+
+          if (child.children) {
+            descendant = child.getDescendant(id);
+          }
+        }
+      }
+
+      return descendant;
+    },
+    getDescendants: function getDescendants() {
+      var _this = this;
+
+      if (this.descendants) return this.descendants;
+      this.descendants = [];
+
+      if (this.children.length > 0) {
+        this.children.forEach(function (child) {
+          _this.descendants = _this.descendants.concat(child.getDescendants());
+        });
+      } else {
+        this.descendants.push(this);
+      }
+
+      return this.descendants;
+    },
+    hasDescendant: function hasDescendant(descendant) {
+      var any = false;
+      var descendants = this.getDescendants();
+
+      if (_typeof(descendant) === 'object') {
+        descendants.forEach(function (d) {
+          if (d === descendant) any = true;
+        });
+      } else {
+        descendants.forEach(function (d) {
+          if (d.id === descendant) any = true;
+        });
+      }
+
+      return any;
+    },
+    isRoot: function isRoot() {
+      return this.parent === null;
+    },
+    isChildOf: function isChildOf(parent) {
+      if (_typeof(parent) === 'object') {
+        return this.parent === parent;
+      }
+
+      return this.parent.id === parent;
+    },
+    isDescendedFrom: function isDescendedFrom(ancestor) {
+      if (!ancestor || !this.parent) return false;
+      if (this.parent === ancestor || this.parent.id === ancestor) return true;
+      return this.parent.isDescendedFrom(ancestor);
+    },
+    isDescendantOf: function isDescendantOf(ancestor) {
+      return this.isDescendedFrom(ancestor);
+    },
+    depthOf: function depthOf(child) {
+      var distance = 0;
+      if (typeof child === 'string') child = this.getDescendant(child);
+      if (typeof child === 'undefined') return -1;
+      var current = child;
+
+      while (!current.isRoot()) {
+        if (current === this) break;
+        distance += current.length;
+        current = current.parent;
+      }
+
+      return distance;
+    },
+    distanceBetween: function distanceBetween(a, b) {
+      var distance = -1;
+      var descendants = this.getDescendants();
+      if (typeof a == 'string') a = patristic.getLeaf(tree, a);
+      if (typeof b == 'string') b = patristic.getLeaf(tree, b);
+
+      if (descendants.includes(a) && descendants.includes(b)) {
+        var node = a;
+
+        while (!b.isDescendedFrom(node)) {
+          node = node.parent;
+        }
+
+        distance = node.depthOf(a) + node.depthOf(b);
+      }
+
+      return distance;
+    },
+    toMatrix: function toMatrix() {
+      var descendants = this.getDescendants();
+      var n = descendants.length;
+      var matrix = new Array(n);
+
+      for (var i = 0; i < n; i++) {
+        matrix[i] = new Array(n);
+        matrix[i][i] = 0;
+
+        for (var j = 0; j < i; j++) {
+          var distance = this.distanceBetween(descendants[i], descendants[j]);
+          matrix[i][j] = distance;
+          matrix[j][i] = distance;
+        }
+      }
+
+      return matrix;
+    }
+  });
+
   patristic.parseNewick = function (newick) {
     var stack = [],
-        tree = {},
+        tree = new Branch(),
         s = newick.split(/\s*(;|\(|\)|,|:)\s*/);
 
     for (var t = 0; t < s.length; t++) {
       var n = s[t];
+      var c = void 0;
 
       switch (n) {
         case "(":
-          var c = {
-            parent: tree
-          };
-          tree.children = [c];
+          c = tree.addChild();
           stack.push(tree);
           tree = c;
           break;
 
         case ",":
-          var c = {
-            parent: stack[stack.length - 1]
-          };
-          stack[stack.length - 1].children.push(c), tree = c;
+          c = stack[stack.length - 1].addChild();
+          tree = c;
           break;
 
         case ")":
@@ -56,7 +194,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
         default:
           var h = s[t - 1];
-          ")" == h || "(" == h || "," == h ? tree.name = n : ":" == h && (tree.length = parseFloat(n));
+          ")" == h || "(" == h || "," == h ? tree.id = n : ":" == h && (tree.length = parseFloat(n));
       }
     }
 
@@ -77,9 +215,9 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return leaves;
   };
 
-  patristic.getLeafNames = function (tree) {
+  patristic.getleafIDs = function (tree) {
     return patristic.getLeaves(tree).map(function (l) {
-      return l.name;
+      return l.id;
     });
   };
 
@@ -89,7 +227,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     if (typeof leaf === 'string') {
-      return patristic.getLeafNames(root).includes(leaf);
+      return patristic.getleafIDs(root).includes(leaf);
     }
 
     return false;
@@ -97,7 +235,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   patristic.depth = function (root, leaf) {
     var distance = 0;
-    if (_typeof(leaf) === 'object') leaf = leaf.name;
+    if (_typeof(leaf) === 'object') leaf = leaf.id;
 
     if (root.children) {
       root.children.forEach(function (branch) {
@@ -111,16 +249,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return distance;
   };
 
-  patristic.getLeaf = function (root, name) {
-    if (root.name === name) return root;
+  patristic.getLeaf = function (root, id) {
+    if (root.id === id) return root;
     var response;
 
     for (var i = 0; i < root.children.length; i++) {
       var branch = root.children[i];
-      if (branch.name === name) return branch;
+      if (branch.id === id) return branch;
 
       if (branch.children) {
-        response = patristic.getLeaf(branch, name);
+        response = patristic.getLeaf(branch, id);
         if (response) break;
       }
     }
@@ -137,8 +275,8 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     while (root.parent) {
       root = root.parent;
 
-      if (patristic.isChildOf(root, b.name)) {
-        distance = patristic.depth(root, a.name) + patristic.depth(root, b.name);
+      if (patristic.isChildOf(root, b.id)) {
+        distance = patristic.depth(root, a.id) + patristic.depth(root, b.id);
         break;
       }
     }
@@ -164,78 +302,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     return matrix;
-  }; // patristic.perl = function(tree){
-  //   //record the distance of parentheses
-  //   var dis = {};
-  //   var par = -1;
-  //   var current = [];
-  //   var i = 0, n = tree.length;
-  //   var numberMatcher = /(\d+\.\d+|\d+)/;
-  //   while(i++ < n){
-  //     var char = tree[i];
-  //     if(char === '('){
-  //       if(++par === 0) continue;
-  //       current.push(par);
-  //     } else if(char === ')'){
-  //       if(current.length === -1) continue;
-  //       dis['node_' + current.pop()] = 'foo';
-  //     }
-  //   }
-  //
-  //   //record the distance of leaves
-  //   var order = [];
-  //   var leaves = tree.match(/([^\(\):,]+):(\d+\.\d+|\d+)/g);
-  //   leaves.forEach(leaf => {
-  //     dis[$1] = $2;
-  //     order.push($1);
-  //   });
-  //
-  //   //record parents of leaves
-  //   var pare = {};
-  //   current = [];
-  //   par = -1;
-  //   while(tree =~ /(\(|\)|([^\(\):,]+):)/g){
-  //     if($& == '('){
-  //       if(++par == 0) continue;
-  //       current.push(par);
-  //     } else if($& == ')'){
-  //       current.pop();
-  //     } else {
-  //       map {pare{$2}{$_} = 1} @current;
-  //       pare{$2} = [@current];
-  //     }
-  //   }
-  //
-  //   //Distance matrix
-  //   var dis2 = [];
-  //   for(var i = 0; i < order.length; i++){
-  //     dis2[i] = [];
-  //     for(var j = i; j < order.length; j++){
-  //       if(i == j){
-  //         dis2[order[i]][order[j]] = 0;
-  //       } else {
-  //         var $tem = dis[order[i]] + dis[order[j]];
-  //         var $tem2 = -1;
-  //         foreach var $k (0..$#{pare{order[i]}}){
-  //           last if($k > $#{pare{order[j]}});
-  //           if(pare{order[i]}[$k] == pare{order[j]}[$k]){
-  //             $tem2 = $k;
-  //           }
-  //         }
-  //         if($#{pare{order[i]}} != -1){
-  //           map {$tem += dis['node_'.$_]} map {pare{order[i]}[$_]} ($tem2+1)..$#{pare{order[i]}};
-  //         }
-  //         if($#{pare{order[j]}} != -1){
-  //           map {$tem += dis['node_'.$_]} map {pare{order[j]}[$_]} ($tem2+1)..$#{pare{order[j]}};
-  //         }
-  //         dis2[order[i]][order[j]] = dis2[order[j]][order[i]] = $tem;
-  //       }
-  //     }
-  //   }
-  //   //output
-  //   return dis2;
-  // };
-
+  };
 
   return patristic;
 });
