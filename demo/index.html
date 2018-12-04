@@ -1,0 +1,11 @@
+<html>
+<body>
+  <p>Open your console to see the what happened.</p>
+  <script src="../dist/patristic.js"></script>
+  <script>
+    var text = "(A:0.1,B:0.2,(C:0.3,(D:0.4,E:0.6):0.1):0.5);";
+    var tree = patristic.parseNewick(text);
+    console.log(tree);
+  </script>
+</body>
+</html>

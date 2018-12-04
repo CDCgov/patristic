@@ -1,0 +1,33 @@
+{
+  "name": "patristic",
+  "version": "2.0.0",
+  "description": "Neighbor Joining library for Node and Browser",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile": "babel index.js > dist/patristic.js && babel --minified index.js > dist/patristic.min.js",
+    "demo": "node_modules/http-server/bin/http-server"
+  },
+  "keywords": [
+    "phylogeny",
+    "neighbor joining"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CDCgov/patristic.git"
+  },
+  "contributors": [
+    "Tony Boyles <anthony@boyles.cc>"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/CDCgov/patristic/issues"
+  },
+  "homepage": "https://github.com/CDCgov/patristic#readme",
+  "devDependencies": {
+    "@babel/cli": "^7.1.5",
+    "@babel/core": "^7.1.6",
+    "@babel/preset-env": "^7.1.6",
+    "http-server": "^0.11.1"
+  }
+}
