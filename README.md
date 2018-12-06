@@ -3,7 +3,7 @@ phylogenetic trees.
 
 # Installation
 
-To install patristic package with NPM use: `npm install patristic`
+To install patristic package with NPM use: `npm install git+https://github.com/CDCgov/patristic.git`
 
 # Usage
 
@@ -23,7 +23,7 @@ creating circular references.)
 More interestingly, we can use this tree to compute a patristic distance matrix.
 
 ```javascript
-var matrix = patristic.computeMatrix(newick);
+var matrix = tree.computeMatrix();
 ```
 
 ## Function Reference
