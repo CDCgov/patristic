@@ -109,6 +109,16 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return this.parent === null;
   };
 
+  Branch.prototype.getRoot = function () {
+    var node = this;
+
+    while (!node.isRoot()) {
+      node = node.parent;
+    }
+
+    return node;
+  };
+
   Branch.prototype.isChildOf = function (parent) {
     if (_typeof(parent) === 'object') {
       return this.parent === parent;
@@ -171,8 +181,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     j, k, p, //p: the central multi-parent node
     s, newParent, //q: the new parent, previous a child of p
     oldParent, //r: old parent
-    tmp; //if(dist < 0.0 || dist > node.length) dist = node.length / 2.0;
-
+    tmp;
     tmp = this.length;
     p = this.parent;
     newParent = new Branch();
@@ -230,13 +239,61 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       --p.children.length;
     }
 
-    var node = p;
+    return p;
+  };
 
-    while (!node.isRoot()) {
-      node = node.parent;
+  Branch.prototype.reorder = function (sortfn) {
+    if (!sortfn) sortfn = function sortfn(a, b) {
+      if (a.length < b.length) return 1;
+      if (a.length > b.length) return -1;
+      return String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0;
+    };
+    var x = new Array();
+    var i,
+        node = this.getRoot(); // get depth
+
+    node.depth = 0;
+
+    for (i = node.length - 2; i >= 0; --i) {
+      var q = node[i];
+      q.depth = q.parent.depth + 1;
+      if (q.children.length == 0) x.push(q);
     }
 
-    return node;
+    x.sort(sortfn);
+
+    for (i = 0; i < x.length; ++i) {
+      x[i].weight = i, x[i].n_tips = 1;
+    } // set weight for internal nodes
+
+
+    for (i = 0; i < node.length; ++i) {
+      var q = node[i];
+
+      if (q.children.length) {
+        // internal
+        var j,
+            n = 0,
+            w = 0;
+
+        for (j = 0; j < q.children.length; ++j) {
+          n += q.children[j].n_tips;
+          w += q.children[j].weight;
+        }
+
+        q.n_tips = n;
+        q.weight = w;
+      }
+    } // swap children
+
+
+    for (i = 0; i < node.length; ++i) {
+      if (node[i].children.length >= 2) {
+        node[i].children.sort(sortfn);
+      }
+    }
+
+    return this;
   };
 
   Branch.prototype.toMatrix = function () {
