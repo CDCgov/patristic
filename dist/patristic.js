@@ -149,6 +149,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return distance;
   };
 
+  Branch.prototype.remove = function () {
+    var index = this.parent.children.indexOf(this);
+    this.parent.children.splice(index, 1);
+    this.parent = null;
+    return this;
+  };
+
   Branch.prototype.toMatrix = function () {
     var descendants = this.getDescendants();
     var n = descendants.length;
