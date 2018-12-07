@@ -168,6 +168,44 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return matrix;
   };
 
+  Branch.prototype.toNewick = function (nonterminus) {
+    var out = '';
+    if (this.id === '') out += '(';else out += this.id;
+    out += this.children.map(function (child) {
+      return child.toNewick(true);
+    }).join(',');
+    if (this.id === '') out += ')';
+    if (this.length) out += ':' + numberToString(this.length);
+    if (!nonterminus) out += ';';
+    return out;
+  };
+
+  function numberToString(num) {
+    var numStr = String(num);
+
+    if (Math.abs(num) < 1.0) {
+      var e = parseInt(num.toString().split('e-')[1]);
+
+      if (e) {
+        var negative = num < 0;
+        if (negative) num *= -1;
+        num *= Math.pow(10, e - 1);
+        numStr = '0.' + new Array(e).join('0') + num.toString().substring(2);
+        if (negative) numStr = "-" + numStr;
+      }
+    } else {
+      var _e = parseInt(num.toString().split('+')[1]);
+
+      if (_e > 20) {
+        _e -= 20;
+        num /= Math.pow(10, _e);
+        numStr = num.toString() + new Array(_e + 1).join('0');
+      }
+    }
+
+    return numStr;
+  }
+
   var parseNewick = function parseNewick(newick) {
     var stack = [],
         tree = new Branch(),
