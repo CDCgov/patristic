@@ -137,7 +137,57 @@
     this.parent.children.splice(index, 1);
     this.parent = null;
     return this;
-  }
+  };
+
+  Branch.prototype.reroot = function(){
+    if(this.isRoot()) return this;
+    var d, //d: previous distance p->d
+        i, //i: previous position of q in p
+        j,
+        k,
+  	    p, //p: the central multi-parent node
+        s,
+        newParent, //q: the new parent, previous a child of p
+        oldParent, //r: old parent
+        tmp;
+  	tmp = this.length;
+    p = this.parent;
+  	newParent = new Branch();
+  	newParent.addChild(this);
+    i = p.children.indexOf(this);
+  	newParent.children[1] = p;
+  	d = p.length;
+  	p.length = tmp;
+  	oldParent = p.parent;
+  	p.parent = newParent;
+  	while(oldParent != null){
+  		s = oldParent.parent; /* store r's parent */
+  		p.children[i] = oldParent; /* change r to p's child */
+      i = oldParent.children.indexOf(p);
+  		oldParent.parent = p; /* update r's parent */
+  		tmp = oldParent.length;
+      oldParent.length = d;
+      d = tmp; /* swap r->d and d, i.e. update r->d */
+  		newParent = p;
+      p = oldParent;
+      oldParent = s; /* update p, newParent and oldParent */
+  	}
+  	/* now p is the root node */
+  	if(p.children.length == 2){ /* remove p and link the other child of p to newParent */
+  		oldParent = p.children[1 - i]; /* get the other child */
+      i = newParent.children.indexOf(p); /* the position of p in newParent */
+  		oldParent.length += p.length;
+  		oldParent.parent = newParent;
+  		newParent.children[i] = oldParent; /* link oldParent to newParent */
+  	} else { /* remove one child in p */
+  		for(j = k = 0; j < p.children.length; ++j){
+  			p.children[k] = p.children[j];
+  			if(j != i) ++k;
+  		}
+  		--p.children.length;
+  	}
+  	return p;
+  };
 
   Branch.prototype.toMatrix = function(){
     let descendants = this.getDescendants();
