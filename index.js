@@ -25,10 +25,16 @@
   }
 
   Branch.prototype.addChild = function(data){
-    if(!data) data = {};
-    let c = new Branch(Object.assign(data, {
-      parent: this
-    }));
+    let c;
+    if(data instanceof Branch){
+      c = data;
+      c.parent = this;
+    } else {
+      if(!data) data = {};
+      c = new Branch(Object.assign(data, {
+        parent: this
+      }));
+    }
     this.children.push(c);
     return c;
   };

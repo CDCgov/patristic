@@ -29,10 +29,18 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 
   Branch.prototype.addChild = function (data) {
-    if (!data) data = {};
-    var c = new Branch(Object.assign(data, {
-      parent: this
-    }));
+    var c;
+
+    if (data instanceof Branch) {
+      c = data;
+      c.parent = this;
+    } else {
+      if (!data) data = {};
+      c = new Branch(Object.assign(data, {
+        parent: this
+      }));
+    }
+
     this.children.push(c);
     return c;
   };
