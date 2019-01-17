@@ -1,21 +1,24 @@
 "use strict";
 
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
-(function (root, patristic) {
+(function (root, factory) {
   if (typeof define === 'function' && define.amd) {
-    // AMD. Register as an anonymous module.
     define([], function () {
-      return root.patristic = patristic();
+      return root.patristic = factory();
     });
   } else if ((typeof module === "undefined" ? "undefined" : _typeof(module)) === 'object' && module.exports) {
-    // Node. Does not work with strict CommonJS, but
-    // only CommonJS-like environments that support module.exports,
-    // like Node.
-    module.exports = patristic();
+    module.exports = factory();
   } else {
-    // Browser globals
-    root.patristic = patristic();
+    root.patristic = factory();
   }
 })(typeof self !== 'undefined' ? self : void 0, function () {
   "use strict";
@@ -24,9 +27,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     Object.assign(this, {
       id: '',
       parent: null,
+      length: 0,
       children: []
     }, data);
   }
+
+  Branch.prototype.setLength = function (length) {
+    this.length = length;
+  };
 
   Branch.prototype.addChild = function (data) {
     var c;
@@ -42,6 +50,24 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     this.children.push(c);
+    return c;
+  };
+
+  Branch.prototype.addParent = function (data, siblings) {
+    var c;
+
+    if (data instanceof Branch) {
+      c = data;
+    } else {
+      if (!data) data = {};
+      c = new Branch(Object.assign(data));
+    }
+
+    siblings.forEach(function (sib) {
+      return sib.setParent(c);
+    });
+    c.children = [this].concat(siblings);
+    this.parent = c;
     return c;
   };
 
@@ -72,20 +98,19 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   };
 
   Branch.prototype.getDescendants = function () {
-    var _this = this;
-
-    if (this.descendants) return this.descendants;
-    this.descendants = [];
+    var descendants = [];
 
     if (this.children.length > 0) {
       this.children.forEach(function (child) {
-        _this.descendants = _this.descendants.concat(child.getDescendants());
+        child.getDescendants().forEach(function (d) {
+          return descendants.push(d);
+        });
       });
     } else {
       return [this];
     }
 
-    return this.descendants;
+    return descendants;
   };
 
   Branch.prototype.hasDescendant = function (descendant) {
@@ -173,6 +198,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     this.parent = null;
     return this;
   };
+
+  Branch.prototype.setParent = function (parent) {
+    this.parent = parent;
+  };
+
+  Branch.prototype.fixParenthood = function (nonrecursive) {
+    var _this = this;
+
+    this.children.forEach(function (child) {
+      if (!child.parent) child.parent = _this;
+
+      if (!nonrecursive && child.children.length > 0) {
+        child.fixParenthood();
+      }
+    });
+  }; //Largely adapted from http://lh3lh3.users.sourceforge.net/knhx.js#kn_reroot
+
 
   Branch.prototype.reroot = function () {
     if (this.isRoot()) return this;
@@ -268,21 +310,21 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
 
     for (i = 0; i < node.length; ++i) {
-      var q = node[i];
+      var _q = node[i];
 
-      if (q.children.length) {
+      if (_q.children.length) {
         // internal
-        var j,
+        var j = void 0,
             n = 0,
             w = 0;
 
-        for (j = 0; j < q.children.length; ++j) {
-          n += q.children[j].n_tips;
-          w += q.children[j].weight;
+        for (j = 0; j < _q.children.length; ++j) {
+          n += _q.children[j].n_tips;
+          w += _q.children[j].weight;
         }
 
-        q.n_tips = n;
-        q.weight = w;
+        _q.n_tips = n;
+        _q.weight = w;
       }
     } // swap children
 
@@ -327,6 +369,21 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return out;
   };
 
+  Branch.prototype.toObject = function () {
+    var output = {
+      id: this.id,
+      length: this.length
+    };
+    if (this.children.length > 0) output.children = this.children.map(function (c) {
+      return c.toObject();
+    });
+    return output;
+  };
+
+  Branch.prototype.toJSON = function () {
+    return JSON.stringify(this.toObject());
+  };
+
   function numberToString(num) {
     var numStr = String(num);
 
@@ -351,48 +408,316 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     return numStr;
-  }
+  } // Adapted from https://github.com/jasondavies/newick.js/blob/master/src/newick.js
 
-  var parseNewick = function parseNewick(newick) {
-    var stack = [],
+
+  function parseNewick(newick) {
+    var ancestors = [],
         tree = new Branch(),
-        s = newick.split(/\s*(;|\(|\)|,|:)\s*/);
+        tokens = newick.split(/\s*(;|\(|\)|,|:)\s*/),
+        n = tokens.length;
 
-    for (var t = 0; t < s.length; t++) {
-      var n = s[t];
+    for (var t = 0; t < n; t++) {
+      var token = tokens[t];
       var c = void 0;
 
-      switch (n) {
+      switch (token) {
         case "(":
+          // new branchset
           c = tree.addChild();
-          stack.push(tree);
+          ancestors.push(tree);
           tree = c;
           break;
 
         case ",":
-          c = stack[stack.length - 1].addChild();
+          // another branch
+          c = ancestors[ancestors.length - 1].addChild();
           tree = c;
           break;
 
         case ")":
-          tree = stack.pop();
+          // optional name next
+          tree = ancestors.pop();
           break;
 
         case ":":
+          // optional length next
           break;
 
         default:
-          var h = s[t - 1];
-          ")" == h || "(" == h || "," == h ? tree.id = n : ":" == h && (tree.length = parseFloat(n));
+          var x = tokens[t - 1];
+
+          if (x == ')' || x == '(' || x == ',') {
+            tree.id = token;
+          } else if (x == ':') {
+            tree.length = parseFloat(token);
+          }
+
       }
     }
 
     return tree;
+  } //Adapted from https://github.com/biosustain/neighbor-joining/blob/master/src/neighbor-joining.js#L3
+
+
+  function parseMatrix(matrix, labels) {
+    var that = {};
+    var N = that.N = matrix.length;
+    if (!labels) labels = _toConsumableArray(Array(N).keys());
+    that.cN = that.N;
+    that.D = matrix;
+    that.labels = labels;
+    that.labelToTaxon = {};
+    that.currIndexToLabel = new Array(N);
+    that.rowChange = new Array(N);
+    that.newRow = new Array(N);
+    that.labelToNode = new Array(2 * N);
+    that.nextIndex = N;
+    that.I = new Array(that.N);
+    that.S = new Array(that.N);
+
+    for (var i = 0; i < that.N; i++) {
+      var sortedRow = sortWithIndices(that.D[i], i, true);
+      that.S[i] = sortedRow;
+      that.I[i] = sortedRow.sortIndices;
+    }
+
+    that.removedIndices = new Set();
+    that.indicesLeft = new Set();
+
+    for (var _i = 0; _i < N; _i++) {
+      that.currIndexToLabel[_i] = _i;
+      that.indicesLeft.add(_i);
+    }
+
+    that.rowSumMax = 0;
+    that.PNewick = "";
+    var minI, minJ, d1, d2, l1, l2, node1, node2, node3;
+
+    function setUpNode(labelIndex, distance) {
+      var node;
+
+      if (labelIndex < that.N) {
+        node = new Branch({
+          id: that.labels[labelIndex],
+          length: distance
+        });
+        that.labelToNode[labelIndex] = node;
+      } else {
+        node = that.labelToNode[labelIndex];
+        node.setLength(distance);
+      }
+
+      return node;
+    }
+
+    that.rowSums = sumRows(that.D);
+
+    for (var _i2 = 0; _i2 < that.cN; _i2++) {
+      if (that.rowSums[_i2] > that.rowSumMax) that.rowSumMax = that.rowSums[_i2];
+    }
+
+    while (that.cN > 2) {
+      //if (that.cN % 100 == 0 ) console.log(that.cN);
+      var _search = search(that);
+
+      minI = _search.minI;
+      minJ = _search.minJ;
+      d1 = 0.5 * that.D[minI][minJ] + (that.rowSums[minI] - that.rowSums[minJ]) / (2 * that.cN - 4);
+      d2 = that.D[minI][minJ] - d1;
+      l1 = that.currIndexToLabel[minI];
+      l2 = that.currIndexToLabel[minJ];
+      node1 = setUpNode(l1, d1);
+      node2 = setUpNode(l2, d2);
+      node3 = new Branch({
+        children: [node1, node2]
+      });
+      recalculateDistanceMatrix(that, minI, minJ);
+      var sorted = sortWithIndices(that.D[minJ], minJ, true);
+      that.S[minJ] = sorted;
+      that.I[minJ] = sorted.sortIndices;
+      that.S[minI] = that.I[minI] = [];
+      that.cN--;
+      that.labelToNode[that.nextIndex] = node3;
+      that.currIndexToLabel[minI] = -1;
+      that.currIndexToLabel[minJ] = that.nextIndex++;
+    }
+
+    var left = that.indicesLeft.values();
+    minI = left.next().value;
+    minJ = left.next().value;
+    l1 = that.currIndexToLabel[minI];
+    l2 = that.currIndexToLabel[minJ];
+    d1 = d2 = that.D[minI][minJ] / 2;
+    node1 = setUpNode(l1, d1);
+    node2 = setUpNode(l2, d2);
+    var tree = new Branch({
+      children: [node1, node2]
+    });
+    tree.fixParenthood();
+    return tree;
+  }
+
+  function search(t) {
+    var qMin = Infinity,
+        D = t.D,
+        cN = t.cN,
+        n2 = cN - 2,
+        S = t.S,
+        I = t.I,
+        rowSums = t.rowSums,
+        removedColumns = t.removedIndices,
+        uMax = t.rowSumMax,
+        q,
+        minI = -1,
+        minJ = -1,
+        c2; // initial guess for qMin
+
+    for (var r = 0; r < t.N; r++) {
+      if (removedColumns.has(r)) continue;
+      c2 = I[r][0];
+      if (removedColumns.has(c2)) continue;
+      q = D[r][c2] * n2 - rowSums[r] - rowSums[c2];
+
+      if (q < qMin) {
+        qMin = q;
+        minI = r;
+        minJ = c2;
+      }
+    }
+
+    for (var _r = 0; _r < t.N; _r++) {
+      if (removedColumns.has(_r)) continue;
+
+      for (var c = 0; c < S[_r].length; c++) {
+        c2 = I[_r][c];
+        if (removedColumns.has(c2)) continue;
+        if (S[_r][c] * n2 - rowSums[_r] - uMax > qMin) break;
+        q = D[_r][c2] * n2 - rowSums[_r] - rowSums[c2];
+
+        if (q < qMin) {
+          qMin = q;
+          minI = _r;
+          minJ = c2;
+        }
+      }
+    }
+
+    return {
+      minI: minI,
+      minJ: minJ
+    };
+  }
+
+  function recalculateDistanceMatrix(t, joinedIndex1, joinedIndex2) {
+    var D = t.D,
+        n = D.length,
+        sum = 0,
+        aux,
+        aux2,
+        removedIndices = t.removedIndices,
+        rowSums = t.rowSums,
+        newRow = t.newRow,
+        rowChange = t.rowChange,
+        newMax = 0;
+    removedIndices.add(joinedIndex1);
+
+    for (var i = 0; i < n; i++) {
+      if (removedIndices.has(i)) continue;
+      aux = D[joinedIndex1][i] + D[joinedIndex2][i];
+      aux2 = D[joinedIndex1][joinedIndex2];
+      newRow[i] = 0.5 * (aux - aux2);
+      sum += newRow[i];
+      rowChange[i] = -0.5 * (aux + aux2);
+    }
+
+    for (var _i3 = 0; _i3 < n; _i3++) {
+      D[joinedIndex1][_i3] = -1;
+      D[_i3][joinedIndex1] = -1;
+      if (removedIndices.has(_i3)) continue;
+      D[joinedIndex2][_i3] = newRow[_i3];
+      D[_i3][joinedIndex2] = newRow[_i3];
+      rowSums[_i3] += rowChange[_i3];
+      if (rowSums[_i3] > newMax) newMax = rowSums[_i3];
+    }
+
+    rowSums[joinedIndex1] = 0;
+    rowSums[joinedIndex2] = sum;
+    if (sum > newMax) newMax = sum;
+    t.rowSumMax = newMax;
+    t.indicesLeft.delete(joinedIndex1);
+  }
+
+  function sumRows(a) {
+    var n = a.length,
+        sums = new Array(n);
+
+    for (var i = 0; i < n; i++) {
+      var sum = 0;
+
+      for (var j = 0; j < n; j++) {
+        var v = parseFloat(a[i][j]);
+        if (typeof v !== 'number') continue;
+        sum += a[i][j];
+      }
+
+      sums[i] = sum;
+    }
+
+    return sums;
+  }
+
+  function sortWithIndices(toSort, skip) {
+    if (typeof skip === 'undefined') skip = -1;
+    var n = toSort.length;
+    var indexCopy = new Array(n);
+    var valueCopy = new Array(n);
+    var i2 = 0;
+
+    for (var i = 0; i < n; i++) {
+      if (toSort[i] === -1 || i === skip) continue;
+      indexCopy[i2] = i;
+      valueCopy[i2++] = toSort[i];
+    }
+
+    indexCopy.length = i2;
+    valueCopy.length = i2;
+    indexCopy.sort(function (a, b) {
+      return toSort[a] - toSort[b];
+    });
+    valueCopy.sortIndices = indexCopy;
+
+    for (var j = 0; j < i2; j++) {
+      valueCopy[j] = toSort[indexCopy[j]];
+    }
+
+    return valueCopy;
+  }
+
+  var parseJSON = function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
+    if (!idLabel) idLabel = 'id';
+    if (!lengthLabel) lengthLabel = 'length';
+    if (!childrenLabel) childrenLabel = 'children';
+    if (typeof json === 'string') json = JSON.parse(json);
+    var root = new Branch({
+      id: json[idLabel],
+      length: json[lengthLabel]
+    });
+
+    if (json[childrenLabel] instanceof Array) {
+      json[childrenLabel].forEach(function (child) {
+        root.addChild(patristic.parseJSON(child));
+      });
+    }
+
+    return root;
   };
 
   return {
-    branch: Branch,
-    parseNewick: parseNewick
+    Branch: Branch,
+    parseMatrix: parseMatrix,
+    parseNewick: parseNewick,
+    parseJSON: parseJSON
   };
 });
 

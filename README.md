@@ -10,7 +10,7 @@ patristic is a javascript toolkit for working with phylogenies. It can:
 
 # Installation
 
-To install patristic package with NPM use: `npm install git+https://github.com/CDCgov/patristic.git`
+To install patristic package with NPM use: `npm install --save patristic`
 
 # Usage
 
@@ -24,27 +24,63 @@ var newick = "(A:0.1,B:0.2,(C:0.3,(D:0.4,E:0.6):0.1):0.5);";
 var tree = patristic.parseNewick(newick);
 ```
 
-(Note that elements in the tree object maintain references to their parents,
-creating circular references.)
-
 More interestingly, we can use this tree to compute a patristic distance matrix.
 
 ```javascript
-var matrix = tree.computeMatrix();
+var matrix = tree.toMatrix();
+```
+
+Note that elements in the tree object maintain references to their parents,
+creating circular references. If you need a tree without circular references for
+some sort of serialization:
+
+```javascript
+tree.toObject();
+```
+
+Although, let's be honest: you're going to make it JSON. We've got you covered:
+
+```javascript
+tree.toJSON();
 ```
 
 ## Function Reference
 
 ```
 patristic = {
-  computeMatrix: function (text) - Given a newick string, returns a patristic distance matrix.
-  depth: function (root, leaf) - Given a root and a leaf, returns the depth of the leafs relative to the root.
-  distanceBetween: function (tree, a, b) -
-  getLeaf: function (root, name) -
-  getLeafNames: function (tree) -
-  getLeaves: function (tree) -
-  isChildOf: function (root, leaf) -
+  Branch: function (data) - given a data object, returns a Branch object with that data. Mostly used internally, but possibly useful outside (hence the export).
+  parseJSON: function (json) - given Javascript object or JSON string, returns tree
   parseNewick: function (newick) - given newick string, returns tree
+  parseMatrix: function (matrix, labels) - given an array of n arrasy of length n (containing pairwise distances), computes the neighborjoining tree. Optionally labels the leaves in the tree with labels, an array of n strings.
+};
+```
+
+You'll also want to know methods on Branch objects:
+
+```
+Branch = {
+  addChild: function (data)
+  addParent: function (data, siblings)
+  depthOf: function (child)
+  distanceBetween: function (a, b)
+  fixParenthood: function (nonrecursive)
+  getDescendant: function (id)
+  getDescendants: function ()
+  getRoot: function ()
+  hasChild: function (child)
+  hasDescendant: function (descendant)
+  isChildOf: function (parent)
+  isDescendantOf: function (ancestor)
+  isRoot: function ()
+  remove: function ()
+  reorder: function (sortfn)
+  reroot: function ()
+  setLength: function (length)
+  setParent: function (parent)
+  toJSON: function ()
+  toMatrix: function ()
+  toNewick: function (nonterminus)
+  toObject: function ()
 };
 ```
 
