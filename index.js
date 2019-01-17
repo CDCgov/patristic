@@ -1,28 +1,232 @@
-(function (root, patristic) {
+(function (root, factory) {
   if (typeof define === 'function' && define.amd) {
-    // AMD. Register as an anonymous module.
-    define([], function(){
-      return (root.patristic = patristic());
-    });
+    define([], function(){ return (root.patristic = factory()) });
   } else if (typeof module === 'object' && module.exports) {
-    // Node. Does not work with strict CommonJS, but
-    // only CommonJS-like environments that support module.exports,
-    // like Node.
-    module.exports = patristic();
+    module.exports = factory();
   } else {
-    // Browser globals
-    root.patristic = patristic();
+    root.patristic = factory();
   }
 }(typeof self !== 'undefined' ? self : this, function(){
   "use strict";
+
+  function parseMatrix(matrix, labels){
+    if(!labels) labels = [...Array(5).keys()];
+    let N = this.N = labels.length;
+    this.cN = this.N;
+    this.D = matrix;
+    this.labels = labels;
+    this.labelToTaxon = {};
+    this.currIndexToLabel = new Array(N);
+    this.rowChange = new Array(N);
+    this.newRow = new Array(N);
+    this.labelToNode = new Array(2 * N);
+    this.nextIndex = N;
+    this.I = new Array(this.N);
+    this.S = new Array(this.N);
+    for (let i = 0; i < this.N; i++){
+      let sortedRow = sortWithIndices(this.D[i], i, true);
+      this.S[i] = sortedRow;
+      this.I[i] = sortedRow.sortIndices;
+    }
+    this.removedIndices = new Set();
+    this.indicesLeft = new Set();
+    for (let i = 0; i < N; i++){
+      this.currIndexToLabel[i] = i;
+      this.indicesLeft.add(i);
+    }
+    this.rowSumMax = 0;
+    this.PNewick = "";
+    let minI, minJ,
+        d1, d2,
+        l1, l2,
+        node1, node2, node3,
+        self = this;
+
+    function setUpNode(labelIndex, distance){
+      let node;
+      if(labelIndex < self.N){
+        node = new Branch({id: self.labels[labelIndex], length: distance});
+        self.labelToNode[labelIndex] = node;
+      } else {
+        node = self.labelToNode[labelIndex];
+        node.setLength(distance);
+      }
+      return node;
+    }
+
+    this.rowSums = sumRows(this.D);
+    for (let i = 0; i < this.cN; i++){
+      if (this.rowSums[i] > this.rowSumMax) this.rowSumMax = this.rowSums[i];
+    }
+
+    while(this.cN > 2){
+      //if (this.cN % 100 == 0 ) console.log(this.cN);
+      ({ minI, minJ } = search(this));
+
+      d1 = 0.5 * this.D[minI][minJ] + (this.rowSums[minI] - this.rowSums[minJ]) / (2 * this.cN - 4);
+      d2 = this.D[minI][minJ] - d1;
+
+      l1 = this.currIndexToLabel[minI];
+      l2 = this.currIndexToLabel[minJ];
+
+      node1 = setUpNode(l1, d1);
+      node2 = setUpNode(l2, d2);
+      node3 = new Branch({children: [node1, node2]});
+
+      recalculateDistanceMatrix(this, minI, minJ);
+      let sorted = sortWithIndices(this.D[minJ], minJ, true);
+      this.S[minJ] = sorted;
+      this.I[minJ] = sorted.sortIndices;
+      this.S[minI] = this.I[minI] = [];
+      this.cN--;
+
+      this.labelToNode[this.nextIndex] = node3;
+      this.currIndexToLabel[minI] = -1;
+      this.currIndexToLabel[minJ] = this.nextIndex++;
+    }
+
+    let left = this.indicesLeft.values();
+    minI = left.next().value;
+    minJ = left.next().value;
+
+    l1 = this.currIndexToLabel[minI];
+    l2 = this.currIndexToLabel[minJ];
+    d1 = d2 = this.D[minI][minJ] / 2;
+
+    node1 = setUpNode(l1, d1);
+    node2 = setUpNode(l2, d2);
+
+    var tree = new Branch({children: [node1, node2]});
+    tree.fixParenthood();
+    return tree;
+  }
+
+  function search(t){
+    let qMin = Infinity,
+        D = t.D,
+        cN = t.cN,
+        n2 = cN - 2,
+        S = t.S,
+        I = t.I,
+        rowSums = t.rowSums,
+        removedColumns = t.removedIndices,
+        uMax = t.rowSumMax,
+        q, minI = -1, minJ = -1, c2;
+
+    // initial guess for qMin
+    for (let r = 0; r < t.N; r++){
+      if (removedColumns.has(r)) continue;
+      c2 = I[r][0];
+      if (removedColumns.has(c2)) continue;
+      q = D[r][c2] * n2 - rowSums[r] - rowSums[c2];
+      if (q < qMin){
+        qMin = q;
+        minI = r;
+        minJ = c2;
+      }
+    }
+
+    for (let r = 0; r < t.N; r++){
+      if (removedColumns.has(r)) continue;
+      for (let c = 0; c < S[r].length; c++){
+        c2 = I[r][c];
+        if (removedColumns.has(c2)) continue;
+        if (S[r][c] * n2 - rowSums[r] - uMax > qMin) break;
+        q = D[r][c2] * n2 - rowSums[r] - rowSums[c2];
+        if (q < qMin){
+          qMin = q;
+          minI = r;
+          minJ = c2;
+        }
+      }
+    }
+
+    return {minI, minJ};
+  }
+
+  function recalculateDistanceMatrix(t, joinedIndex1, joinedIndex2){
+    let D = t.D,
+        n = D.length,
+        sum = 0, aux, aux2,
+        removedIndices = t.removedIndices,
+        rowSums = t.rowSums,
+        newRow = t.newRow,
+        rowChange = t.rowChange,
+        newMax = 0;
+
+    removedIndices.add(joinedIndex1);
+    for (let i = 0; i < n; i++){
+      if (removedIndices.has(i)) continue;
+      aux = D[joinedIndex1][i] + D[joinedIndex2][i];
+      aux2 = D[joinedIndex1][joinedIndex2];
+      newRow[i] = 0.5 * (aux - aux2);
+      sum += newRow[i];
+      rowChange[i] = -0.5 * (aux + aux2);
+    }
+    for (let i = 0; i < n; i++){
+      D[joinedIndex1][i] = -1;
+      D[i][joinedIndex1] = -1;
+      if (removedIndices.has(i)) continue;
+      D[joinedIndex2][i] = newRow[i];
+      D[i][joinedIndex2] = newRow[i];
+      rowSums[i] += rowChange[i];
+      if (rowSums[i] > newMax) newMax = rowSums[i];
+    }
+    rowSums[joinedIndex1] = 0;
+    rowSums[joinedIndex2] = sum;
+    if (sum > newMax) newMax = sum;
+    t.rowSumMax = newMax;
+    t.indicesLeft.delete(joinedIndex1);
+  }
+
+  function sumRows(a){
+    let n = a.length,
+        sums = new Array(n);
+    for (let i = 0; i < n; i++){
+      let sum = 0;
+      for (let j = 0; j < n; j++){
+        let v = parseFloat(a[i][j]);
+        if(typeof v !== 'number') continue;
+        sum += a[i][j];
+      }
+      sums[i] = sum;
+    }
+    return sums;
+  }
+
+  function sortWithIndices(toSort, skip){
+    if(typeof skip === 'undefined') skip = -1;
+    var n = toSort.length;
+    var indexCopy = new Array(n);
+    var valueCopy = new Array(n);
+    var i2 = 0;
+    for (var i = 0; i < n; i++){
+      if (toSort[i] === -1 || i === skip) continue;
+      indexCopy[i2] = i;
+      valueCopy[i2++] = toSort[i];
+    }
+    indexCopy.length = i2;
+    valueCopy.length = i2;
+    indexCopy.sort((a, b) => toSort[a] - toSort[b]);
+    valueCopy.sortIndices = indexCopy;
+    for (var j = 0; j < i2; j++){
+      valueCopy[j] = toSort[indexCopy[j]];
+    }
+    return valueCopy;
+  }
 
   function Branch(data){
     Object.assign(this, {
       id: '',
       parent: null,
+      length: 0,
       children: []
     }, data);
   }
+
+  Branch.prototype.setLength = function(length){
+    this.length = length;
+  };
 
   Branch.prototype.addChild = function(data){
     let c;
@@ -145,6 +349,16 @@
     return this;
   };
 
+  Branch.prototype.fixParenthood = function(nonrecursive){
+    this.children.forEach(child => {
+      if(!child.parent) child.parent = this;
+      if(!nonrecursive && child.children.length > 0){
+        child.fixParenthood();
+      }
+    });
+  };
+
+  //Largely adapted from http://lh3lh3.users.sourceforge.net/knhx.js#kn_reroot
   Branch.prototype.reroot = function(){
     if(this.isRoot()) return this;
     var d, //d: previous distance p->d
@@ -313,8 +527,5 @@
     return tree;
   };
 
-  return {
-    branch: Branch,
-    parseNewick: parseNewick
-  };
+  return { Branch, parseMatrix, parseNewick };
 }));

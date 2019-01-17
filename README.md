@@ -1,5 +1,12 @@
-patristic is a javascript library for inferring distance matrices from
-phylogenetic trees.
+# patristic
+
+patristic is a javascript toolkit for working with phylogenies. It can:
+
+* Parse newick into Javacsipt objects representing the phylogenetic tree
+* Run neighborjoining to compute a phylogenetic tree from a distance matrix
+* Infer a patristic distance matrix from a phylogenetic tree
+* Infer directionality between two leaves in the tree
+* Reroot a tree on any given leaf node
 
 # Installation
 
