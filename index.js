@@ -492,6 +492,18 @@
     return out;
   };
 
+  Branch.prototype.toObject = function(){
+    return {
+      id: this.id,
+      length: this.length,
+      children: this.children.map(c => c.toObject())
+    };
+  };
+
+  Branch.prototype.toJSON = function(){
+    return JSON.stringify(this.toObject());
+  };
+
   function numberToString(num){
     let numStr = String(num);
     if(Math.abs(num) < 1.0){
@@ -544,5 +556,22 @@
     return tree;
   };
 
-  return { Branch, parseMatrix, parseNewick };
+  let parseJSON = function(json, idLabel, lengthLabel, childrenLabel){
+    if(!idLabel) idLabel = 'id';
+    if(!lengthLabel) lengthLabel = 'length';
+    if(!childrenLabel) childrenLabel = 'children';
+    if(typeof json === 'string') json = JSON.parse(json);
+    var root = new Branch({
+      id: json[idLabel],
+      length: json[lengthLabel]
+    });
+    if(json[childrenLabel] instanceof Array){
+      json[childrenLabel].forEach(child => {
+        root.addChild(patristic.parseJSON(child));
+      });
+    }
+    return root;
+  };
+
+  return { Branch, parseMatrix, parseNewick, parseJSON };
 }));
