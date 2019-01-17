@@ -243,6 +243,20 @@
     return c;
   };
 
+  Branch.prototype.addParent = function(data, siblings){
+    let c;
+    if(data instanceof Branch){
+      c = data;
+    } else {
+      if(!data) data = {};
+      c = new Branch(Object.assign(data));
+    }
+    siblings.forEach(sib => sib.setParent(c));
+    c.children = [this].concat(siblings);
+    this.parent = c;
+    return c;
+  };
+
   Branch.prototype.hasChild = function(child){
     if(typeof child === "object") child = child.id;
     return this.children.includes(child);
@@ -346,6 +360,10 @@
     this.parent.children.splice(index, 1);
     this.parent = null;
     return this;
+  };
+
+  Branch.prototype.setParent = function(parent){
+    this.parent = parent;
   };
 
   Branch.prototype.fixParenthood = function(nonrecursive){
