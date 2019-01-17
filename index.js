@@ -11,87 +11,87 @@
 
   function parseMatrix(matrix, labels){
     if(!labels) labels = [...Array(5).keys()];
-    let N = this.N = labels.length;
-    this.cN = this.N;
-    this.D = matrix;
-    this.labels = labels;
-    this.labelToTaxon = {};
-    this.currIndexToLabel = new Array(N);
-    this.rowChange = new Array(N);
-    this.newRow = new Array(N);
-    this.labelToNode = new Array(2 * N);
-    this.nextIndex = N;
-    this.I = new Array(this.N);
-    this.S = new Array(this.N);
-    for (let i = 0; i < this.N; i++){
-      let sortedRow = sortWithIndices(this.D[i], i, true);
-      this.S[i] = sortedRow;
-      this.I[i] = sortedRow.sortIndices;
+    let that = {};
+    let N = that.N = labels.length;
+    that.cN = that.N;
+    that.D = matrix;
+    that.labels = labels;
+    that.labelToTaxon = {};
+    that.currIndexToLabel = new Array(N);
+    that.rowChange = new Array(N);
+    that.newRow = new Array(N);
+    that.labelToNode = new Array(2 * N);
+    that.nextIndex = N;
+    that.I = new Array(that.N);
+    that.S = new Array(that.N);
+    for (let i = 0; i < that.N; i++){
+      let sortedRow = sortWithIndices(that.D[i], i, true);
+      that.S[i] = sortedRow;
+      that.I[i] = sortedRow.sortIndices;
     }
-    this.removedIndices = new Set();
-    this.indicesLeft = new Set();
+    that.removedIndices = new Set();
+    that.indicesLeft = new Set();
     for (let i = 0; i < N; i++){
-      this.currIndexToLabel[i] = i;
-      this.indicesLeft.add(i);
+      that.currIndexToLabel[i] = i;
+      that.indicesLeft.add(i);
     }
-    this.rowSumMax = 0;
-    this.PNewick = "";
+    that.rowSumMax = 0;
+    that.PNewick = "";
     let minI, minJ,
         d1, d2,
         l1, l2,
-        node1, node2, node3,
-        self = this;
+        node1, node2, node3;
 
     function setUpNode(labelIndex, distance){
       let node;
-      if(labelIndex < self.N){
-        node = new Branch({id: self.labels[labelIndex], length: distance});
-        self.labelToNode[labelIndex] = node;
+      if(labelIndex < that.N){
+        node = new Branch({id: that.labels[labelIndex], length: distance});
+        that.labelToNode[labelIndex] = node;
       } else {
-        node = self.labelToNode[labelIndex];
+        node = that.labelToNode[labelIndex];
         node.setLength(distance);
       }
       return node;
     }
 
-    this.rowSums = sumRows(this.D);
-    for (let i = 0; i < this.cN; i++){
-      if (this.rowSums[i] > this.rowSumMax) this.rowSumMax = this.rowSums[i];
+    that.rowSums = sumRows(that.D);
+    for (let i = 0; i < that.cN; i++){
+      if (that.rowSums[i] > that.rowSumMax) that.rowSumMax = that.rowSums[i];
     }
 
-    while(this.cN > 2){
-      //if (this.cN % 100 == 0 ) console.log(this.cN);
-      ({ minI, minJ } = search(this));
+    while(that.cN > 2){
+      //if (that.cN % 100 == 0 ) console.log(that.cN);
+      ({ minI, minJ } = search(that));
 
-      d1 = 0.5 * this.D[minI][minJ] + (this.rowSums[minI] - this.rowSums[minJ]) / (2 * this.cN - 4);
-      d2 = this.D[minI][minJ] - d1;
+      d1 = 0.5 * that.D[minI][minJ] + (that.rowSums[minI] - that.rowSums[minJ]) / (2 * that.cN - 4);
+      d2 = that.D[minI][minJ] - d1;
 
-      l1 = this.currIndexToLabel[minI];
-      l2 = this.currIndexToLabel[minJ];
+      l1 = that.currIndexToLabel[minI];
+      l2 = that.currIndexToLabel[minJ];
 
       node1 = setUpNode(l1, d1);
       node2 = setUpNode(l2, d2);
       node3 = new Branch({children: [node1, node2]});
 
-      recalculateDistanceMatrix(this, minI, minJ);
-      let sorted = sortWithIndices(this.D[minJ], minJ, true);
-      this.S[minJ] = sorted;
-      this.I[minJ] = sorted.sortIndices;
-      this.S[minI] = this.I[minI] = [];
-      this.cN--;
+      recalculateDistanceMatrix(that, minI, minJ);
+      let sorted = sortWithIndices(that.D[minJ], minJ, true);
+      that.S[minJ] = sorted;
+      that.I[minJ] = sorted.sortIndices;
+      that.S[minI] = that.I[minI] = [];
+      that.cN--;
 
-      this.labelToNode[this.nextIndex] = node3;
-      this.currIndexToLabel[minI] = -1;
-      this.currIndexToLabel[minJ] = this.nextIndex++;
+      that.labelToNode[that.nextIndex] = node3;
+      that.currIndexToLabel[minI] = -1;
+      that.currIndexToLabel[minJ] = that.nextIndex++;
     }
 
-    let left = this.indicesLeft.values();
+    let left = that.indicesLeft.values();
     minI = left.next().value;
     minJ = left.next().value;
 
-    l1 = this.currIndexToLabel[minI];
-    l2 = this.currIndexToLabel[minJ];
-    d1 = d2 = this.D[minI][minJ] / 2;
+    l1 = that.currIndexToLabel[minI];
+    l2 = that.currIndexToLabel[minJ];
+    d1 = d2 = that.D[minI][minJ] / 2;
 
     node1 = setUpNode(l1, d1);
     node2 = setUpNode(l2, d2);
