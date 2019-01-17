@@ -266,16 +266,15 @@
   };
 
   Branch.prototype.getDescendants = function(){
-    if(this.descendants) return this.descendants;
-    this.descendants = [];
+    let descendants = [];
     if(this.children.length > 0){
       this.children.forEach(child => {
-        this.descendants = this.descendants.concat(child.getDescendants());
+        child.getDescendants().forEach(d => descendants.push(d));
       });
     } else {
       return [this];
     }
-    return this.descendants;
+    return descendants;
   };
 
   Branch.prototype.hasDescendant = function(descendant){
