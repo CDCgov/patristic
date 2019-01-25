@@ -19,7 +19,7 @@
   "contributors": [
     "Tony Boyles <nsp3@cdc.gov>"
   ],
-  "license": "MIT",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/CDCgov/patristic/issues"
   },
