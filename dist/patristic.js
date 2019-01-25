@@ -22,6 +22,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   }
 })(typeof self !== 'undefined' ? self : void 0, function () {
   "use strict";
+  /**
+   * [Branch description]
+   * @param       {[type]} data [description]
+   * @constructor
+   */
 
   function Branch(data) {
     Object.assign(this, {
@@ -408,56 +413,43 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     return numStr;
-  } // Adapted from https://github.com/jasondavies/newick.js/blob/master/src/newick.js
+  }
+  /**
+   * [description]
+   * @param  {[type]} json          [description]
+   * @param  {[type]} idLabel       [description]
+   * @param  {[type]} lengthLabel   [description]
+   * @param  {[type]} childrenLabel [description]
+   * @return {[type]}               [description]
+   */
 
 
-  function parseNewick(newick) {
-    var ancestors = [],
-        tree = new Branch(),
-        tokens = newick.split(/\s*(;|\(|\)|,|:)\s*/),
-        n = tokens.length;
+  var parseJSON = function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
+    if (!idLabel) idLabel = 'id';
+    if (!lengthLabel) lengthLabel = 'length';
+    if (!childrenLabel) childrenLabel = 'children';
+    if (typeof json === 'string') json = JSON.parse(json);
+    var root = new Branch({
+      id: json[idLabel],
+      length: json[lengthLabel]
+    });
 
-    for (var t = 0; t < n; t++) {
-      var token = tokens[t];
-      var c = void 0;
-
-      switch (token) {
-        case "(":
-          // new branchset
-          c = tree.addChild();
-          ancestors.push(tree);
-          tree = c;
-          break;
-
-        case ",":
-          // another branch
-          c = ancestors[ancestors.length - 1].addChild();
-          tree = c;
-          break;
-
-        case ")":
-          // optional name next
-          tree = ancestors.pop();
-          break;
-
-        case ":":
-          // optional length next
-          break;
-
-        default:
-          var x = tokens[t - 1];
-
-          if (x == ')' || x == '(' || x == ',') {
-            tree.id = token;
-          } else if (x == ':') {
-            tree.length = parseFloat(token);
-          }
-
-      }
+    if (json[childrenLabel] instanceof Array) {
+      json[childrenLabel].forEach(function (child) {
+        root.addChild(patristic.parseJSON(child));
+      });
     }
 
-    return tree;
-  } //Adapted from https://github.com/biosustain/neighbor-joining/blob/master/src/neighbor-joining.js#L3
+    return root;
+  };
+  /**
+   * Parses a matrix of distances and returns the root Branch of the output tree
+   * Note that this is adapted from Maciej Korzepa's neighbor-joining, which is
+   * released for modification under the MIT License.
+   * @param  {Array} matrix An array of n arrays of length n
+   * @param  {Array} labels An array of strings corresponding to the values in matrix
+   * @return {Branch} A Branch object representing the root node of the tree inferred by neighbor joining on matrix
+   */
 
 
   function parseMatrix(matrix, labels) {
@@ -693,31 +685,69 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     return valueCopy;
   }
+  /**
+    * Parses a Newick String and returns a Branch object representing the root
+    * of the output Tree.
+    * Note that this is adapted Jason Davies' newick.js, which is released for
+    * modification under the MIT License.
+    * @param  {string} newick A Newick String
+    * @return {Branch}        A Branch representing the root of the output
+    */
 
-  var parseJSON = function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
-    if (!idLabel) idLabel = 'id';
-    if (!lengthLabel) lengthLabel = 'length';
-    if (!childrenLabel) childrenLabel = 'children';
-    if (typeof json === 'string') json = JSON.parse(json);
-    var root = new Branch({
-      id: json[idLabel],
-      length: json[lengthLabel]
-    });
 
-    if (json[childrenLabel] instanceof Array) {
-      json[childrenLabel].forEach(function (child) {
-        root.addChild(patristic.parseJSON(child));
-      });
+  function parseNewick(newick) {
+    var ancestors = [],
+        tree = new Branch(),
+        tokens = newick.split(/\s*(;|\(|\)|,|:)\s*/),
+        n = tokens.length;
+
+    for (var t = 0; t < n; t++) {
+      var token = tokens[t];
+      var c = void 0;
+
+      switch (token) {
+        case "(":
+          // new branchset
+          c = tree.addChild();
+          ancestors.push(tree);
+          tree = c;
+          break;
+
+        case ",":
+          // another branch
+          c = ancestors[ancestors.length - 1].addChild();
+          tree = c;
+          break;
+
+        case ")":
+          // optional name next
+          tree = ancestors.pop();
+          break;
+
+        case ":":
+          // optional length next
+          break;
+
+        default:
+          var x = tokens[t - 1];
+
+          if (x == ')' || x == '(' || x == ',') {
+            tree.id = token;
+          } else if (x == ':') {
+            tree.length = parseFloat(token);
+          }
+
+      }
     }
 
-    return root;
-  };
+    return tree;
+  }
 
   return {
     Branch: Branch,
+    parseJSON: parseJSON,
     parseMatrix: parseMatrix,
-    parseNewick: parseNewick,
-    parseJSON: parseJSON
+    parseNewick: parseNewick
   };
 });
 
