@@ -1,30 +1,30 @@
 # patristic
 
-patristic is a javascript toolkit for working with phylogenies. It can:
+`patristic` is a javascript toolkit for working with phylogenies. It can:
 
 * Parse newick into Javacsipt objects representing the phylogenetic tree
-* Run neighborjoining to compute a phylogenetic tree from a distance matrix
+* Run rapid neighbor joining to compute a phylogenetic tree from a distance matrix
 * Infer a patristic distance matrix from a phylogenetic tree
-* Infer directionality between two leaves in the tree
 * Reroot a tree on any given leaf node
+* Infer directionality between two leaves in the tree (in development)
 
-# Installation
+## Installation
 
 To install patristic package with NPM use: `npm install --save patristic`
 
-# Usage
+## Usage
 
 Please note that this is very much an alpha-stage API and is (all but certainly)
 going to change in the very near future.
 
-## Quick Start
+### Quick Start
 
 ```javascript
 var newick = "(A:0.1,B:0.2,(C:0.3,(D:0.4,E:0.6):0.1):0.5);";
 var tree = patristic.parseNewick(newick);
 ```
 
-More interestingly, we can use this tree to compute a patristic distance matrix.
+We can use this tree to compute a patristic distance matrix.
 
 ```javascript
 var matrix = tree.toMatrix();
@@ -46,43 +46,63 @@ tree.toJSON();
 
 ## Function Reference
 
-```
-patristic = {
-  Branch: function (data) - given a data object, returns a Branch object with that data. Mostly used internally, but possibly useful outside (hence the export).
-  parseJSON: function (json) - given Javascript object or JSON string, returns tree
-  parseNewick: function (newick) - given newick string, returns tree
-  parseMatrix: function (matrix, labels) - given an array of n arrasy of length n (containing pairwise distances), computes the neighborjoining tree. Optionally labels the leaves in the tree with labels, an array of n strings.
-};
-```
+`patristic.parseJSON(json, idLabel, lengthLabel, childrenLabel)` - Parses a JSON string (`json`) containing a tree, returning a `Branch` object representing the root of the tree.
 
-You'll also want to know methods on Branch objects:
+`patristic.parseMatrix(matrix, labels)` - Parses a "matrix" (an array of arrays) specifying pairwise distances between individuals/samples/whatever. Also accepts an optional array of strings to be used as identifiers for the aforementioned individuals/samples/whatever. Runs [Rapid Neighbor Joining]() to assemble a tree and returns the Branch object of the root.
 
-```
-Branch = {
-  addChild: function (data)
-  addParent: function (data, siblings)
-  depthOf: function (child)
-  distanceBetween: function (a, b)
-  fixParenthood: function (nonrecursive)
-  getDescendant: function (id)
-  getDescendants: function ()
-  getRoot: function ()
-  hasChild: function (child)
-  hasDescendant: function (descendant)
-  isChildOf: function (parent)
-  isDescendantOf: function (ancestor)
-  isRoot: function ()
-  remove: function ()
-  reorder: function (sortfn)
-  reroot: function ()
-  setLength: function (length)
-  setParent: function (parent)
-  toJSON: function ()
-  toMatrix: function ()
-  toNewick: function (nonterminus)
-  toObject: function ()
-};
-```
+`patristic.parseNewick(newick)` - Parses a newick string and returns a Branch object representing the root node of the tree.
+
+`patristic.Branch(data)` - creates a new Branch Object. You'll probably want to use one of the above parsers, rather than programatically create branches directly.
+
+Once you have your root `Branch`, it (and its children) expose the following methods:
+
+`Branch.addChild(data)` - Takes `data` and (if it is not already a Branch object, creates one with it, and) adds it as a child of the Branch on which it is called.
+
+`Branch.addChildren(children)` - Iterates over either an array or the given arguments and calls `Branch.addChild` on each.
+
+`Branch.addParent(data, siblings)`
+
+`Branch.depthOf(child)`
+
+`Branch.distanceBetween(a, b)`
+
+`Branch.fixParenthood(nonrecursive)` - corrects records of parenthood, which can become corrupted during certain mutative operations (e.g. `reroot`). Mostly intended for internal use: If you need to call this, you've probably edited some Branch incorrectly.
+
+`Branch.getDescendant(id)`
+
+`Branch.getDescendants()`
+
+`Branch.getRoot()`
+
+`Branch.hasChild(child)`
+
+`Branch.hasDescendant(descendant)`
+
+`Branch.isChildOf(parent)`
+
+`Branch.isDescendantOf(ancestor)`
+
+`Branch.isLeaf()` - returns a boolean indicating whether or not a Branch object is a leaf node (i.e. has no children).
+
+`Branch.isRoot()` - returns a boolean indicating whether or not a Branch object is the root of a tree (i.e. has no parent).
+
+`Branch.remove()`
+
+`Branch.reorder(sortfn)`
+
+`Branch.reroot()`
+
+`Branch.setLength(length)`
+
+`Branch.setParent(parent)`
+
+`Branch.toJSON()`
+
+`Branch.toMatrix()`
+
+`Branch.toNewick(nonterminus)`
+
+`Branch.toObject()`
 
 ## Public Domain
 This repository constitutes a work of the United States Government and is not
