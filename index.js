@@ -23,10 +23,20 @@
     }, data);
   }
 
+  /**
+   * [description]
+   * @param  {[type]} length [description]
+   * @return {[type]}        [description]
+   */
   Branch.prototype.setLength = function(length){
     this.length = length;
   };
 
+  /**
+   * [description]
+   * @param  {[type]} data [description]
+   * @return {[type]}      [description]
+   */
   Branch.prototype.addChild = function(data){
     let c;
     if(data instanceof Branch){
@@ -42,6 +52,12 @@
     return c;
   };
 
+  /**
+   * [description]
+   * @param  {[type]} data     [description]
+   * @param  {[type]} siblings [description]
+   * @return {[type]}          [description]
+   */
   Branch.prototype.addParent = function(data, siblings){
     let c;
     if(data instanceof Branch){
@@ -56,11 +72,21 @@
     return c;
   };
 
+  /**
+   * [description]
+   * @param  {[type]} child [description]
+   * @return {[type]}       [description]
+   */
   Branch.prototype.hasChild = function(child){
     if(typeof child === "object") child = child.id;
     return this.children.includes(child);
   };
 
+  /**
+   * [description]
+   * @param  {[type]} id [description]
+   * @return {[type]}    [description]
+   */
   Branch.prototype.getDescendant = function(id){
     let descendant;
     if(this.children){
@@ -78,6 +104,10 @@
     return descendant;
   };
 
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
   Branch.prototype.getDescendants = function(){
     let descendants = [];
     if(this.children.length > 0){
@@ -90,6 +120,11 @@
     return descendants;
   };
 
+  /**
+   * [description]
+   * @param  {[type]} descendant [description]
+   * @return {[type]}            [description]
+   */
   Branch.prototype.hasDescendant = function(descendant){
     let any = false;
     let descendants = this.getDescendants();
@@ -105,16 +140,29 @@
     return any;
   };
 
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
   Branch.prototype.isRoot = function(){
     return this.parent === null;
   };
 
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
   Branch.prototype.getRoot = function(){
     let node = this;
     while(!node.isRoot()) node = node.parent;
     return node;
   };
 
+  /**
+   * [description]
+   * @param  {[type]} parent [description]
+   * @return {[type]}        [description]
+   */
   Branch.prototype.isChildOf = function(parent){
     if(typeof parent === 'object'){
       return this.parent === parent;
@@ -122,12 +170,22 @@
     return this.parent.id === parent;
   };
 
+  /**
+   * [description]
+   * @param  {[type]} ancestor [description]
+   * @return {[type]}          [description]
+   */
   Branch.prototype.isDescendantOf = function(ancestor){
     if(!ancestor || !this.parent) return false;
     if(this.parent === ancestor || this.parent.id === ancestor) return true;
     return this.parent.isDescendantOf(ancestor);
   };
 
+  /**
+   * [description]
+   * @param  {[type]} child [description]
+   * @return {[type]}       [description]
+   */
   Branch.prototype.depthOf = function(child){
     let distance = 0;
     if(typeof child === 'string') child = this.getDescendant(child);
@@ -141,6 +199,12 @@
     return distance;
   };
 
+  /**
+   * [description]
+   * @param  {[type]} a [description]
+   * @param  {[type]} b [description]
+   * @return {[type]}   [description]
+   */
   Branch.prototype.distanceBetween = function(a, b){
     let distance = -1;
     let descendants = this.getDescendants();
@@ -154,17 +218,42 @@
     return distance;
   };
 
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
   Branch.prototype.remove = function(){
+    let root = this.getRoot();
+    this.isolate();
+    return root;
+  };
+
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
+  Branch.prototype.isolate = function(){
     let index = this.parent.children.indexOf(this);
     this.parent.children.splice(index, 1);
-    this.parent = null;
+    this.setParent(null);
     return this;
   };
 
+  /**
+   * [description]
+   * @param  {[type]} parent [description]
+   * @return {[type]}        [description]
+   */
   Branch.prototype.setParent = function(parent){
     this.parent = parent;
+    return this;
   };
 
+  /**
+   * [description]
+   * @param  {[type]} nonrecursive [description]
+   * @return {[type]}              [description]
+   */
   Branch.prototype.fixParenthood = function(nonrecursive){
     this.children.forEach(child => {
       if(!child.parent) child.parent = this;
@@ -174,57 +263,67 @@
     });
   };
 
-  //Largely adapted from http://lh3lh3.users.sourceforge.net/knhx.js#kn_reroot
+  /**
+   * [description]
+   * Note that this is largely adapted from Largely adapted from http://lh3lh3.users.sourceforge.net/knhx.js#kn_reroot
+   * which is released for modification under the MIT License.
+   * @return {[type]} [description]
+   */
   Branch.prototype.reroot = function(){
     if(this.isRoot()) return this;
     let d, //d: previous distance p->d
         i, //i: previous position of q in p
         j,
         k,
-  	    p, //p: the central multi-parent node
+  	    newRoot, //newRoot: the central multi-parent node
         s,
-        newParent, //q: the new parent, previous a child of p
+        newParent, //q: the new parent, previous a child of newRoot
         oldParent, //r: old parent
         tmp;
   	tmp = this.length;
-    p = this.parent;
+    newRoot = this.parent;
   	newParent = new Branch();
   	newParent.addChild(this);
-    i = p.children.indexOf(this);
-  	newParent.children[1] = p;
-  	d = p.length;
-  	p.length = tmp;
-  	oldParent = p.parent;
-  	p.parent = newParent;
+    i = newRoot.children.indexOf(this);
+  	newParent.children[1] = newRoot;
+  	d = newRoot.length;
+  	newRoot.length = tmp;
+  	oldParent = newRoot.parent;
+  	newRoot.parent = newParent;
   	while(oldParent != null){
   		s = oldParent.parent; /* store r's parent */
-  		p.children[i] = oldParent; /* change r to p's child */
-      i = oldParent.children.indexOf(p);
-  		oldParent.parent = p; /* update r's parent */
+  		newRoot.children[i] = oldParent; /* change r to p's child */
+      i = oldParent.children.indexOf(newRoot);
+  		oldParent.parent = newRoot; /* update r's parent */
   		tmp = oldParent.length;
       oldParent.length = d;
       d = tmp; /* swap r->d and d, i.e. update r->d */
-  		newParent = p;
-      p = oldParent;
+  		newParent = newRoot;
+      newRoot = oldParent;
       oldParent = s; /* update p, newParent and oldParent */
   	}
-  	/* now p is the root node */
-  	if(p.children.length == 2){ /* remove p and link the other child of p to newParent */
-  		oldParent = p.children[1 - i]; /* get the other child */
-      i = newParent.children.indexOf(p); /* the position of p in newParent */
-  		oldParent.length += p.length;
+  	/* now newRoot is the root node */
+  	if(newRoot.children.length == 2){ /* remove newRoot and link the other child of newRoot to newParent */
+  		oldParent = newRoot.children[1 - i]; /* get the other child */
+      i = newParent.children.indexOf(newRoot); /* the position of newRoot in newParent */
+  		oldParent.length += newRoot.length;
   		oldParent.parent = newParent;
   		newParent.children[i] = oldParent; /* link oldParent to newParent */
-  	} else { /* remove one child in p */
-  		for(j = k = 0; j < p.children.length; ++j){
-  			p.children[k] = p.children[j];
+  	} else { /* remove one child in newRoot */
+  		for(j = k = 0; j < newRoot.children.length; ++j){
+  			newRoot.children[k] = newRoot.children[j];
   			if(j != i) ++k;
   		}
-  		--p.children.length;
+  		--newRoot.children.length;
   	}
-  	return p;
+  	return newRoot;
   };
 
+  /**
+   * [description]
+   * @param  {[type]} sortfn [description]
+   * @return {[type]}        [description]
+   */
   Branch.prototype.reorder = function(sortfn){
     if(!sortfn) sortfn = function(a, b){
   		if (a.length < b.length) return 1;
@@ -264,6 +363,10 @@
     return this;
   };
 
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
   Branch.prototype.toMatrix = function(){
     let descendants = this.getDescendants();
     let n = descendants.length;
@@ -280,6 +383,11 @@
     return matrix;
   };
 
+  /**
+   * [description]
+   * @param  {[type]} nonterminus [description]
+   * @return {[type]}             [description]
+   */
   Branch.prototype.toNewick = function(nonterminus){
     let out = '';
     if(this.id === '') out += '(';
@@ -291,6 +399,10 @@
     return out;
   };
 
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
   Branch.prototype.toObject = function(){
     var output = {
       id: this.id,
@@ -300,6 +412,10 @@
     return output;
   };
 
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
   Branch.prototype.toJSON = function(){
     return JSON.stringify(this.toObject());
   };
@@ -334,7 +450,7 @@
    * @param  {[type]} childrenLabel [description]
    * @return {[type]}               [description]
    */
-  let parseJSON = function(json, idLabel, lengthLabel, childrenLabel){
+  function parseJSON(json, idLabel, lengthLabel, childrenLabel){
     if(!idLabel) idLabel = 'id';
     if(!lengthLabel) lengthLabel = 'length';
     if(!childrenLabel) childrenLabel = 'children';
@@ -349,7 +465,7 @@
       });
     }
     return root;
-  };
+  }
 
   /**
    * Parses a matrix of distances and returns the root Branch of the output tree

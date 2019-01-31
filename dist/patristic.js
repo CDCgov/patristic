@@ -36,10 +36,22 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       children: []
     }, data);
   }
+  /**
+   * [description]
+   * @param  {[type]} length [description]
+   * @return {[type]}        [description]
+   */
+
 
   Branch.prototype.setLength = function (length) {
     this.length = length;
   };
+  /**
+   * [description]
+   * @param  {[type]} data [description]
+   * @return {[type]}      [description]
+   */
+
 
   Branch.prototype.addChild = function (data) {
     var c;
@@ -57,6 +69,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     this.children.push(c);
     return c;
   };
+  /**
+   * [description]
+   * @param  {[type]} data     [description]
+   * @param  {[type]} siblings [description]
+   * @return {[type]}          [description]
+   */
+
 
   Branch.prototype.addParent = function (data, siblings) {
     var c;
@@ -75,11 +94,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     this.parent = c;
     return c;
   };
+  /**
+   * [description]
+   * @param  {[type]} child [description]
+   * @return {[type]}       [description]
+   */
+
 
   Branch.prototype.hasChild = function (child) {
     if (_typeof(child) === "object") child = child.id;
     return this.children.includes(child);
   };
+  /**
+   * [description]
+   * @param  {[type]} id [description]
+   * @return {[type]}    [description]
+   */
+
 
   Branch.prototype.getDescendant = function (id) {
     var descendant;
@@ -101,6 +132,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     return descendant;
   };
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
+
 
   Branch.prototype.getDescendants = function () {
     var descendants = [];
@@ -117,6 +153,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     return descendants;
   };
+  /**
+   * [description]
+   * @param  {[type]} descendant [description]
+   * @return {[type]}            [description]
+   */
+
 
   Branch.prototype.hasDescendant = function (descendant) {
     var any = false;
@@ -134,10 +176,20 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     return any;
   };
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
+
 
   Branch.prototype.isRoot = function () {
     return this.parent === null;
   };
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
+
 
   Branch.prototype.getRoot = function () {
     var node = this;
@@ -148,6 +200,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     return node;
   };
+  /**
+   * [description]
+   * @param  {[type]} parent [description]
+   * @return {[type]}        [description]
+   */
+
 
   Branch.prototype.isChildOf = function (parent) {
     if (_typeof(parent) === 'object') {
@@ -156,12 +214,24 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     return this.parent.id === parent;
   };
+  /**
+   * [description]
+   * @param  {[type]} ancestor [description]
+   * @return {[type]}          [description]
+   */
+
 
   Branch.prototype.isDescendantOf = function (ancestor) {
     if (!ancestor || !this.parent) return false;
     if (this.parent === ancestor || this.parent.id === ancestor) return true;
     return this.parent.isDescendantOf(ancestor);
   };
+  /**
+   * [description]
+   * @param  {[type]} child [description]
+   * @return {[type]}       [description]
+   */
+
 
   Branch.prototype.depthOf = function (child) {
     var distance = 0;
@@ -177,6 +247,13 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     return distance;
   };
+  /**
+   * [description]
+   * @param  {[type]} a [description]
+   * @param  {[type]} b [description]
+   * @return {[type]}   [description]
+   */
+
 
   Branch.prototype.distanceBetween = function (a, b) {
     var distance = -1;
@@ -196,17 +273,46 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     return distance;
   };
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
+
 
   Branch.prototype.remove = function () {
+    var root = this.getRoot();
+    this.isolate();
+    return root;
+  };
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
+
+
+  Branch.prototype.isolate = function () {
     var index = this.parent.children.indexOf(this);
     this.parent.children.splice(index, 1);
-    this.parent = null;
+    this.setParent(null);
     return this;
   };
+  /**
+   * [description]
+   * @param  {[type]} parent [description]
+   * @return {[type]}        [description]
+   */
+
 
   Branch.prototype.setParent = function (parent) {
     this.parent = parent;
+    return this;
   };
+  /**
+   * [description]
+   * @param  {[type]} nonrecursive [description]
+   * @return {[type]}              [description]
+   */
+
 
   Branch.prototype.fixParenthood = function (nonrecursive) {
     var _this = this;
@@ -218,37 +324,43 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
         child.fixParenthood();
       }
     });
-  }; //Largely adapted from http://lh3lh3.users.sourceforge.net/knhx.js#kn_reroot
+  };
+  /**
+   * [description]
+   * Note that this is largely adapted from Largely adapted from http://lh3lh3.users.sourceforge.net/knhx.js#kn_reroot
+   * which is released for modification under the MIT License.
+   * @return {[type]} [description]
+   */
 
 
   Branch.prototype.reroot = function () {
     if (this.isRoot()) return this;
     var d, //d: previous distance p->d
     i, //i: previous position of q in p
-    j, k, p, //p: the central multi-parent node
-    s, newParent, //q: the new parent, previous a child of p
+    j, k, newRoot, //newRoot: the central multi-parent node
+    s, newParent, //q: the new parent, previous a child of newRoot
     oldParent, //r: old parent
     tmp;
     tmp = this.length;
-    p = this.parent;
+    newRoot = this.parent;
     newParent = new Branch();
     newParent.addChild(this);
-    i = p.children.indexOf(this);
-    newParent.children[1] = p;
-    d = p.length;
-    p.length = tmp;
-    oldParent = p.parent;
-    p.parent = newParent;
+    i = newRoot.children.indexOf(this);
+    newParent.children[1] = newRoot;
+    d = newRoot.length;
+    newRoot.length = tmp;
+    oldParent = newRoot.parent;
+    newRoot.parent = newParent;
 
     while (oldParent != null) {
       s = oldParent.parent;
       /* store r's parent */
 
-      p.children[i] = oldParent;
+      newRoot.children[i] = oldParent;
       /* change r to p's child */
 
-      i = oldParent.children.indexOf(p);
-      oldParent.parent = p;
+      i = oldParent.children.indexOf(newRoot);
+      oldParent.parent = newRoot;
       /* update r's parent */
 
       tmp = oldParent.length;
@@ -256,38 +368,44 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       d = tmp;
       /* swap r->d and d, i.e. update r->d */
 
-      newParent = p;
-      p = oldParent;
+      newParent = newRoot;
+      newRoot = oldParent;
       oldParent = s;
       /* update p, newParent and oldParent */
     }
-    /* now p is the root node */
+    /* now newRoot is the root node */
 
 
-    if (p.children.length == 2) {
-      /* remove p and link the other child of p to newParent */
-      oldParent = p.children[1 - i];
+    if (newRoot.children.length == 2) {
+      /* remove newRoot and link the other child of newRoot to newParent */
+      oldParent = newRoot.children[1 - i];
       /* get the other child */
 
-      i = newParent.children.indexOf(p);
-      /* the position of p in newParent */
+      i = newParent.children.indexOf(newRoot);
+      /* the position of newRoot in newParent */
 
-      oldParent.length += p.length;
+      oldParent.length += newRoot.length;
       oldParent.parent = newParent;
       newParent.children[i] = oldParent;
       /* link oldParent to newParent */
     } else {
-      /* remove one child in p */
-      for (j = k = 0; j < p.children.length; ++j) {
-        p.children[k] = p.children[j];
+      /* remove one child in newRoot */
+      for (j = k = 0; j < newRoot.children.length; ++j) {
+        newRoot.children[k] = newRoot.children[j];
         if (j != i) ++k;
       }
 
-      --p.children.length;
+      --newRoot.children.length;
     }
 
-    return p;
+    return newRoot;
   };
+  /**
+   * [description]
+   * @param  {[type]} sortfn [description]
+   * @return {[type]}        [description]
+   */
+
 
   Branch.prototype.reorder = function (sortfn) {
     if (!sortfn) sortfn = function sortfn(a, b) {
@@ -342,6 +460,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     return this;
   };
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
+
 
   Branch.prototype.toMatrix = function () {
     var descendants = this.getDescendants();
@@ -361,6 +484,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
     return matrix;
   };
+  /**
+   * [description]
+   * @param  {[type]} nonterminus [description]
+   * @return {[type]}             [description]
+   */
+
 
   Branch.prototype.toNewick = function (nonterminus) {
     var out = '';
@@ -373,6 +502,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     if (!nonterminus) out += ';';
     return out;
   };
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
+
 
   Branch.prototype.toObject = function () {
     var output = {
@@ -384,6 +518,11 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     });
     return output;
   };
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
+
 
   Branch.prototype.toJSON = function () {
     return JSON.stringify(this.toObject());
@@ -424,7 +563,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
    */
 
 
-  var parseJSON = function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
+  function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
     if (!idLabel) idLabel = 'id';
     if (!lengthLabel) lengthLabel = 'length';
     if (!childrenLabel) childrenLabel = 'children';
@@ -441,7 +580,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     return root;
-  };
+  }
   /**
    * Parses a matrix of distances and returns the root Branch of the output tree
    * Note that this is adapted from Maciej Korzepa's neighbor-joining, which is

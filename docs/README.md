@@ -4,12 +4,49 @@
 
 -   [Branch][1]
     -   [Parameters][2]
--   [parseJSON][3]
-    -   [Parameters][4]
--   [parseMatrix][5]
-    -   [Parameters][6]
--   [parseNewick][7]
-    -   [Parameters][8]
+    -   [setLength][3]
+        -   [Parameters][4]
+    -   [addChild][5]
+        -   [Parameters][6]
+    -   [addParent][7]
+        -   [Parameters][8]
+    -   [hasChild][9]
+        -   [Parameters][10]
+    -   [getDescendant][11]
+        -   [Parameters][12]
+    -   [getDescendants][13]
+    -   [hasDescendant][14]
+        -   [Parameters][15]
+    -   [isRoot][16]
+    -   [getRoot][17]
+    -   [isChildOf][18]
+        -   [Parameters][19]
+    -   [isDescendantOf][20]
+        -   [Parameters][21]
+    -   [depthOf][22]
+        -   [Parameters][23]
+    -   [distanceBetween][24]
+        -   [Parameters][25]
+    -   [remove][26]
+    -   [isolate][27]
+    -   [setParent][28]
+        -   [Parameters][29]
+    -   [fixParenthood][30]
+        -   [Parameters][31]
+    -   [reroot][32]
+    -   [reorder][33]
+        -   [Parameters][34]
+    -   [toMatrix][35]
+    -   [toNewick][36]
+        -   [Parameters][37]
+    -   [toObject][38]
+    -   [toJSON][39]
+-   [parseJSON][40]
+    -   [Parameters][41]
+-   [parseMatrix][42]
+    -   [Parameters][43]
+-   [parseNewick][44]
+    -   [Parameters][45]
 
 ## Branch
 
@@ -18,6 +55,204 @@
 ### Parameters
 
 -   `data` **\[type]** [description]
+
+### setLength
+
+[description]
+
+#### Parameters
+
+-   `length` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### addChild
+
+[description]
+
+#### Parameters
+
+-   `data` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### addParent
+
+[description]
+
+#### Parameters
+
+-   `data` **\[type]** [description]
+-   `siblings` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### hasChild
+
+[description]
+
+#### Parameters
+
+-   `child` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### getDescendant
+
+[description]
+
+#### Parameters
+
+-   `id` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### getDescendants
+
+[description]
+
+Returns **\[type]** [description]
+
+### hasDescendant
+
+[description]
+
+#### Parameters
+
+-   `descendant` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### isRoot
+
+[description]
+
+Returns **\[type]** [description]
+
+### getRoot
+
+[description]
+
+Returns **\[type]** [description]
+
+### isChildOf
+
+[description]
+
+#### Parameters
+
+-   `parent` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### isDescendantOf
+
+[description]
+
+#### Parameters
+
+-   `ancestor` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### depthOf
+
+[description]
+
+#### Parameters
+
+-   `child` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### distanceBetween
+
+[description]
+
+#### Parameters
+
+-   `a` **\[type]** [description]
+-   `b` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### remove
+
+[description]
+
+Returns **\[type]** [description]
+
+### isolate
+
+[description]
+
+Returns **\[type]** [description]
+
+### setParent
+
+[description]
+
+#### Parameters
+
+-   `parent` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### fixParenthood
+
+[description]
+
+#### Parameters
+
+-   `nonrecursive` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### reroot
+
+[description]
+Note that this is largely adapted from Largely adapted from [http://lh3lh3.users.sourceforge.net/knhx.js#kn_reroot][46]
+which is released for modification under the MIT License.
+
+Returns **\[type]** [description]
+
+### reorder
+
+[description]
+
+#### Parameters
+
+-   `sortfn` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### toMatrix
+
+[description]
+
+Returns **\[type]** [description]
+
+### toNewick
+
+[description]
+
+#### Parameters
+
+-   `nonterminus` **\[type]** [description]
+
+Returns **\[type]** [description]
+
+### toObject
+
+[description]
+
+Returns **\[type]** [description]
+
+### toJSON
+
+[description]
+
+Returns **\[type]** [description]
 
 ## parseJSON
 
@@ -40,10 +275,10 @@ released for modification under the MIT License.
 
 ### Parameters
 
--   `matrix` **[Array][9]** An array of n arrays of length n
--   `labels` **[Array][9]** An array of strings corresponding to the values in matrix
+-   `matrix` **[Array][47]** An array of n arrays of length n
+-   `labels` **[Array][47]** An array of strings corresponding to the values in matrix
 
-Returns **[Branch][10]** A Branch object representing the root node of the tree inferred by neighbor joining on matrix
+Returns **[Branch][48]** A Branch object representing the root node of the tree inferred by neighbor joining on matrix
 
 ## parseNewick
 
@@ -54,28 +289,104 @@ modification under the MIT License.
 
 ### Parameters
 
--   `newick` **[string][11]** A Newick String
+-   `newick` **[string][49]** A Newick String
 
-Returns **[Branch][10]** A Branch representing the root of the output
+Returns **[Branch][48]** A Branch representing the root of the output
 
 [1]: #branch
 
 [2]: #parameters
 
-[3]: #parsejson
+[3]: #setlength
 
 [4]: #parameters-1
 
-[5]: #parsematrix
+[5]: #addchild
 
 [6]: #parameters-2
 
-[7]: #parsenewick
+[7]: #addparent
 
 [8]: #parameters-3
 
-[9]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+[9]: #haschild
 
-[10]: #branch
+[10]: #parameters-4
 
-[11]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+[11]: #getdescendant
+
+[12]: #parameters-5
+
+[13]: #getdescendants
+
+[14]: #hasdescendant
+
+[15]: #parameters-6
+
+[16]: #isroot
+
+[17]: #getroot
+
+[18]: #ischildof
+
+[19]: #parameters-7
+
+[20]: #isdescendantof
+
+[21]: #parameters-8
+
+[22]: #depthof
+
+[23]: #parameters-9
+
+[24]: #distancebetween
+
+[25]: #parameters-10
+
+[26]: #remove
+
+[27]: #isolate
+
+[28]: #setparent
+
+[29]: #parameters-11
+
+[30]: #fixparenthood
+
+[31]: #parameters-12
+
+[32]: #reroot
+
+[33]: #reorder
+
+[34]: #parameters-13
+
+[35]: #tomatrix
+
+[36]: #tonewick
+
+[37]: #parameters-14
+
+[38]: #toobject
+
+[39]: #tojson
+
+[40]: #parsejson
+
+[41]: #parameters-15
+
+[42]: #parsematrix
+
+[43]: #parameters-16
+
+[44]: #parsenewick
+
+[45]: #parameters-17
+
+[46]: http://lh3lh3.users.sourceforge.net/knhx.js#kn_reroot
+
+[47]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[48]: #branch
+
+[49]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
