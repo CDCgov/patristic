@@ -84,6 +84,16 @@
 
   /**
    * [description]
+   * @param  {[type]} child [description]
+   * @return {[type]}       [description]
+   */
+  Branch.prototype.getChild = function(child){
+    if(typeof child === "object") child = child.id;
+    return this.children.find(c => c.id === child);
+  };
+
+  /**
+   * [description]
    * @param  {[type]} id [description]
    * @return {[type]}    [description]
    */
@@ -146,6 +156,14 @@
    */
   Branch.prototype.isRoot = function(){
     return this.parent === null;
+  };
+
+  /**
+   * [description]
+   * @return {[type]} [description]
+   */
+  Branch.prototype.isLeaf = function(){
+    return this.children.length === 0;
   };
 
   /**
@@ -266,58 +284,29 @@
 
   /**
    * [description]
-   * Note that this is largely adapted from Largely adapted from http://lh3lh3.users.sourceforge.net/knhx.js#kn_reroot
-   * which is released for modification under the MIT License.
-   * @return {[type]} [description]
+   * @return {Branch} The new root branch
    */
   Branch.prototype.reroot = function(){
     if(this.isRoot()) return this;
-    let d, //d: previous distance p->d
-        i, //i: previous position of q in p
-        j,
-        k,
-  	    newRoot, //newRoot: the central multi-parent node
-        s,
-        newParent, //q: the new parent, previous a child of newRoot
-        oldParent, //r: old parent
-        tmp;
-  	tmp = this.length;
-    newRoot = this.parent;
-  	newParent = new Branch();
-  	newParent.addChild(this);
-    i = newRoot.children.indexOf(this);
-  	newParent.children[1] = newRoot;
-  	d = newRoot.length;
-  	newRoot.length = tmp;
-  	oldParent = newRoot.parent;
-  	newRoot.parent = newParent;
-  	while(oldParent != null){
-  		s = oldParent.parent; /* store r's parent */
-  		newRoot.children[i] = oldParent; /* change r to p's child */
-      i = oldParent.children.indexOf(newRoot);
-  		oldParent.parent = newRoot; /* update r's parent */
-  		tmp = oldParent.length;
-      oldParent.length = d;
-      d = tmp; /* swap r->d and d, i.e. update r->d */
-  		newParent = newRoot;
-      newRoot = oldParent;
-      oldParent = s; /* update p, newParent and oldParent */
-  	}
-  	/* now newRoot is the root node */
-  	if(newRoot.children.length == 2){ /* remove newRoot and link the other child of newRoot to newParent */
-  		oldParent = newRoot.children[1 - i]; /* get the other child */
-      i = newParent.children.indexOf(newRoot); /* the position of newRoot in newParent */
-  		oldParent.length += newRoot.length;
-  		oldParent.parent = newParent;
-  		newParent.children[i] = oldParent; /* link oldParent to newParent */
-  	} else { /* remove one child in newRoot */
-  		for(j = k = 0; j < newRoot.children.length; ++j){
-  			newRoot.children[k] = newRoot.children[j];
-  			if(j != i) ++k;
-  		}
-  		--newRoot.children.length;
-  	}
+    if(this.parent.isRoot()) return this.parent;
+    let newRoot = this.isLeaf() ? this.parent : this;
+    while(!newRoot.isRoot()){ newRoot.invert(); }
   	return newRoot;
+  };
+
+  /**
+   * Swaps a child with its parent.
+   * @return {Branch} The branch object on which it was called.
+   */
+  Branch.prototype.invert = function(){
+    let oldParent = this.parent;
+    if(oldParent){
+      this.parent = oldParent.parent;
+      this.children.push(oldParent);
+      oldParent.parent = this;
+      oldParent.children.splice(oldParent.children.indexOf(this), 1);
+    }
+    return this;
   };
 
   /**
