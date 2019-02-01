@@ -322,6 +322,21 @@
 
   /**
    * [description]
+   * @return {[type]} [description]
+   */
+  Branch.prototype.isConsistent = function(){
+    if(!this.isRoot()){
+      if(!this.parent.children.includes(this)) return false;
+    }
+    if(!this.isLeaf()){
+      if(this.children.some(c => c.parent !== this)) return false;
+      return this.children.every(c => c.isConsistent());
+    }
+    return true;
+  };
+
+  /**
+   * [description]
    * @param  {[type]} sortfn [description]
    * @return {[type]}        [description]
    */
