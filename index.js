@@ -10,6 +10,12 @@
   "use strict";
 
   /**
+   * Patristic library version
+   * @type {String}
+   */
+  const version = "0.2.3";
+
+  /**
    * [Branch description]
    * @param       {[type]} data [description]
    * @constructor
@@ -729,5 +735,5 @@
     return tree;
   }
 
-  return { Branch, parseJSON, parseMatrix, parseNewick };
+  return { version, Branch, parseJSON, parseMatrix, parseNewick };
 }));
