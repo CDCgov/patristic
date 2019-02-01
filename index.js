@@ -251,12 +251,13 @@
 
   /**
    * [description]
-   * @param  {[type]} nonrecursive [description]
+   * @param  {boolean} nonrecursive [description]
    * @return {[type]}              [description]
    */
   Branch.prototype.fixParenthood = function(nonrecursive){
     this.children.forEach(child => {
       if(!child.parent) child.parent = this;
+      if(child.parent !== this) child.parent = this;
       if(!nonrecursive && child.children.length > 0){
         child.fixParenthood();
       }
