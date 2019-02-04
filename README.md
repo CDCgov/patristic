@@ -44,65 +44,7 @@ Although, let's be honest: you're going to make it JSON. We've got you covered:
 tree.toJSON();
 ```
 
-## Function Reference
-
-`patristic.parseJSON(json, idLabel, lengthLabel, childrenLabel)` - Parses a JSON string (`json`) containing a tree, returning a `Branch` object representing the root of the tree.
-
-`patristic.parseMatrix(matrix, labels)` - Parses a "matrix" (an array of arrays) specifying pairwise distances between individuals/samples/whatever. Also accepts an optional array of strings to be used as identifiers for the aforementioned individuals/samples/whatever. Runs [Rapid Neighbor Joining]() to assemble a tree and returns the Branch object of the root.
-
-`patristic.parseNewick(newick)` - Parses a newick string and returns a Branch object representing the root node of the tree.
-
-`patristic.Branch(data)` - creates a new Branch Object. You'll probably want to use one of the above parsers, rather than programatically create branches directly.
-
-Once you have your root `Branch`, it (and its children) expose the following methods:
-
-`Branch.addChild(data)` - Takes `data` and (if it is not already a Branch object, creates one with it, and) adds it as a child of the Branch on which it is called.
-
-`Branch.addChildren(children)` - Iterates over either an array or the given arguments and calls `Branch.addChild` on each.
-
-`Branch.addParent(data, siblings)`
-
-`Branch.depthOf(child)`
-
-`Branch.distanceBetween(a, b)`
-
-`Branch.fixParenthood(nonrecursive)` - corrects records of parenthood, which can become corrupted during certain mutative operations (e.g. `reroot`). Mostly intended for internal use: If you need to call this, you've probably edited some Branch incorrectly.
-
-`Branch.getDescendant(id)`
-
-`Branch.getDescendants()`
-
-`Branch.getRoot()`
-
-`Branch.hasChild(child)`
-
-`Branch.hasDescendant(descendant)`
-
-`Branch.isChildOf(parent)`
-
-`Branch.isDescendantOf(ancestor)`
-
-`Branch.isLeaf()` - returns a boolean indicating whether or not a Branch object is a leaf node (i.e. has no children).
-
-`Branch.isRoot()` - returns a boolean indicating whether or not a Branch object is the root of a tree (i.e. has no parent).
-
-`Branch.remove()`
-
-`Branch.reorder(sortfn)`
-
-`Branch.reroot()`
-
-`Branch.setLength(length)`
-
-`Branch.setParent(parent)`
-
-`Branch.toJSON()`
-
-`Branch.toMatrix()`
-
-`Branch.toNewick(nonterminus)`
-
-`Branch.toObject()`
+For more details, check out our [Full Documentation](https://github.com/CDCgov/patristic/tree/master/docs#table-of-contents).
 
 ## Public Domain
 This repository constitutes a work of the United States Government and is not
