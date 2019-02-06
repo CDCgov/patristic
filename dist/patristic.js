@@ -30,7 +30,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
    * console.log(patristic.version);
    */
 
-  var version = "0.2.4";
+  var version = "0.2.5";
   /**
    * A class for representing branches in trees.
    * It's written predominantly for phylogenetic trees (hence the
@@ -123,7 +123,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     if (typeof child === 'string') return this.children.some(function (c) {
       return c.id === child;
     });
-    throw "Unknown type of child (".concat(_typeof(child), ") passed to Branch.hasChild!");
+    throw Error("Unknown type of child (".concat(_typeof(child), ") passed to Branch.hasChild!"));
   };
   /**
    * Given an id, returns the child with that id (or undefined if no such child
@@ -135,7 +135,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
 
   Branch.prototype.getChild = function (childID) {
-    if (!_typeof(childID) == 'string') throw 'childID is not a String!';
+    if (!_typeof(childID) == 'string') throw Error('childID is not a String!');
     return this.children.find(function (c) {
       return c.id === childID;
     });
@@ -211,7 +211,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
       });
     }
 
-    throw 'Unknown type of descendant passed to Branch.hasDescendant!';
+    throw Error('Unknown type of descendant passed to Branch.hasDescendant!');
   };
   /**
    * Returns a boolean indicating if this Branch is the root of a tree (i.e. has
@@ -262,7 +262,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   Branch.prototype.isChildOf = function (parent) {
     if (parent instanceof Branch) return this.parent === parent;
     if (typeof parent === 'string') return this.parent.id === parent;
-    throw 'Unknown parent type passed to Branch.isChildOf';
+    throw Error('Unknown parent type passed to Branch.isChildOf');
   };
   /**
    * Returns whether a given Branch is an ancestor of the Branch on which this
@@ -290,7 +290,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
   Branch.prototype.depthOf = function (descendant) {
     var distance = 0;
     if (typeof descendant === 'string') descendant = this.getDescendant(descendant);
-    if (typeof descendant === 'undefined') throw 'Cannot compute depth of undefined descendant!';
+    if (typeof descendant === 'undefined') throw Error('Cannot compute depth of undefined descendant!');
     var current = descendant;
 
     while (!current.isRoot()) {
@@ -314,7 +314,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     var mrca = this;
 
     while (!mrca.hasDescendant(cousin)) {
-      if (mrca.isRoot()) throw 'Branch and cousin do not appear to share a common ancestor!';
+      if (mrca.isRoot()) throw Error('Branch and cousin do not appear to share a common ancestor!');
       mrca = mrca.parent;
     }
 
@@ -355,12 +355,12 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
 
   Branch.prototype.setParent = function (parent) {
-    if (parent instanceof Branch) {
+    if (parent instanceof Branch || parent === null) {
       this.parent = parent;
       return this;
     }
 
-    throw 'Cannot set parent to non-Branch object!';
+    throw Error('Cannot set parent to non-Branch object!');
   };
   /**
    * Repairs incorrect links by recurively confirming that children reference
