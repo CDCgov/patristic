@@ -97,7 +97,7 @@
   Branch.prototype.hasChild = function(child){
     if(child instanceof Branch) return this.children.includes(child);
     if(typeof child === 'string') return this.children.some(c => c.id === child);
-    throw `Unknown type of child (${typeof child}) passed to Branch.hasChild!`;
+    throw Error(`Unknown type of child (${typeof child}) passed to Branch.hasChild!`);
   };
 
   /**
@@ -108,7 +108,7 @@
    * child doesn't exist.
    */
   Branch.prototype.getChild = function(childID){
-    if(!typeof childID == 'string') throw 'childID is not a String!';
+    if(!typeof childID == 'string') throw Error('childID is not a String!');
     return this.children.find(c => c.id === childID);
   };
 
@@ -165,7 +165,7 @@
     } else if(typeof descendant === 'string'){
       return descendants.some(d => d.id === descendant);
     }
-    throw 'Unknown type of descendant passed to Branch.hasDescendant!';
+    throw Error('Unknown type of descendant passed to Branch.hasDescendant!');
   };
 
   /**
@@ -208,7 +208,7 @@
   Branch.prototype.isChildOf = function(parent){
     if(parent instanceof Branch) return this.parent === parent;
     if(typeof parent === 'string') return this.parent.id === parent;
-    throw 'Unknown parent type passed to Branch.isChildOf';
+    throw Error('Unknown parent type passed to Branch.isChildOf');
   };
 
   /**
@@ -234,7 +234,7 @@
   Branch.prototype.depthOf = function(descendant){
     let distance = 0;
     if(typeof descendant === 'string') descendant = this.getDescendant(descendant);
-    if(typeof descendant === 'undefined') throw 'Cannot compute depth of undefined descendant!';
+    if(typeof descendant === 'undefined') throw Error('Cannot compute depth of undefined descendant!');
     let current = descendant;
     while(!current.isRoot()){
       if(current === this) break;
@@ -254,7 +254,7 @@
   Branch.prototype.distanceTo = function(cousin){
     let mrca = this;
     while(!mrca.hasDescendant(cousin)){
-      if(mrca.isRoot()) throw 'Branch and cousin do not appear to share a common ancestor!';
+      if(mrca.isRoot()) throw Error('Branch and cousin do not appear to share a common ancestor!');
       mrca = mrca.parent;
     }
     return mrca.depthOf(this) + mrca.depthOf(cousin);
@@ -295,7 +295,7 @@
       this.parent = parent;
       return this;
     }
-    throw 'Cannot set parent to non-Branch object!';
+    throw Error('Cannot set parent to non-Branch object!');
   };
 
   /**
