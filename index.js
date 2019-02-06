@@ -291,7 +291,7 @@
    * @return {Branch}        The Branch on which this method was called.
    */
   Branch.prototype.setParent = function(parent){
-    if(parent instanceof Branch){
+    if(parent instanceof Branch || parent === null){
       this.parent = parent;
       return this;
     }
