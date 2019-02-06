@@ -1,7 +1,54 @@
+<!DOCTYPE html>
 <html>
+<head>
+  <title>Patristic Demo</title>
+  <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura.css" type="text/css">
+</head>
 <body>
-  <p>Open your console to see the what happened.</p>
-  <script src="../index.js"></script>
+  <pre><code>var text = "(A:0.1,B:0.2,(C:0.3,(D:0.4,E:0.6):0.1):0.5);";
+var tree = patristic.parseNewick(text);
+console.log(tree);</code></pre>
+  <p>This generates a Branch object with the following contents:</p>
+  <pre><code>{
+  "id": "",
+  "length": 0,
+  "children": [
+    {
+      "id": "A",
+      "length": 0.1
+    },
+    {
+      "id": "B",
+      "length": 0.2
+    },
+    {
+      "id": "",
+      "length": 0.5,
+      "children": [
+        {
+          "id": "C",
+          "length": 0.3
+        },
+        {
+          "id": "",
+          "length": 0.1,
+          "children": [
+            {
+              "id": "D",
+              "length": 0.4
+            },
+            {
+              "id": "E",
+              "length": 0.6
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}</code></pre>
+  <p>Open your console to mess around with it!</p>
+  <script src="patristic.min.js"></script>
   <script>
     var text = "(A:0.1,B:0.2,(C:0.3,(D:0.4,E:0.6):0.1):0.5);";
     var tree = patristic.parseNewick(text);
