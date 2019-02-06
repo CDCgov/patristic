@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "build": "babel index.js > dist/patristic.js && babel --minified index.js > dist/patristic.min.js",
+    "build": "babel index.js > dist/patristic.js && terser dist/patristic.js --compress > dist/patristic.min.js",
     "demo": "http-server",
     "doc": "documentation build index.js -f md -o docs/README.md"
   },
@@ -27,12 +27,11 @@
   "devDependencies": {
     "@babel/cli": "^7.2.3",
     "@babel/core": "^7.2.2",
-    "@babel/preset-env": "^7.1.6",
-    "babel-core": "^7.0.0-bridge.0",
-    "babel-jest": "^23.6.0",
+    "@babel/preset-env": "^7.3.1",
+    "babel-jest": "^24.1.0",
     "documentation": "^9.1.1",
     "http-server": "^0.11.1",
-    "jest": "^23.6.0",
-    "regenerator-runtime": "^0.13.1"
+    "jest": "^24.1.0",
+    "terser": "^3.16.1"
   }
 }
