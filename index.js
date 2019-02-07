@@ -459,10 +459,10 @@
    */
   Branch.prototype.toNewick = function(nonterminus){
     let out = '';
-    if(this.id === '') out += '(';
-    else out += this.id;
-    out += this.children.map(child => child.toNewick(true)).join(',');
-    if(this.id === '') out += ')';
+    if(this.isLeaf()){
+      out += '(' + this.children.map(child => child.toNewick(true)).join(',') + ')';
+    }
+    out += this.id;
     if(this.length) out += ':' + numberToString(this.length);
     if(!nonterminus) out += ';'
     return out;
