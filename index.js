@@ -303,6 +303,21 @@
   };
 
   /**
+   * Checks to see if a Branch has a descendant leaf.
+   * @return {Boolean} True if leaf is both a leaf and a descendant of the
+   * Branch on which this method is called, False otherwise.
+   */
+  Branch.prototype.hasLeaf = function(leaf){
+    let leaves = this.getleaves();
+    if(leaf instanceof Branch){
+      return leaves.some(d => d === leaf);
+    } else if(typeof leaf === 'string'){
+      return leaves.some(d => d.id === leaf);
+    }
+    throw Error('Unknown type of leaf passed to Branch.hasLeaf.');
+  };
+
+  /**
    * Swaps a child with its parent. This method is probably only useful as an
    * internal component of [Branch.reroot](#reroot).
    * @return {Branch} The branch object on which it was called.
