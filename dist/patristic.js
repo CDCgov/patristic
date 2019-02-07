@@ -30,7 +30,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
    * console.log(patristic.version);
    */
 
-  var version = "0.2.6";
+  var version = "0.2.7";
   /**
    * A class for representing branches in trees.
    * It's written predominantly for phylogenetic trees (hence the
@@ -194,6 +194,23 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return this;
   };
   /**
+   * Returns an Array of all the ancestors of a given Branch
+   * @return {Array} Every Ancestor of the Branch on which it was called.
+   */
+
+
+  Branch.prototype.getAncestors = function () {
+    var ancestors = [];
+    var current = this;
+
+    while (!current.isRoot()) {
+      ancestors.push(current.parent);
+      current = current.parent;
+    }
+
+    return ancestors;
+  };
+  /**
    * Given an id, returns the child with that id (or undefined if no such child
    * is present).
    * @param  {String} childID the id of the child to return.
@@ -236,25 +253,52 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     return descendant;
   };
   /**
-   * Returns an array of all descendants of this Branch
-   * @return {Array} An array of all descendants of this Branch
+   * Returns an array of all Branches which are descendants of this Branch
+   * @param {falsy} [nonterminus] Is this not the node on which the user called
+   * the function? This is used internally and should be ignored.
+   * @return {Array} An array of all Branches descended from this Branch
    */
 
 
-  Branch.prototype.getDescendants = function () {
-    var descendants = [];
+  Branch.prototype.getDescendants = function (nonterminus) {
+    var descendants = nonterminus ? [this] : [];
 
-    if (this.children.length > 0) {
+    if (!this.isLeaf()) {
       this.children.forEach(function (child) {
-        child.getDescendants().forEach(function (d) {
+        child.getDescendants(true).forEach(function (d) {
           return descendants.push(d);
         });
       });
-    } else {
-      return [this];
     }
 
     return descendants;
+  };
+  /**
+   * alias of getLeaves
+   * @type {Function}
+   */
+
+
+  Branch.prototype.getLeafs = Branch.prototype.getLeaves;
+  /**
+   * Returns an array of all leaves which are descendants of this Branch
+   * @return {Array} An array of all leaves descended from this Branch
+   */
+
+  Branch.prototype.getLeaves = function () {
+    if (this.isLeaf()) {
+      return [this];
+    } else {
+      var descendants = [];
+      this.children.forEach(function (child) {
+        child.getLeaves().forEach(function (d) {
+          return descendants.push(d);
+        });
+      });
+      return descendants;
+    }
+
+    throw new Error("Something very weird happened. Sorry about that!");
   };
   /**
    * Traverses the tree upward until it finds the Most Recent Common Ancestor
@@ -329,6 +373,28 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     throw Error('Unknown type of descendant passed to Branch.hasDescendant!');
+  };
+  /**
+   * Checks to see if a Branch has a descendant leaf.
+   * @return {Boolean} True if leaf is both a leaf and a descendant of the
+   * Branch on which this method is called, False otherwise.
+   */
+
+
+  Branch.prototype.hasLeaf = function (leaf) {
+    var leaves = this.getleaves();
+
+    if (leaf instanceof Branch) {
+      return leaves.some(function (d) {
+        return d === leaf;
+      });
+    } else if (typeof leaf === 'string') {
+      return leaves.some(function (d) {
+        return d.id === leaf;
+      });
+    }
+
+    throw Error('Unknown type of leaf passed to Branch.hasLeaf.');
   };
   /**
    * Swaps a child with its parent. This method is probably only useful as an
@@ -523,7 +589,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
    */
 
   Branch.prototype.toMatrix = function () {
-    var descendants = this.getDescendants();
+    var descendants = this.getLeaves();
     var n = descendants.length;
     var matrix = new Array(n);
 
@@ -558,11 +624,14 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 
   Branch.prototype.toNewick = function (nonterminus) {
     var out = '';
-    if (this.id === '') out += '(';else out += this.id;
-    out += this.children.map(function (child) {
-      return child.toNewick(true);
-    }).join(',');
-    if (this.id === '') out += ')';
+
+    if (this.isLeaf()) {
+      out += '(' + this.children.map(function (child) {
+        return child.toNewick(true);
+      }).join(',') + ')';
+    }
+
+    out += this.id;
     if (this.length) out += ':' + numberToString(this.length);
     if (!nonterminus) out += ';';
     return out;
