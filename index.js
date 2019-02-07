@@ -160,6 +160,20 @@
   };
 
   /**
+   * Returns an Array of all the ancestors of a given Branch
+   * @return {Array} Every Ancestor of the Branch on which it was called.
+   */
+  Branch.prototype.getAncestors = function(){
+    let ancestors = [];
+    let current = this;
+    while(!current.isRoot()){
+      ancestors.push(current.parent);
+      current = current.parent;
+    }
+    return ancestors;
+  };
+
+  /**
    * Given an id, returns the child with that id (or undefined if no such child
    * is present).
    * @param  {String} childID the id of the child to return.
