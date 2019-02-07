@@ -16,7 +16,7 @@
    * @example
    * console.log(patristic.version);
    */
-  const version = "0.2.5";
+  const version = "0.2.6";
 
   /**
    * A class for representing branches in trees.
@@ -37,16 +37,6 @@
       children: []
     }, data);
   }
-
-  /**
-   * Set the length of a Branch
-   * @param  {number} length The new length to assign to the Branch
-   * @return {Branch}       The Branch object on which this was called
-   */
-  Branch.prototype.setLength = function(length){
-    this.length = length;
-    return this;
-  };
 
   /**
    * Adds a new child to this Branch
@@ -90,14 +80,83 @@
   };
 
   /**
-   * Determines if a given Branch (or ID) is a child of this Branch
-   * @param  {(Branch|String)} child The branch (or the id thereof) to check for
-   * @return {Boolean}
+   * Returns a clone of the Branch on which it is called. Note that this also
+   * clones all descendants, rather than providing references to the existing
+   * descendant Branches.
+   * @return {Branch} A clone of the Branch on which it is called.
    */
-  Branch.prototype.hasChild = function(child){
-    if(child instanceof Branch) return this.children.includes(child);
-    if(typeof child === 'string') return this.children.some(c => c.id === child);
-    throw Error(`Unknown type of child (${typeof child}) passed to Branch.hasChild!`);
+  Branch.prototype.clone = function(){
+    return patristic.parseJSON(this.toObject());
+  };
+
+  /**
+   * Returns the depth of a given child, relative to the node on which it is
+   * called.
+   * @param  {(Branch|String)} descendant A descendant Branch (or `id` string thereof)
+   * @return {Number} The sum of the all branches between the Branch on which it
+   * is called and child. Return an error if `descendant` is not a descendant of
+   * this Branch.
+   */
+  Branch.prototype.depthOf = function(descendant){
+    let distance = 0;
+    if(typeof descendant === 'string') descendant = this.getDescendant(descendant);
+    if(typeof descendant === 'undefined') throw Error('Cannot compute depth of undefined descendant!');
+    let current = descendant;
+    while(!current.isRoot()){
+      if(current === this) break;
+      distance += current.length;
+      current = current.parent;
+    }
+    return distance;
+  };
+
+  /**
+   * Computes the patristic distance between `cousin` and the Branch on which
+   * this method is called.
+   * @param  {Branch} cousin The Branch to which you wish to compute distance
+   * @return {number} The patristic distance between `cousin` and the branch on
+   * this method is called.
+   */
+  Branch.prototype.distanceTo = function(cousin){
+    let mrca = this.getMRCA();
+    return mrca.depthOf(this) + mrca.depthOf(cousin);
+  };
+
+  /**
+   * Excises the Branch on which it is called and updates its parent and children
+   * @return {Branch} The parent of the excised Branch.
+   */
+  Branch.prototype.excise = function(){
+    if(this.isRoot() && this.children.length > 1){
+      throw new Error('Cannot excise a root node with multiple children.');
+    }
+    this.children.forEach(child => {
+      child.length += this.length;
+      child.parent = this.parent;
+      if(!this.isRoot()) this.parent.children.push(child);
+    });
+    this.parent.children.splice(this.parent.children.indexOf(this), 1);
+    return this.parent;
+  };
+
+  /**
+   * Repairs incorrect links by recurively confirming that children reference
+   * their parents, and correcting those references if they do not.
+   * If you need to call this, something has messed up the state of your tree
+   * and you should be concerned about that. Just FYI. ¯\_(ツ)_/¯
+   * @param  {Boolean} nonrecursive Should this just fix the children of the
+   * node on which it is called, or all descendants?
+   * @return {Branch} The Branch on which it was called.
+   */
+  Branch.prototype.fixParenthood = function(nonrecursive){
+    this.children.forEach(child => {
+      if(!child.parent) child.parent = this;
+      if(child.parent !== this) child.parent = this;
+      if(!nonrecursive && child.children.length > 0){
+        child.fixParenthood();
+      }
+    });
+    return this;
   };
 
   /**
@@ -151,6 +210,44 @@
   };
 
   /**
+   * Traverses the tree upward until it finds the Most Recent Common Ancestor
+   * (i.e. the first Branch for which both the Branch on which it was called and
+   * `cousin` are descendants).
+   * @return {Branch} The Most Recent Common Ancestor of both the Branch on
+   * which it was called and the `cousin`.
+   */
+  Branch.prototype.getMRCA = function(cousin){
+    let mrca = this;
+    while(!mrca.hasDescendant(cousin)){
+      if(mrca.isRoot()) throw Error('Branch and cousin do not appear to share a common ancestor!');
+      mrca = mrca.parent;
+    }
+    return mrca;
+  };
+
+  /**
+   * Traverses the tree upward until it finds the root node, and returns the
+   * root.
+   * @return {Branch} The root node of the tree
+   */
+  Branch.prototype.getRoot = function(){
+    let node = this;
+    while(!node.isRoot()) node = node.parent;
+    return node;
+  };
+
+  /**
+   * Determines if a given Branch (or ID) is a child of this Branch
+   * @param  {(Branch|String)} child The branch (or the id thereof) to check for
+   * @return {Boolean}
+   */
+  Branch.prototype.hasChild = function(child){
+    if(child instanceof Branch) return this.children.includes(child);
+    if(typeof child === 'string') return this.children.some(c => c.id === child);
+    throw Error(`Unknown type of child (${typeof child}) passed to Branch.hasChild!`);
+  };
+
+  /**
    * Checks to see if `descendant` is a descendant of the Branch on which this
    * method is called.
    * @param  {(Branch|String)} descendant Either the descendant Branch or its'
@@ -166,178 +263,6 @@
       return descendants.some(d => d.id === descendant);
     }
     throw Error('Unknown type of descendant passed to Branch.hasDescendant!');
-  };
-
-  /**
-   * Returns a boolean indicating if this Branch is the root of a tree (i.e. has
-   * no parents).
-   * @return {Boolean} True if this Branch is the root, otherwise false.
-   */
-  Branch.prototype.isRoot = function(){
-    return this.parent === null;
-  };
-
-  /**
-   * Returns a boolean indicating if this Branch is a leaf (i.e. has no
-   * children).
-   * @return {Boolean} True is this Branch is a leaf, otherwise false.
-   */
-  Branch.prototype.isLeaf = function(){
-    return this.children.length === 0;
-  };
-
-  /**
-   * Traverses the tree upward until it finds the root node, and returns the
-   * root.
-   * @return {Branch} The root node of the tree
-   */
-  Branch.prototype.getRoot = function(){
-    let node = this;
-    while(!node.isRoot()) node = node.parent;
-    return node;
-  };
-
-  /**
-   * Returns whether the node on which it is called is a child of a given parent
-   * (or parent ID).
-   * @param  {(Branch|String)} parent A Branch (or ID thereof) to test for
-   * paternity of this node.
-   * @return {Boolean} True is `parent` is the parent of this Branch, false
-   * otherwise.
-   */
-  Branch.prototype.isChildOf = function(parent){
-    if(parent instanceof Branch) return this.parent === parent;
-    if(typeof parent === 'string') return this.parent.id === parent;
-    throw Error('Unknown parent type passed to Branch.isChildOf');
-  };
-
-  /**
-   * Returns whether a given Branch is an ancestor of the Branch on which this
-   * method is called. Uses recursive tree-climbing.
-   * @param  {[type]} ancestor [description]
-   * @return {[type]}          [description]
-   */
-  Branch.prototype.isDescendantOf = function(ancestor){
-    if(!ancestor || !this.parent) return false;
-    if(this.parent === ancestor || this.parent.id === ancestor) return true;
-    return this.parent.isDescendantOf(ancestor);
-  };
-
-  /**
-   * Returns the depth of a given child, relative to the node on which it is
-   * called.
-   * @param  {(Branch|String)} descendant A descendant Branch (or `id` string thereof)
-   * @return {Number} The sum of the all branches between the Branch on which it
-   * is called and child. Return an error if `descendant` is not a descendant of
-   * this Branch.
-   */
-  Branch.prototype.depthOf = function(descendant){
-    let distance = 0;
-    if(typeof descendant === 'string') descendant = this.getDescendant(descendant);
-    if(typeof descendant === 'undefined') throw Error('Cannot compute depth of undefined descendant!');
-    let current = descendant;
-    while(!current.isRoot()){
-      if(current === this) break;
-      distance += current.length;
-      current = current.parent;
-    }
-    return distance;
-  };
-
-  /**
-   * Computes the patristic distance between `cousin` and the Branch on which
-   * this method is called.
-   * @param  {Branch} cousin The Branch to which you wish to compute distance
-   * @return {number} The patristic distance between `cousin` and the branch on
-   * this method is called.
-   */
-  Branch.prototype.distanceTo = function(cousin){
-    let mrca = this;
-    while(!mrca.hasDescendant(cousin)){
-      if(mrca.isRoot()) throw Error('Branch and cousin do not appear to share a common ancestor!');
-      mrca = mrca.parent;
-    }
-    return mrca.depthOf(this) + mrca.depthOf(cousin);
-  };
-
-  /**
-   * Removes a Branch and its subtree from the tree. Similar to [Branch.isolate](#isolate),
-   * only it returns the root Branch of the tree from which this Branch is
-   * removed.
-   * @return {Branch} The root of the remaining tree.
-   */
-  Branch.prototype.remove = function(){
-    let root = this.getRoot();
-    this.isolate();
-    return root;
-  };
-
-  /**
-   * Isolates a Branch and its subtree (i.e. removes everything above it, making
-   * it the root Branch). Similar to [Branch.isolate](#isolate), only it returns
-   * the Branch on which it is called.
-   * @return {Branch} The branch object on which it was called.
-   */
-  Branch.prototype.isolate = function(){
-    let index = this.parent.children.indexOf(this);
-    this.parent.children.splice(index, 1);
-    this.setParent(null);
-    return this;
-  };
-
-  /**
-   * Sets the parent of the Branch on which it is called.
-   * @param  {Branch} parent The Branch to set as parent
-   * @return {Branch}        The Branch on which this method was called.
-   */
-  Branch.prototype.setParent = function(parent){
-    if(parent instanceof Branch || parent === null){
-      this.parent = parent;
-      return this;
-    }
-    throw Error('Cannot set parent to non-Branch object!');
-  };
-
-  /**
-   * Repairs incorrect links by recurively confirming that children reference
-   * their parents, and correcting those references if they do not.
-   * If you need to call this, something has messed up the state of your tree
-   * and you should be concerned about that. Just FYI. ¯\_(ツ)_/¯
-   * @param  {Boolean} nonrecursive Should this just fix the children of the
-   * node on which it is called, or all descendants?
-   * @return {Branch} The Branch on which it was called.
-   */
-  Branch.prototype.fixParenthood = function(nonrecursive){
-    this.children.forEach(child => {
-      if(!child.parent) child.parent = this;
-      if(child.parent !== this) child.parent = this;
-      if(!nonrecursive && child.children.length > 0){
-        child.fixParenthood();
-      }
-    });
-    return this;
-  };
-
-  /**
-   * Reroots a tree on this Branch. Use with caution, this returns the new root,
-   * which should typically supplant the existing root branch object, but does
-   * not replace that root automatically.
-   * @example
-   * tree = tree.children[0].children[0].reroot();
-   * @return {Branch} The new root branch, which is either the Branch on which this was called or its parent
-   */
-  Branch.prototype.reroot = function(){
-    if(this.isRoot()) return this;
-    if(this.parent.isRoot()) return this.parent;
-    let newRoot = this.isLeaf() ? this.parent : this;
-    let current = newRoot;
-    let toInvert = [];
-    while(!current.isRoot()){
-      toInvert.push(current);
-      current = current.parent;
-    }
-    toInvert.reverse().forEach(c => c.invert());
-  	return newRoot;
   };
 
   /**
@@ -357,6 +282,20 @@
   };
 
   /**
+   * Returns whether the node on which it is called is a child of a given parent
+   * (or parent ID).
+   * @param  {(Branch|String)} parent A Branch (or ID thereof) to test for
+   * paternity of this node.
+   * @return {Boolean} True is `parent` is the parent of this Branch, false
+   * otherwise.
+   */
+  Branch.prototype.isChildOf = function(parent){
+    if(parent instanceof Branch) return this.parent === parent;
+    if(typeof parent === 'string') return this.parent.id === parent;
+    throw Error('Unknown parent type passed to Branch.isChildOf');
+  };
+
+  /**
    * Tests whether this and each descendant branch holds correct links to both
    * its parent and its children.
    * @return {Boolean} True if consistent, otherwise false
@@ -373,14 +312,116 @@
   };
 
   /**
-   * Returns a clone of the Branch on which it is called. Note that this also
-   * clones all descendants, rather than providing references to the existing
-   * descendant Branches.
-   * @return {Branch} A clone of the Branch on which it is called.
+   * Returns whether a given Branch is an ancestor of the Branch on which this
+   * method is called. Uses recursive tree-climbing.
+   * @param  {[type]} ancestor [description]
+   * @return {[type]}          [description]
    */
-  Branch.prototype.clone = function(){
-    return patristic.parseJSON(this.toObject());
+  Branch.prototype.isDescendantOf = function(ancestor){
+    if(!ancestor || !this.parent) return false;
+    if(this.parent === ancestor || this.parent.id === ancestor) return true;
+    return this.parent.isDescendantOf(ancestor);
   };
+
+  /**
+   * Returns a boolean indicating if this Branch is a leaf (i.e. has no
+   * children).
+   * @return {Boolean} True is this Branch is a leaf, otherwise false.
+   */
+  Branch.prototype.isLeaf = function(){
+    return this.children.length === 0;
+  };
+
+  /**
+   * Returns a boolean indicating whether or not this Branch is olate.
+   *
+   * ...Just kidding!
+   *
+   * Isolates a Branch and its subtree (i.e. removes everything above it, making
+   * it the root Branch). Similar to [Branch.remove](#remove), only it returns
+   * the Branch on which it is called.
+   * @return {Branch} The branch object on which it was called.
+   */
+  Branch.prototype.isolate = function(){
+    let index = this.parent.children.indexOf(this);
+    this.parent.children.splice(index, 1);
+    this.setParent(null);
+    return this;
+  };
+
+  /**
+   * Returns a boolean indicating if this Branch is the root of a tree (i.e. has
+   * no parents).
+   * @return {Boolean} True if this Branch is the root, otherwise false.
+   */
+  Branch.prototype.isRoot = function(){
+    return this.parent === null;
+  };
+
+  /**
+   * Removes a Branch and its subtree from the tree. Similar to
+   * [Branch.isolate](#isolate), only it returns the root Branch of the tree
+   * from which this Branch is removed.
+   * @return {Branch} The root of the remaining tree.
+   */
+  Branch.prototype.remove = function(){
+    let root = this.getRoot();
+    this.isolate();
+    return root;
+  };
+
+  /**
+   * Reroots a tree on this Branch. Use with caution, this returns the new root,
+   * which should typically supplant the existing root branch object, but does
+   * not replace that root automatically.
+   * @example
+   * tree = tree.children[0].children[0].reroot();
+   * @return {Branch} The new root branch, which is either the Branch on which this was called or its parent
+   */
+  Branch.prototype.reroot = function(){
+    if(this.isRoot()) return this;
+    if(this.parent.isRoot() && this.isLeaf()) return this.parent;
+    let newRoot = this.isLeaf() ? this.parent : this;
+    let current = newRoot;
+    let toInvert = [];
+    while(!current.isRoot()){
+      toInvert.push(current);
+      current = current.parent;
+    }
+    toInvert.reverse().forEach(c => c.invert());
+  	return newRoot;
+  };
+
+  /**
+   * Set the length of a Branch
+   * @param  {number} length The new length to assign to the Branch
+   * @return {Branch}       The Branch object on which this was called
+   */
+  Branch.prototype.setLength = function(length){
+    this.length = length;
+    return this;
+  };
+
+  /**
+   * Sets the parent of the Branch on which it is called.
+   * @param  {Branch} parent The Branch to set as parent
+   * @return {Branch}        The Branch on which this method was called.
+   */
+  Branch.prototype.setParent = function(parent){
+    if(parent instanceof Branch || parent === null){
+      this.parent = parent;
+      return this;
+    }
+    throw Error('Cannot set parent to non-Branch object!');
+  };
+
+  /**
+   * toJSON is an alias for [toObject](#toObject), enabling the safe use of
+   * `JSON.stringify` on Branch objects (in spite of their circular references).
+   * @type {Function}
+   * @returns {Object} A serializable Object
+   */
+  Branch.prototype.toJSON = Branch.prototype.toObject;
 
   /**
    * Computes a matrix of all patristic distances between all leaves which are
@@ -409,9 +450,10 @@
 
   /**
    * Returns the Newick representation of this Branch and its descendants.
-   * @param  {Boolean} nonterminus Is this not the terminus of the Newick Tree?
-   * This should be falsy when called by a user (i.e. you). It's used internally
-   * to decide whether or not in include a semicolon in the returned string.
+   * @param  {Boolean} [nonterminus=falsy] Is this not the terminus of the
+   * Newick Tree? This should be falsy when called by a user (i.e. you). It's
+   * used internally to decide whether or not in include a semicolon in the
+   * returned string.
    * @return {String} The [Newick](https://en.wikipedia.org/wiki/Newick_format)
    * representation of the Branch.
    */
@@ -424,32 +466,6 @@
     if(this.length) out += ':' + numberToString(this.length);
     if(!nonterminus) out += ';'
     return out;
-  };
-
-  /**
-   * Returns a simple Javascript object version of this Branch and its
-   * descendants. This is useful in cases where you want to serialize the tree
-   * (e.g. `JSON.stringify(tree)`) but can't because the tree contains circular
-   * references (for simplicity, elegance, and performance reasons, each branch
-   * tracks both its children and its parent).
-   * @return {Object} A serializable bare Javascript Object representing this
-   * branch and its descendants.
-   */
-  Branch.prototype.toObject = function(){
-    var output = {
-      id: this.id,
-      length: this.length
-    };
-    if(this.children.length > 0) output.children = this.children.map(c => c.toObject());
-    return output;
-  };
-
-  /**
-   * Returns a JSON serialization of the Branch Object.
-   * @return {String} A JSON serialization of the Branch Object.
-   */
-  Branch.prototype.toJSON = function(){
-    return JSON.stringify(this.toObject());
   };
 
   //This function takes a number and returns a string representation that does
@@ -477,6 +493,24 @@
     }
     return numStr;
   }
+
+  /**
+   * Returns a simple Javascript object version of this Branch and its
+   * descendants. This is useful in cases where you want to serialize the tree
+   * (e.g. `JSON.stringify(tree)`) but can't because the tree contains circular
+   * references (for simplicity, elegance, and performance reasons, each branch
+   * tracks both its children and its parent).
+   * @return {Object} A serializable bare Javascript Object representing this
+   * branch and its descendants.
+   */
+  Branch.prototype.toObject = function(){
+    var output = {
+      id: this.id,
+      length: this.length
+    };
+    if(this.children.length > 0) output.children = this.children.map(c => c.toObject());
+    return output;
+  };
 
   /**
    * Parses a hierarchical JSON string (or Object) as a Branch object.
