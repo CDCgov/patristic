@@ -208,19 +208,42 @@
   };
 
   /**
-   * Returns an array of all descendants of this Branch
-   * @return {Array} An array of all descendants of this Branch
+   * Returns an array of all Branches which are descendants of this Branch
+   * @param {falsy} [nonterminus] Is this not the node on which the user called
+   * the function? This is used internally and should be ignored.
+   * @return {Array} An array of all Branches descended from this Branch
    */
-  Branch.prototype.getDescendants = function(){
-    let descendants = [];
-    if(this.children.length > 0){
+  Branch.prototype.getDescendants = function(nonterminus){
+    let descendants = nonterminus ? [this] : [];
+    if(!this.isLeaf()){
       this.children.forEach(child => {
-        child.getDescendants().forEach(d => descendants.push(d));
+        child.getDescendants(true).forEach(d => descendants.push(d));
       });
-    } else {
-      return [this];
     }
     return descendants;
+  };
+
+  /**
+   * alias of getLeaves
+   * @type {Function}
+   */
+  Branch.prototype.getLeafs = Branch.prototype.getLeaves;
+
+  /**
+   * Returns an array of all leaves which are descendants of this Branch
+   * @return {Array} An array of all leaves descended from this Branch
+   */
+  Branch.prototype.getLeaves = function(){
+    if(this.isLeaf()){
+      return [this];
+    } else {
+      let descendants = [];
+      this.children.forEach(child => {
+        child.getLeaves().forEach(d => descendants.push(d));
+      });
+      return descendants;
+    }
+    throw new Error("Something very weird happened. Sorry about that!");
   };
 
   /**
@@ -444,7 +467,7 @@
    * Array of `id`s corresponding to the rows (and columns) of the matrix.
    */
   Branch.prototype.toMatrix = function(){
-    let descendants = this.getDescendants();
+    let descendants = this.getLeaves();
     let n = descendants.length;
     let matrix = new Array(n);
     for(let i = 0; i < n; i++){
