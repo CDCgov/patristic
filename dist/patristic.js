@@ -30,7 +30,7 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
    * console.log(patristic.version);
    */
 
-  var version = "0.2.7";
+  var version = "0.2.8";
   /**
    * A class for representing branches in trees.
    * It's written predominantly for phylogenetic trees (hence the
@@ -571,6 +571,31 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
     }
 
     throw Error('Cannot set parent to non-Branch object!');
+  };
+  /**
+   * Determines whether this branch is likelier to be a source of `cousin`, or
+   * if `cousin` is a source of this Branch.
+   * @param  {Branch} cousin The other branch to test
+   * @return {Boolean} True if this might be the source of cousin, otherwise
+   * false.
+   */
+
+
+  Branch.prototype.sources = function (cousin) {
+    var mrca = this.getMRCA(cousin);
+    return mrca.depthOf(this) < mrca.depthOf(cousin);
+  };
+  /**
+   * Determines whether this branch is likelier to be a target of `cousin`, or
+   * if `cousin` is a target of this Branch.
+   * @param  {Branch} cousin The other branch to test
+   * @return {Boolean} True if this might be the target of cousin, otherwise
+   * false.
+   */
+
+
+  Branch.prototype.targets = function (cousin) {
+    return cousin.sources(this);
   };
   /**
    * toJSON is an alias for [toObject](#toObject), enabling the safe use of

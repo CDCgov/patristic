@@ -16,7 +16,7 @@
    * @example
    * console.log(patristic.version);
    */
-  const version = "0.2.7";
+  const version = "0.2.8";
 
   /**
    * A class for representing branches in trees.
@@ -465,6 +465,29 @@
       return this;
     }
     throw Error('Cannot set parent to non-Branch object!');
+  };
+
+  /**
+   * Determines whether this branch is likelier to be a source of `cousin`, or
+   * if `cousin` is a source of this Branch.
+   * @param  {Branch} cousin The other branch to test
+   * @return {Boolean} True if this might be the source of cousin, otherwise
+   * false.
+   */
+  Branch.prototype.sources = function(cousin){
+    let mrca = this.getMRCA(cousin);
+    return mrca.depthOf(this) < mrca.depthOf(cousin);
+  };
+
+  /**
+   * Determines whether this branch is likelier to be a target of `cousin`, or
+   * if `cousin` is a target of this Branch.
+   * @param  {Branch} cousin The other branch to test
+   * @return {Boolean} True if this might be the target of cousin, otherwise
+   * false.
+   */
+  Branch.prototype.targets = function(cousin){
+    return cousin.sources(this);
   };
 
   /**

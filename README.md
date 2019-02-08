@@ -2,20 +2,24 @@
 
 `patristic` is a javascript toolkit for working with phylogenies. It can:
 
-* Parse newick into Javacsipt objects representing the phylogenetic tree
-* Run rapid neighbor joining to compute a phylogenetic tree from a distance matrix
-* Infer a patristic distance matrix from a phylogenetic tree
-* Reroot a tree on any given leaf node
-* Infer directionality between two leaves in the tree (in development)
+* [Parse newick](https://cdcgov.github.io/patristic/docs/#parsenewick) into
+[Javascript objects representing the phylogenetic tree](https://cdcgov.github.io/patristic/docs/#branch)
+* Run [rapid neighbor joining](http://pure.au.dk/ws/files/19821675/rapidNJ.pdf)
+to [compute a phylogenetic tree from a distance matrix](https://cdcgov.github.io/patristic/docs/#parsematrix)
+* [Infer a patristic distance matrix](https://cdcgov.github.io/patristic/docs/#tomatrix)
+from a phylogenetic tree
+* [Reroot a tree on any given Branch](https://cdcgov.github.io/patristic/docs/#reroot)
+* [Infer directionality between two Branches in the tree](https://cdcgov.github.io/patristic/docs/#sources)
+* [...And quite a bit more.](https://cdcgov.github.io/patristic/docs/#table-of-contents)
 
 ## Installation
 
-To install patristic package with NPM use: `npm install --save patristic`
+To install patristic with NPM use: `npm install --save patristic`
 
 ## Usage
 
-Please note that this is very much an alpha-stage API and is (all but certainly)
-going to change in the very near future.
+Please note that this is a beta-stage API and may change (possibly dramatically)
+in the very near future.
 
 ### Quick Start
 
@@ -32,19 +36,16 @@ var matrix = tree.toMatrix();
 
 Note that elements in the tree object maintain references to their parents,
 creating circular references. If you need a tree without circular references for
-some sort of serialization:
+serialization:
 
 ```javascript
 tree.toObject();
 ```
 
-Although, let's be honest: you're going to make it JSON. We've got you covered:
+(`tree.toJSON` aliases that, so you can `JSON.stringify` a Branch and it just
+works. 😉)
 
-```javascript
-tree.toJSON();
-```
-
-For more details, check out our [Full Documentation](https://github.com/CDCgov/patristic/tree/master/docs#table-of-contents).
+For more details, check out our [Full Documentation](https://cdcgov.github.io/patristic/docs/#table-of-contents).
 
 ## Public Domain
 This repository constitutes a work of the United States Government and is not
@@ -59,13 +60,14 @@ copyright interest.
 The repository utilizes code licensed under the terms of the Apache Software
 License and therefore is licensed under ASL v2 or later.
 
-This source code in this repository is free: you can redistribute it and/or modify it under
-the terms of the Apache Software License version 2, or (at your option) any
-later version.
+This source code in this repository is free: you can redistribute it and/or
+modify it under the terms of the Apache Software License version 2, or (at your
+option) any later version.
 
-This source code in this repository is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE. See the Apache Software License for more details.
+This source code in this repository is distributed in the hope that it will be
+useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the Apache Software
+License for more details.
 
 You should have received a copy of the Apache Software License along with this
 program. If not, see http://www.apache.org/licenses/LICENSE-2.0.html
