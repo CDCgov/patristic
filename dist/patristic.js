@@ -11,7 +11,7 @@
    * @example
    * console.log(patristic.version);
    */
-  const version = "0.2.9";
+  const version = "0.2.10";
 
   /**
    * A class for representing branches in trees.
@@ -60,7 +60,7 @@
    * @param  {Array} siblings An array of Branches to be the children of the new parent branch (i.e. siblings of this Branch)
    * @return {Branch}          The Branch on which this was called
    */
-  Branch.prototype.addParent = function(data, siblings$$1){
+  Branch.prototype.addParent = function(data, siblings){
     let c;
     if(data instanceof Branch){
       c = data;
@@ -68,8 +68,8 @@
       if(!data) data = {};
       c = new Branch(Object.assign(data));
     }
-    siblings$$1.forEach(sib => sib.setParent(c));
-    c.children = [this].concat(siblings$$1);
+    siblings.forEach(sib => sib.setParent(c));
+    c.children = [this].concat(siblings);
     this.parent = c;
     return this;
   };
@@ -390,8 +390,8 @@
    * @return {Branch} The branch object on which it was called.
    */
   Branch.prototype.isolate = function(){
-    let index$$1 = this.parent.children.indexOf(this);
-    this.parent.children.splice(index$$1, 1);
+    let index = this.parent.children.indexOf(this);
+    this.parent.children.splice(index, 1);
     this.setParent(null);
     return this;
   };
@@ -707,9 +707,9 @@
     node1 = setUpNode(l1, d1);
     node2 = setUpNode(l2, d2);
 
-    let tree$$1 = new Branch({children: [node1, node2]});
-    tree$$1.fixParenthood();
-    return tree$$1;
+    let tree = new Branch({children: [node1, node2]});
+    tree.fixParenthood();
+    return tree;
   }
 
   function search(t){
@@ -836,7 +836,7 @@
     */
   function parseNewick(newick){
     let ancestors = [],
-        tree$$1 = new Branch(),
+        tree = new Branch(),
         tokens = newick.split(/\s*(;|\(|\)|,|:)\s*/),
         n = tokens.length;
     for(let t = 0; t < n; t++){
@@ -844,29 +844,29 @@
       let c;
       switch(token){
         case "(": // new branchset
-          c = tree$$1.addChild();
-          ancestors.push(tree$$1);
-          tree$$1 = c;
+          c = tree.addChild();
+          ancestors.push(tree);
+          tree = c;
           break;
         case ",": // another branch
           c = ancestors[ancestors.length-1].addChild();
-          tree$$1 = c;
+          tree = c;
           break;
         case ")": // optional name next
-          tree$$1 = ancestors.pop();
+          tree = ancestors.pop();
           break;
         case ":": // optional length next
           break;
         default:
           let x = tokens[t-1];
           if (x == ')' || x == '(' || x == ',') {
-            tree$$1.id = token;
+            tree.id = token;
           } else if (x == ':') {
-            tree$$1.length = parseFloat(token);
+            tree.length = parseFloat(token);
           }
       }
     }
-    return tree$$1;
+    return tree;
   }
 
   exports.version = version;

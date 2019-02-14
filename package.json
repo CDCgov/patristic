@@ -1,6 +1,6 @@
 {
   "name": "patristic",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "Patristic Inference library for Node and Browser",
   "homepage": "https://cdcgov.github.io/patristic/",
   "bugs": "https://github.com/CDCgov/patristic/issues",
@@ -25,12 +25,7 @@
     "Tony Boyles <nsp3@cdc.gov>"
   ],
   "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/CDCgov/patristic/issues"
-  },
-  "homepage": "https://github.com/CDCgov/patristic#readme",
   "devDependencies": {
-    "d3-hierarchy": "^1.1.8",
     "documentation": "^9.1.1",
     "http-server": "^0.11.1",
     "jest": "^24.1.0",

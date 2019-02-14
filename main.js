@@ -1,5 +1,3 @@
-import {hierarchy} from 'd3-hierarchy';
-
 /**
  * The [SemVer](https://semver.org/) version string of the patristic library
  * @type {String} A string specifying the current version of the Patristic Library.
@@ -7,7 +5,7 @@ import {hierarchy} from 'd3-hierarchy';
  * @example
  * console.log(patristic.version);
  */
-const version = "0.2.8";
+export const version = "0.2.10";
 
 /**
  * A class for representing branches in trees.
@@ -20,7 +18,7 @@ const version = "0.2.8";
  * attributes of a Branch, namely `id`, `parent`, `length`, and `children`.
  * @constructor
  */
-function Branch(data){
+export function Branch(data){
   Object.assign(this, {
     id: '',
     parent: null,
@@ -591,7 +589,7 @@ Branch.prototype.toObject = function(){
  * @return {Branch}               The Branch representing the root of the
  * hierarchy represented by the input JSON
  */
-function parseJSON(json, idLabel, lengthLabel, childrenLabel){
+export function parseJSON(json, idLabel, lengthLabel, childrenLabel){
   if(!idLabel) idLabel = 'id';
   if(!lengthLabel) lengthLabel = 'length';
   if(!childrenLabel) childrenLabel = 'children';
@@ -616,7 +614,7 @@ function parseJSON(json, idLabel, lengthLabel, childrenLabel){
  * @param  {Array} labels An array of `n` strings, each corresponding to the values in matrix
  * @return {Branch} A Branch object representing the root node of the tree inferred by neighbor joining on matrix
  */
-function parseMatrix(matrix, labels){
+export function parseMatrix(matrix, labels){
   let that = {};
   let N = that.N = matrix.length;
   if(!labels) labels = [...Array(N).keys()];
@@ -830,7 +828,7 @@ function sortWithIndices(toSort, skip){
   * @param  {string} newick A Newick String
   * @return {Branch}        A Branch representing the root of the output
   */
-function parseNewick(newick){
+export function parseNewick(newick){
   let ancestors = [],
       tree = new Branch(),
       tokens = newick.split(/\s*(;|\(|\)|,|:)\s*/),
@@ -864,9 +862,3 @@ function parseNewick(newick){
   }
   return tree;
 }
-
-export { version }
-export { Branch }
-export { parseJSON }
-export { parseMatrix }
-export { parseNewick }
