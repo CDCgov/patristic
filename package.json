@@ -4,10 +4,13 @@
   "description": "Patristic Inference library for Node and Browser",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
-    "build": "babel index.js > dist/patristic.js && terser dist/patristic.js --compress > dist/patristic.min.js",
+    "build": "rollup",
     "demo": "http-server",
-    "doc": "documentation build index.js -f md -o docs/README.md"
+    "dev": "npm run demo & npm run watch",
+    "doc": "documentation build index.js -f md -o docs/README.md",
+    "minify": "terser dist/patristic.js --compress > dist/patristic.min.js",
+    "test": "jest",
+    "watch": "rollup --watch"
   },
   "keywords": [
     "phylogeny"
@@ -25,13 +28,13 @@
   },
   "homepage": "https://github.com/CDCgov/patristic#readme",
   "devDependencies": {
-    "@babel/cli": "^7.2.3",
-    "@babel/core": "^7.2.2",
-    "@babel/preset-env": "^7.3.1",
-    "babel-jest": "^24.1.0",
+    "d3-hierarchy": "^1.1.8",
     "documentation": "^9.1.1",
     "http-server": "^0.11.1",
     "jest": "^24.1.0",
+    "rollup": "^1.1.2",
+    "rollup-plugin-commonjs": "^9.2.0",
+    "rollup-plugin-node-resolve": "^4.0.0",
     "terser": "^3.16.1"
   }
 }
