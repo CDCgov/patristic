@@ -1,7 +1,7 @@
 import {hierarchy} from 'd3-hierarchy';
 
 /**
- * The SemVer version string of the patristic library
+ * The [SemVer](https://semver.org/) version string of the patristic library
  * @type {String} A string specifying the current version of the Patristic Library.
  * If not given, the version of patristic you are using if less than or equal to 0.2.2.
  * @example
@@ -865,4 +865,8 @@ function parseNewick(newick){
   return tree;
 }
 
-export default { version, Branch, parseJSON, parseMatrix, parseNewick };
+export { version }
+export { Branch }
+export { parseJSON }
+export { parseMatrix }
+export { parseNewick }
