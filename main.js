@@ -434,6 +434,16 @@ Branch.prototype.reroot = function(){
 };
 
 /**
+ * Reverses the order of children of a Branch
+ * @return {Branch} The Branch on which this was called.
+ */
+Branch.prototype.rotate = function(){
+  if(!this.children) return this;
+  this.children.reverse();
+  return this;
+};
+
+/**
  * Set the length of a Branch
  * @param  {number} length The new length to assign to the Branch
  * @return {Branch}       The Branch object on which this was called
