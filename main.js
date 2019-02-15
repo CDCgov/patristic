@@ -5,7 +5,7 @@
  * @example
  * console.log(patristic.version);
  */
-export const version = "0.2.10";
+export const version = "0.3.0";
 
 /**
  * A class for representing branches in trees.
@@ -69,13 +69,46 @@ Branch.prototype.addParent = function(data, siblings){
 };
 
 /**
+ * Returns an array of Branches from this node to the root.
+ * d3-hierarchy compatibility method.
+ * @type {Array} An array of Branches
+ */
+Branch.prototype.ancestors = function(){
+  return [this].concat(this.getAncestors());
+};
+
+/**
  * Returns a clone of the Branch on which it is called. Note that this also
  * clones all descendants, rather than providing references to the existing
  * descendant Branches.
  * @return {Branch} A clone of the Branch on which it is called.
  */
 Branch.prototype.clone = function(){
-  return patristic.parseJSON(this.toObject());
+  return parseJSON(this.toObject());
+};
+
+/**
+ * Returns a clone of the Branch on which it is called. Note that this also
+ * clones all descendants, rather than providing references to the existing
+ * descendant Branches. Finally, the cloned Branch will become the root of the
+ * cloned tree, having a parent of `null`.
+ * @return {Branch} A clone of the Branch on which it is called.
+ */
+Branch.prototype.copy = function(){
+  return parseJSON(this.toObject());
+};
+
+Branch.prototype.count = function(){
+  this.sum(() => 1);
+};
+
+/**
+ * Returns an array pf descendants, starting with this node.
+ * d3-hierarchy compatibility method.
+ * @type {Array} An Array of Branches, starting with this one.
+ */
+Branch.prototype.descendants = function(){
+  return this.getDescendants(true);
 };
 
 /**
@@ -112,6 +145,46 @@ Branch.prototype.distanceTo = function(cousin){
 };
 
 /**
+ * @param  {Function} callback [description]
+ * @return {Branch} The Branch on which it was called.
+ */
+Branch.prototype.each = function(callback){
+  this.eachAfter(callback);
+};
+
+/**
+ * https://en.wikipedia.org/wiki/Tree_traversal#Post-order
+ * @param  {Function} callback Function to run on each Branch
+ * @return {Branch} The Branch on which it was called
+ */
+Branch.prototype.eachAfter = function(callback){
+  this.children.forEach(child => child.eachAfter(callback));
+  callback(this);
+  return this;
+};
+
+/**
+* https://en.wikipedia.org/wiki/Tree_traversal#Pre-order
+ * @param  {Function} callback [description]
+ * @return {[type]}            [description]
+ */
+Branch.prototype.eachBefore = function(callback){
+  callback(this);
+  this.children.forEach(child => child.eachBefore(callback));
+  return this;
+};
+
+/**
+ * This is mostly a helper-function to Branch.each
+ * @param  {Function} callback The function to run on each child.
+ * @return {Branch} The Branch on which it was called.
+ */
+Branch.prototype.eachChild = function(callback){
+  this.children.forEach(callback);
+  return this;
+};
+
+/**
  * Excises the Branch on which it is called and updates its parent and children
  * @return {Branch} The parent of the excised Branch.
  */
@@ -126,6 +199,24 @@ Branch.prototype.excise = function(){
   });
   this.parent.children.splice(this.parent.children.indexOf(this), 1);
   return this.parent;
+};
+
+/**
+ * Sets the distance values (height and depth) for each Branch
+ * @return {[type]} [description]
+ */
+Branch.prototype.fixDistances = function(){
+  let maxdepth = 0, root = this.getRoot();
+  root.depth = 0;
+  this.eachBefore(function(node){
+    if(node.isRoot()) return;
+    node.depth = node.parent.depth + 1;
+    if(node.depth > maxdepth) maxdepth = node.depth;
+  });
+  this.eachBefore(function(node){
+    node.height = maxdepth - node.depth;
+  });
+  return this;
 };
 
 /**
@@ -216,7 +307,9 @@ Branch.prototype.getDescendants = function(nonterminus){
  * alias of getLeaves
  * @type {Function}
  */
-Branch.prototype.getLeafs = Branch.prototype.getLeaves;
+Branch.prototype.getLeafs = function(){
+  return this.getLeaves();
+};
 
 /**
  * Returns an array of all leaves which are descendants of this Branch
@@ -400,6 +493,57 @@ Branch.prototype.isRoot = function(){
 };
 
 /**
+ * Alias of Branch.getLeaves.
+ * d3-hierarchy compatibility method.
+ * @type {Array} An Array of Branches which are descended from this Branch and
+ * have no children.
+ */
+Branch.prototype.leaves = function(){
+  return this.getLeaves();
+}
+
+/**
+ * Returns an Array of links, objects containing references to a source (parent)
+ * and a target (child)
+ * @return {Array} An array of plain Javascript objects
+ */
+Branch.prototype.links = function(){
+  let links = [];
+  this.each(d => {
+    if(!d.isRoot()){
+      links.push({
+        source: d.parent,
+        target: d
+      });
+    }
+  });
+  return links;
+}
+
+/**
+ * Gets the path from this Branch to `target`. If this Branch and `target` are
+ * the same, returns an array containing only that node.
+ * @param  {Branch} target A Branch object
+ * @return {Array} An ordered Array of nodes following the path between this Branch and `target`
+ */
+Branch.prototype.path = function(target){
+  let current = this;
+  let nodes = [this];
+  let mrca = this.getMRCA(target);
+  while(start !== mrca){
+    current = current.parent;
+    nodes.push(start);
+  }
+  let k = nodes.length;
+  current = target;
+  while(current !== mrca){
+    nodes.splice(k, 0, current);
+    current = current.parent;
+  }
+  return nodes;
+};
+
+/**
  * Removes a Branch and its subtree from the tree. Similar to
  * [Branch.isolate](#isolate), only it returns the root Branch of the tree
  * from which this Branch is removed.
@@ -459,11 +603,22 @@ Branch.prototype.setLength = function(length){
  * @return {Branch}        The Branch on which this method was called.
  */
 Branch.prototype.setParent = function(parent){
-  if(parent instanceof Branch || parent === null){
-    this.parent = parent;
-    return this;
-  }
-  throw Error('Cannot set parent to non-Branch object!');
+  if(!parent instanceof Branch && parent !== null) throw Error('Cannot set parent to non-Branch object!');
+  this.parent = parent;
+  return this;
+};
+
+/**
+ * Sorts the Tree
+ * @param  {Function} comparator A Function taking two nodes and returning a
+ * numberic value. For details, see [MDN Array.sort](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#Description)
+ * @return {Branch} The Branch on which it was called
+ */
+Branch.prototype.sort = function(comparator){
+  if(!comparator) comparator = (a, b) => a.value - b.value;
+  return this.eachBefore(node => {
+    node.children.sort(comparator);
+  });
 };
 
 /**
@@ -476,6 +631,16 @@ Branch.prototype.setParent = function(parent){
 Branch.prototype.sources = function(cousin){
   let mrca = this.getMRCA(cousin);
   return mrca.depthOf(this) < mrca.depthOf(cousin);
+};
+
+/**
+ * Computes the value of each node according to some valuator function
+ * @param  {Function} value A Function taking a Branch and returning a
+ * (numeric?) value.
+ * @return {[type]}       [description]
+ */
+Branch.prototype.sum = function(value){
+  return this.eachAfter(d => d.value = value(d));
 };
 
 /**
@@ -495,7 +660,9 @@ Branch.prototype.targets = function(cousin){
  * @type {Function}
  * @returns {Object} A serializable Object
  */
-Branch.prototype.toJSON = Branch.prototype.toObject;
+Branch.prototype.toJSON = function(){
+  return this.toObject();
+}
 
 /**
  * Computes a matrix of all patristic distances between all leaves which are
@@ -533,7 +700,7 @@ Branch.prototype.toMatrix = function(){
  */
 Branch.prototype.toNewick = function(nonterminus){
   let out = '';
-  if(this.isLeaf()){
+  if(!this.isLeaf()){
     out += '(' + this.children.map(child => child.toNewick(true)).join(',') + ')';
   }
   out += this.id;
@@ -610,10 +777,10 @@ export function parseJSON(json, idLabel, lengthLabel, childrenLabel){
   });
   if(json[childrenLabel] instanceof Array){
     json[childrenLabel].forEach(child => {
-      root.addChild(patristic.parseJSON(child));
+      root.addChild(parseJSON(child));
     });
   }
-  return root;
+  return root.fixDistances();
 }
 
 /**
@@ -713,7 +880,7 @@ export function parseMatrix(matrix, labels){
 
   let tree = new Branch({children: [node1, node2]});
   tree.fixParenthood();
-  return tree;
+  return tree.fixDistances();
 }
 
 function search(t){
@@ -870,5 +1037,5 @@ export function parseNewick(newick){
         }
     }
   }
-  return tree;
+  return tree.fixDistances();
 }
