@@ -5,7 +5,7 @@
  * @example
  * console.log(patristic.version);
  */
-export const version = "0.3.1";
+export const version = "0.3.2";
 
 /**
  * A class for representing branches in trees.
@@ -23,6 +23,7 @@ export function Branch(data){
     id: '',
     parent: null,
     length: 0,
+    value: 1,
     children: []
   }, data);
 }
@@ -98,8 +99,12 @@ Branch.prototype.copy = function(){
   return parseJSON(this.toObject());
 };
 
+/**
+ * Sets the values of all nodes to be equal to the number of their descendants.
+ * @return {Branch} The Branch on which it was called
+ */
 Branch.prototype.count = function(){
-  this.sum(() => 1);
+  return this.sum(() => 1);
 };
 
 /**
@@ -219,14 +224,16 @@ Branch.prototype.excise = function(){
 Branch.prototype.fixDistances = function(){
   let maxdepth = 0, root = this.getRoot();
   root.depth = 0;
-  this.eachBefore(function(branch){
-    if(branch.isRoot()) return;
-    branch.depth = branch.parent.depth + 1;
-    if(branch.depth > maxdepth) maxdepth = branch.depth;
-  });
-  this.eachBefore(function(branch){
-    branch.height = maxdepth - branch.depth;
-  });
+  this
+    .eachBefore(function(branch){
+      if(branch.isRoot()) return;
+      branch.depth = branch.parent.depth + 1;
+      if(branch.depth > maxdepth) maxdepth = branch.depth;
+    })
+    .eachAfter(d => {
+      d.height = maxdepth - d.depth;
+      d.value = d.value + d.children.reduce((a, c) => a + c.value, 0);
+    });
   return this;
 };
 
@@ -521,15 +528,35 @@ Branch.prototype.leaves = function(){
 Branch.prototype.links = function(){
   let links = [];
   this.each(d => {
-    if(!d.isRoot()){
-      links.push({
-        source: d.parent,
-        target: d
-      });
-    }
+    if(d.isRoot()) return;
+    links.push({
+      source: d.parent,
+      target: d
+    });
   });
   return links;
 }
+
+/**
+ * Normalizes this and all descendant Branches `value` attributes to between
+ * `newmin` and `newmax`. Note that normalize can function as its own inverse
+ * when passed an original range. For example:
+ * @example tree.normalize().normalize(1, tree.getDescendants().length + 1);
+ * @param  {Number} newmin The desired minimum value.
+ * @param  {Number} newmax The desired maximum value.
+ * @return {Branch} The Branch on which it was called.
+ */
+Branch.prototype.normalize = function(newmin, newmax){
+  if(typeof newmax !== 'number') newmax = 1;
+  if(typeof newmin !== 'number') newmin = 0;
+  let min = Infinity, max = -Infinity;
+  this.each(d => {
+    if(d.value < min) min = d.value;
+    if(d.value > max) max = d.value;
+  });
+  let ratio = (newmax - newmin) / (max - min);
+  return this.each(d => d.value = (d.value - min) * ratio + newmin);
+};
 
 /**
  * Gets the path from this Branch to `target`. If this Branch and `target` are
@@ -649,10 +676,11 @@ Branch.prototype.sources = function(cousin){
  * Computes the value of each branch according to some valuator function
  * @param  {Function} value A Function taking a Branch and returning a
  * (numeric?) value.
- * @return {[type]}       [description]
+ * @return {Branch} The Branch on which it was called.
  */
 Branch.prototype.sum = function(value){
-  return this.eachAfter(d => d.value = value(d));
+  if(!value) value = d => d.value;
+  return this.eachAfter(d => d.value = value(d) + d.children.reduce((a, c) => a + c.value, 0));
 };
 
 /**
