@@ -149,7 +149,16 @@ Branch.prototype.distanceTo = function(cousin){
  * @return {Branch} The Branch on which it was called.
  */
 Branch.prototype.each = function(callback){
-  this.eachAfter(callback);
+  let branch = this, next = [branch], current;
+  while(next.length){
+    current = next.reverse();
+    next = [];
+    while(branch = current.pop()){
+      callback(branch);
+      branch.eachChild(child => next.push(child));
+    }
+  }
+  return this;
 };
 
 /**
@@ -158,7 +167,7 @@ Branch.prototype.each = function(callback){
  * @return {Branch} The Branch on which it was called
  */
 Branch.prototype.eachAfter = function(callback){
-  this.children.forEach(child => child.eachAfter(callback));
+  this.eachChild(child => child.eachAfter(callback));
   callback(this);
   return this;
 };
@@ -170,7 +179,7 @@ Branch.prototype.eachAfter = function(callback){
  */
 Branch.prototype.eachBefore = function(callback){
   callback(this);
-  this.children.forEach(child => child.eachBefore(callback));
+  this.eachChild(child => child.eachBefore(callback));
   return this;
 };
 
