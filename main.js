@@ -140,7 +140,7 @@ Branch.prototype.depthOf = function(descendant){
  * this method is called.
  */
 Branch.prototype.distanceTo = function(cousin){
-  let mrca = this.getMRCA();
+  let mrca = this.getMRCA(cousin);
   return mrca.depthOf(this) + mrca.depthOf(cousin);
 };
 
