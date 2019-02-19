@@ -5,7 +5,7 @@
  * @example
  * console.log(patristic.version);
  */
-export const version = "0.3.0";
+export const version = "0.3.1";
 
 /**
  * A class for representing branches in trees.
