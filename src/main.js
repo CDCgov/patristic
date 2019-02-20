@@ -30,7 +30,7 @@ export function Branch(data){
 
 /**
  * Adds a new child to this Branch
- * @param  {(Branch|Object)} data [description]
+ * @param  {(Branch|Object)} data The new Branch, or data to attach to it.
  * @return {Branch} The (possibly new) child Branch
  */
 Branch.prototype.addChild = function(data){
@@ -71,7 +71,7 @@ Branch.prototype.addParent = function(data, siblings){
 
 /**
  * Returns an array of Branches from this Branch to the root.
- * d3-hierarchy compatibility method.
+ * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_ancestors)
  * @type {Array} An array of Branches
  */
 Branch.prototype.ancestors = function(){
@@ -93,6 +93,7 @@ Branch.prototype.clone = function(){
  * clones all descendants, rather than providing references to the existing
  * descendant Branches. Finally, the cloned Branch will become the root of the
  * cloned tree, having a parent of `null`.
+ * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_copy)
  * @return {Branch} A clone of the Branch on which it is called.
  */
 Branch.prototype.copy = function(){
