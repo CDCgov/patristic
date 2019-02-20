@@ -618,11 +618,18 @@ Branch.prototype.reroot = function(){
 
 /**
  * Reverses the order of children of a Branch
+ * @param {Boolean} recursive Whether or not to rotate all descendants, or just
+ * children. Non-recursive appears as though two branches have been swapped.
+ * Recursive appears as though the entire subtree has been flipped over.
  * @return {Branch} The Branch on which this was called.
  */
-Branch.prototype.rotate = function(){
+Branch.prototype.rotate = function(recursive){
   if(!this.children) return this;
-  this.children.reverse();
+  if(recursive){
+    this.each(c => c.rotate());
+  } else {
+    this.children.reverse();
+  }
   return this;
 };
 
