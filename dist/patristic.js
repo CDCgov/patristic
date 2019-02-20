@@ -11,7 +11,7 @@
    * @example
    * console.log(patristic.version);
    */
-  const version = "0.3.2";
+  const version = "0.3.3";
 
   /**
    * A class for representing branches in trees.
@@ -36,7 +36,7 @@
 
   /**
    * Adds a new child to this Branch
-   * @param  {(Branch|Object)} data [description]
+   * @param  {(Branch|Object)} data The new Branch, or data to attach to it.
    * @return {Branch} The (possibly new) child Branch
    */
   Branch.prototype.addChild = function(data){
@@ -77,7 +77,7 @@
 
   /**
    * Returns an array of Branches from this Branch to the root.
-   * d3-hierarchy compatibility method.
+   * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_ancestors)
    * @type {Array} An array of Branches
    */
   Branch.prototype.ancestors = function(){
@@ -99,6 +99,7 @@
    * clones all descendants, rather than providing references to the existing
    * descendant Branches. Finally, the cloned Branch will become the root of the
    * cloned tree, having a parent of `null`.
+   * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_copy)
    * @return {Branch} A clone of the Branch on which it is called.
    */
   Branch.prototype.copy = function(){
@@ -624,11 +625,18 @@
 
   /**
    * Reverses the order of children of a Branch
+   * @param {Boolean} recursive Whether or not to rotate all descendants, or just
+   * children. Non-recursive appears as though two branches have been swapped.
+   * Recursive appears as though the entire subtree has been flipped over.
    * @return {Branch} The Branch on which this was called.
    */
-  Branch.prototype.rotate = function(){
+  Branch.prototype.rotate = function(recursive){
     if(!this.children) return this;
-    this.children.reverse();
+    if(recursive){
+      this.each(c => c.rotate());
+    } else {
+      this.children.reverse();
+    }
     return this;
   };
 
