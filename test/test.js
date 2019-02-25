@@ -24,5 +24,14 @@ test('Tree Consistency', () => {
 test('Tree can addChild', () => {
   //Note that Branch.addChild returns the new child, so we have to ascend a step
   //to check the whole tree.
-  expect(JSON.stringify(tree.addChild({'id': 'luca'}).parent)).toEqual('{"id":"","length":0,"children":[{"id":"A","length":0.1},{"id":"B","length":0.2},{"id":"","length":0.5,"children":[{"id":"C","length":0.3},{"id":"D","length":0.4}]},{"id":"luca","length":0}]}');
+  let clone = patristic.parseNewick(newick);
+  expect(JSON.stringify(clone.addChild({'id': 'luca'}).parent)).toEqual('{"id":"","length":0,"children":[{"id":"A","length":0.1},{"id":"B","length":0.2},{"id":"","length":0.5,"children":[{"id":"C","length":0.3},{"id":"D","length":0.4}]},{"id":"luca","length":0}]}');
+});
+
+test('Tree can find descendants', () => {
+  expect(tree.getDescendant('A')).toBe(tree.children[0]);
+  expect(tree.getDescendant('B')).toBe(tree.children[1]);
+  expect(tree.getDescendant('C')).toBe(tree.children[2].children[0]);
+  expect(tree.getDescendant('D')).toBe(tree.children[2].children[1]);
+  expect(tree.getDescendant('E')).toBe(tree.children[2].children[1].children[1]);
 });
