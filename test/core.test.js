@@ -1,4 +1,5 @@
 const patristic = require('../dist/patristic');
+if(!test) test = require('jest');
 
 const newick = "(A:0.1,B:0.2,(C:0.3,D:0.4):0.5);";
 var tree = patristic.parseNewick(newick);
@@ -14,18 +15,27 @@ test('JSON Serialization', () => {
   expect(JSON.stringify(tree)).toEqual(json);
 });
 
-test('Tree Consistency', () => {
-  expect(tree.isConsistent()).toBe(true);
-  let clone = patristic.parseNewick(newick);
-  clone.children[0].parent = clone.children[1];
-  expect(clone.isConsistent()).toBe(false);
+test('Tree can getRoot', () => {
+  expect(tree.children[2].children[1].getRoot()).toBe(tree);
 });
 
 test('Tree can addChild', () => {
   //Note that Branch.addChild returns the new child, so we have to ascend a step
   //to check the whole tree.
   let clone = patristic.parseNewick(newick);
-  expect(JSON.stringify(clone.addChild({'id': 'luca'}).parent)).toEqual('{"id":"","length":0,"children":[{"id":"A","length":0.1},{"id":"B","length":0.2},{"id":"","length":0.5,"children":[{"id":"C","length":0.3},{"id":"D","length":0.4}]},{"id":"luca","length":0}]}');
+  expect(JSON.stringify(clone.addChild({'id': 'luca'}).getRoot())).toEqual('{"id":"","length":0,"children":[{"id":"A","length":0.1},{"id":"B","length":0.2},{"id":"","length":0.5,"children":[{"id":"C","length":0.3},{"id":"D","length":0.4}]},{"id":"luca","length":0}]}');
+});
+
+test('Tree can addParent', () => {
+  let clone = patristic.parseNewick(newick);
+  expect(JSON.stringify(clone.addParent({'id': 'luca'}).getRoot())).toEqual('{"id":"luca","length":0,"children":[{"id":"","length":0,"children":[{"id":"A","length":0.1},{"id":"B","length":0.2},{"id":"","length":0.5,"children":[{"id":"C","length":0.3},{"id":"D","length":0.4}]}]}]}');
+});
+
+test('Tree Consistency', () => {
+  expect(tree.isConsistent()).toBe(true);
+  let clone = patristic.parseNewick(newick);
+  clone.children[0].parent = clone.children[1];
+  expect(clone.isConsistent()).toBe(false);
 });
 
 test('Tree can find descendants', () => {
