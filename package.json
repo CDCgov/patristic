@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "build": "babel index.js > dist/patristic.js && terser dist/patristic.js --compress > dist/patristic.min.js",
-    "demo": "http-server",
-    "doc": "documentation build index.js -f md -o docs/README.md"
+    "build": "babel index.js > dist/patristic.js",
+    "demo": "npx serve",
+    "doc": "documentation build index.js -f md -o docs/README.md",
+    "minify": "terser dist/patristic.js --compress > dist/patristic.min.js"
   },
   "keywords": [
     "phylogeny"
@@ -30,7 +31,6 @@
     "@babel/preset-env": "^7.3.1",
     "babel-jest": "^24.1.0",
     "documentation": "^9.1.1",
-    "http-server": "^0.11.1",
     "jest": "^24.1.0",
     "terser": "^3.16.1"
   }
