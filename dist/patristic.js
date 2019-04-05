@@ -26,12 +26,21 @@
    */
   function Branch(data){
     Object.assign(this, {
+      _guid: guid(),
       id: '',
       parent: null,
       length: 0,
       value: 1,
       children: []
     }, data);
+  }
+
+  function guid(a){
+    if(a){
+      return (a^Math.random()*16>>a/4).toString(16);
+    } else {
+      return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,guid);
+    }
   }
 
   /**
@@ -1119,11 +1128,11 @@
     return tree.fixDistances();
   }
 
-  exports.version = version;
   exports.Branch = Branch;
   exports.parseJSON = parseJSON;
   exports.parseMatrix = parseMatrix;
   exports.parseNewick = parseNewick;
+  exports.version = version;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
