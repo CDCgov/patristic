@@ -13,7 +13,6 @@
     "doc": "documentation build src/main.js -f md -o docs/README.md",
     "minify": "terser dist/patristic.js --compress > dist/patristic.min.js",
     "test": "jest",
-    "watch": "rollup -c --watch"
   },
   "keywords": [
     "phylogeny"
