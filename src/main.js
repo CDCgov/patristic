@@ -294,9 +294,8 @@ Branch.prototype.fixParenthood = function(nonrecursive){
 Branch.prototype.getAncestors = function(includeSelf){
   let ancestors = includeSelf ? [this] : [];
   let current = this;
-  while(!current.isRoot()){
-    ancestors.push(current.parent);
-    current = current.parent;
+  while(current = current.parent){
+    ancestors.push(current);
   }
   return ancestors;
 };
