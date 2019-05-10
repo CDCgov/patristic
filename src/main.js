@@ -284,10 +284,12 @@ Branch.prototype.fixParenthood = function(nonrecursive){
  * Returns an Array of all the ancestors of the Branch on which it is called.
  * Note that this does not include itself. For all ancestors and itself, see
  * [Branch.ancestors](#ancestors)
+ * @param {Boolean} includeSelf Should the Branch on which this is called be
+ * included in the results?
  * @return {Array} Every Ancestor of the Branch on which it was called.
  */
-Branch.prototype.getAncestors = function(){
-  let ancestors = [];
+Branch.prototype.getAncestors = function(includeSelf){
+  let ancestors = includeSelf ? [this] : [];
   let current = this;
   while(!current.isRoot()){
     ancestors.push(current.parent);
@@ -328,12 +330,12 @@ Branch.prototype.getDescendant = function(id){
 
 /**
  * Returns an array of all Branches which are descendants of this Branch
- * @param {falsy} [nonterminus] Is this not the Branch on which the user called
- * the function? This is used internally and should be ignored.
+ * @param {Boolean} [includeSelf] Is this not the Branch on which the user
+ * called the function? This is used internally and should be ignored.
  * @return {Array} An array of all Branches descended from this Branch
  */
-Branch.prototype.getDescendants = function(nonterminus){
-  let descendants = nonterminus ? [this] : [];
+Branch.prototype.getDescendants = function(includeSelf){
+  let descendants = includeSelf ? [this] : [];
   if(!this.isLeaf()){
     this.children.forEach(child => {
       child.getDescendants(true).forEach(d => descendants.push(d));
