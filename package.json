@@ -1,6 +1,6 @@
 {
   "name": "patristic",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "Patristic Inference library for Node and Browser",
   "homepage": "https://cdcgov.github.io/patristic/",
   "bugs": "https://github.com/CDCgov/patristic/issues",
@@ -9,10 +9,9 @@
     "build": "rollup -c",
     "coverage": "./node_modules/jest/bin/jest.js --coverage",
     "demo": "npx http-server",
-    "dev": "npm run watch & npm run demo",
     "doc": "documentation build src/main.js -f md -o docs/README.md",
     "minify": "terser dist/patristic.js --compress > dist/patristic.min.js",
-    "test": "jest",
+    "test": "jest"
   },
   "keywords": [
     "phylogeny"
