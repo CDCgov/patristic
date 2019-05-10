@@ -18,15 +18,20 @@ export const version = "0.3.6";
  * attributes of a Branch, namely `id`, `parent`, `length`, and `children`.
  * @constructor
  */
-export function Branch(data){
+export function Branch(data, children){
+  if(!data) data = {};
+  if(!children) children = d => d.children;
   Object.assign(this, {
     _guid: guid(),
-    id: '',
-    parent: null,
-    length: 0,
-    value: 1,
-    children: []
-  }, data);
+    id: data.id || '',
+    data: data,
+    depth: data.depth || 0,
+    height: data.height || 0,
+    length: data.length || 0,
+    parent: data.parent || null,
+    children: children(data) || [],
+    value: data.value || 1
+  });
 }
 
 function guid(a){
