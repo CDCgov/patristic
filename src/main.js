@@ -94,8 +94,8 @@ Branch.prototype.ancestors = function(){
 };
 
 /**
- * Returns a clone of the Branch on which it is called. Note that this also
- * clones all descendants, rather than providing references to the existing
+ * Returns a deep clone of the Branch on which it is called. Note that this does
+ * not clone all descendants, rather than providing references to the existing
  * descendant Branches.
  * @return {Branch} A clone of the Branch on which it is called.
  */
@@ -106,13 +106,16 @@ Branch.prototype.clone = function(){
 /**
  * Returns a clone of the Branch on which it is called. Note that this also
  * clones all descendants, rather than providing references to the existing
- * descendant Branches. Finally, the cloned Branch will become the root of the
- * cloned tree, having a parent of `null`.
+ * descendant Branches. (For a deep clone, see [Branch.clone](#clone).
+ * Finally, the cloned Branch will become the root of the cloned tree, having a
+ * parent of `null`.
  * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_copy)
  * @return {Branch} A clone of the Branch on which it is called.
  */
 Branch.prototype.copy = function(){
-  return parseJSON(this.toObject());
+  var newThis = parseJSON(this.toObject());
+  newThis.parent = null;
+  return newThis.fixDistances();
 };
 
 /**
