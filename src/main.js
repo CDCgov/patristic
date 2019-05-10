@@ -613,9 +613,9 @@ Branch.prototype.path = function(target){
   let current = this;
   let branches = [this];
   let mrca = this.getMRCA(target);
-  while(start !== mrca){
+  while(current !== mrca){
     current = current.parent;
-    branches.push(start);
+    branches.push(current);
   }
   let k = branches.length;
   current = target;
