@@ -90,7 +90,7 @@ Branch.prototype.addParent = function(data, siblings){
  * @type {Array} An array of Branches
  */
 Branch.prototype.ancestors = function(){
-  return [this].concat(this.getAncestors());
+  return this.getAncestors(true);
 };
 
 /**
