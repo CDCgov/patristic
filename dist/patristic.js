@@ -11,7 +11,7 @@
    * @example
    * console.log(patristic.version);
    */
-  const version = "0.3.6";
+  const version = "0.3.7";
 
   /**
    * A class for representing Branches in trees.
@@ -24,15 +24,20 @@
    * attributes of a Branch, namely `id`, `parent`, `length`, and `children`.
    * @constructor
    */
-  function Branch(data){
+  function Branch(data, children){
+    if(!data) data = {};
+    if(!children) children = d => d.children;
     Object.assign(this, {
       _guid: guid(),
-      id: '',
-      parent: null,
-      length: 0,
-      value: 1,
-      children: []
-    }, data);
+      id: data.id || '',
+      data: data,
+      depth: data.depth || 0,
+      height: data.height || 0,
+      length: data.length || 0,
+      parent: data.parent || null,
+      children: children(data) || [],
+      value: data.value || 1
+    });
   }
 
   function guid(a){
@@ -91,12 +96,12 @@
    * @type {Array} An array of Branches
    */
   Branch.prototype.ancestors = function(){
-    return [this].concat(this.getAncestors());
+    return this.getAncestors(true);
   };
 
   /**
-   * Returns a clone of the Branch on which it is called. Note that this also
-   * clones all descendants, rather than providing references to the existing
+   * Returns a deep clone of the Branch on which it is called. Note that this does
+   * not clone all descendants, rather than providing references to the existing
    * descendant Branches.
    * @return {Branch} A clone of the Branch on which it is called.
    */
@@ -107,13 +112,16 @@
   /**
    * Returns a clone of the Branch on which it is called. Note that this also
    * clones all descendants, rather than providing references to the existing
-   * descendant Branches. Finally, the cloned Branch will become the root of the
-   * cloned tree, having a parent of `null`.
+   * descendant Branches. (For a deep clone, see [Branch.clone](#clone).
+   * Finally, the cloned Branch will become the root of the cloned tree, having a
+   * parent of `null`.
    * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_copy)
    * @return {Branch} A clone of the Branch on which it is called.
    */
   Branch.prototype.copy = function(){
-    return parseJSON(this.toObject());
+    var newThis = parseJSON(this.toObject());
+    newThis.parent = null;
+    return newThis.fixDistances();
   };
 
   /**
@@ -285,14 +293,15 @@
    * Returns an Array of all the ancestors of the Branch on which it is called.
    * Note that this does not include itself. For all ancestors and itself, see
    * [Branch.ancestors](#ancestors)
+   * @param {Boolean} includeSelf Should the Branch on which this is called be
+   * included in the results?
    * @return {Array} Every Ancestor of the Branch on which it was called.
    */
-  Branch.prototype.getAncestors = function(){
-    let ancestors = [];
+  Branch.prototype.getAncestors = function(includeSelf){
+    let ancestors = includeSelf ? [this] : [];
     let current = this;
-    while(!current.isRoot()){
-      ancestors.push(current.parent);
-      current = current.parent;
+    while(current = current.parent){
+      ancestors.push(current);
     }
     return ancestors;
   };
@@ -329,12 +338,12 @@
 
   /**
    * Returns an array of all Branches which are descendants of this Branch
-   * @param {falsy} [nonterminus] Is this not the Branch on which the user called
-   * the function? This is used internally and should be ignored.
+   * @param {Boolean} [includeSelf] Is this not the Branch on which the user
+   * called the function? This is used internally and should be ignored.
    * @return {Array} An array of all Branches descended from this Branch
    */
-  Branch.prototype.getDescendants = function(nonterminus){
-    let descendants = nonterminus ? [this] : [];
+  Branch.prototype.getDescendants = function(includeSelf){
+    let descendants = includeSelf ? [this] : [];
     if(!this.isLeaf()){
       this.children.forEach(child => {
         child.getDescendants(true).forEach(d => descendants.push(d));
@@ -609,9 +618,9 @@
     let current = this;
     let branches = [this];
     let mrca = this.getMRCA(target);
-    while(start !== mrca){
+    while(current !== mrca){
       current = current.parent;
-      branches.push(start);
+      branches.push(current);
     }
     let k = branches.length;
     current = target;
