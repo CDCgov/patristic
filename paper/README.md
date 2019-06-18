@@ -1,5 +1,5 @@
 ---
-title: 'Patristic: A toolkit for Phylogenetics in Javascript'
+title: "Patristic: A toolkit for Phylogenetics in Javascript"
 tags:
   - Phylogeny
   - Phylogenetics
@@ -8,9 +8,9 @@ authors:
     orcid: 0000-0002-4448-0822
     affiliation: 1
 affiliations:
- - name: Data Scientist, Centers for Disease Control and Prevention
-   index: 1
-date: 25 January 2018
+  - name: Data Scientist, Centers for Disease Control and Prevention
+    index: 1
+date: 25 January 2019
 bibliography: references.bib
 ---
 
@@ -20,7 +20,7 @@ While Phylodynamics is not foreign to Javascript environments,
 Tools like BioNode.io and Bio.JS
 
 The core of Patristic's approach is a feature-rich implementation of the core
-component of phylogenetic trees: namely, branches. Patristic endows its core
+component of phylogenetic trees: namely, _branches_. Patristic endows its core
 branch objects with a fully-realized grammar for traversal, querying, and
 modification. Each branch object possesses references to both its parent and its
 children, enabling highly efficient bidirectional tree-traversals (at the
@@ -32,11 +32,11 @@ representing the relationships of all of its descendant leaves.
 
 Branches can be created directly, though the typical use case is to leverage
 Patristic's parser functions to instantiate Branches. At present, Patristic uses
-a modified version of Jason Davies' newick.js [@Davies_undated-py] to assemble
-trees from newick files. Similarly, it adapts Maciej Korzepa's neighbor-joining
-[@Korzepa2016-cm] to parse distance matrices (implemented as an array of *n*
-arrays of length *n*). Branches are also capable of producing Newick and JSON
-representations of their underlying data.
+a modified version of newick.js [@Davies_undated-py] to assemble trees from
+newick files. Similarly, it adapts neighbor-joining [@Korzepa2016-cm] to parse
+distance matrices (implemented as an array of _n_ arrays of length _n_).
+Branches are also capable of producing Newick and JSON representations of their
+underlying data.
 
 # Acknowledgements
 
