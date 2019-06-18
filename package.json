@@ -26,10 +26,10 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "documentation": "^9.3.1",
-    "jest": "^24.7.1",
-    "rollup": "^1.9.0",
+    "jest": "^24.8.0",
+    "rollup": "^1.15.6",
     "rollup-plugin-commonjs": "^9.3.4",
-    "rollup-plugin-node-resolve": "^4.1.0",
+    "rollup-plugin-node-resolve": "^4.2.4",
     "terser": "^3.17.0"
   }
 }
