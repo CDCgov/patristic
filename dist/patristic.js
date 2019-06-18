@@ -24,12 +24,12 @@
    * attributes of a Branch, namely `id`, `parent`, `length`, and `children`.
    * @constructor
    */
-  function Branch(data, children){
-    if(!data) data = {};
-    if(!children) children = d => d.children;
+  function Branch(data, children) {
+    if (!data) data = {};
+    if (!children) children = d => d.children;
     Object.assign(this, {
       _guid: guid(),
-      id: data.id || '',
+      id: data.id || "",
       data: data,
       depth: data.depth || 0,
       height: data.height || 0,
@@ -40,11 +40,11 @@
     });
   }
 
-  function guid(a){
-    if(a){
-      return (a^Math.random()*16>>a/4).toString(16);
+  function guid(a) {
+    if (a) {
+      return (a ^ ((Math.random() * 16) >> (a / 4))).toString(16);
     } else {
-      return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,guid);
+      return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, guid);
     }
   }
 
@@ -53,16 +53,18 @@
    * @param  {(Branch|Object)} [data={}] The new Branch, or data to attach to it.
    * @return {Branch} The (possibly new) child Branch
    */
-  Branch.prototype.addChild = function(data){
+  Branch.prototype.addChild = function(data) {
     let c;
-    if(data instanceof Branch){
+    if (data instanceof Branch) {
       c = data;
       c.parent = this;
     } else {
-      if(!data) data = {};
-      c = new Branch(Object.assign(data, {
-        parent: this
-      }));
+      if (!data) data = {};
+      c = new Branch(
+        Object.assign(data, {
+          parent: this
+        })
+      );
     }
     this.children.push(c);
     return c;
@@ -75,13 +77,13 @@
    * @param  {Array} [siblings=[]] An array of Branches to be the children of the new parent Branch (i.e. siblings of this Branch)
    * @return {Branch} The Branch on which this was called
    */
-  Branch.prototype.addParent = function(data, siblings){
-    if(!siblings) siblings = [];
+  Branch.prototype.addParent = function(data, siblings) {
+    if (!siblings) siblings = [];
     let c;
-    if(data instanceof Branch){
+    if (data instanceof Branch) {
       c = data;
     } else {
-      if(!data) data = {};
+      if (!data) data = {};
       c = new Branch(Object.assign(data));
     }
     siblings.forEach(sib => sib.setParent(c));
@@ -95,7 +97,7 @@
    * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_ancestors)
    * @type {Array} An array of Branches
    */
-  Branch.prototype.ancestors = function(){
+  Branch.prototype.ancestors = function() {
     return this.getAncestors(true);
   };
 
@@ -105,7 +107,7 @@
    * descendant Branches.
    * @return {Branch} A clone of the Branch on which it is called.
    */
-  Branch.prototype.clone = function(){
+  Branch.prototype.clone = function() {
     return parseJSON(this.toObject());
   };
 
@@ -118,7 +120,7 @@
    * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_copy)
    * @return {Branch} A clone of the Branch on which it is called.
    */
-  Branch.prototype.copy = function(){
+  Branch.prototype.copy = function() {
     var newThis = parseJSON(this.toObject());
     newThis.parent = null;
     return newThis.fixDistances();
@@ -128,7 +130,7 @@
    * Sets the values of all nodes to be equal to the number of their descendants.
    * @return {Branch} The Branch on which it was called
    */
-  Branch.prototype.count = function(){
+  Branch.prototype.count = function() {
     return this.sum(() => 1);
   };
 
@@ -137,7 +139,7 @@
    * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_descendants)
    * @type {Array} An Array of Branches, starting with this one.
    */
-  Branch.prototype.descendants = function(){
+  Branch.prototype.descendants = function() {
     return this.getDescendants(true);
   };
 
@@ -150,13 +152,15 @@
    * which it is called and `descendant`. Throws an error if `descendant` is not a
    * descendant of this Branch.
    */
-  Branch.prototype.depthOf = function(descendant){
+  Branch.prototype.depthOf = function(descendant) {
     let distance = 0;
-    if(typeof descendant === 'string') descendant = this.getDescendant(descendant);
-    if(typeof descendant === 'undefined') throw Error('Cannot compute depth of undefined descendant!');
+    if (typeof descendant === "string")
+      descendant = this.getDescendant(descendant);
+    if (typeof descendant === "undefined")
+      throw Error("Cannot compute depth of undefined descendant!");
     let current = descendant;
-    while(!current.isRoot()){
-      if(current === this) break;
+    while (!current.isRoot()) {
+      if (current === this) break;
       distance += current.length;
       current = current.parent;
     }
@@ -170,7 +174,7 @@
    * @return {number} The patristic distance between `cousin` and the Branch on
    * this method is called.
    */
-  Branch.prototype.distanceTo = function(cousin){
+  Branch.prototype.distanceTo = function(cousin) {
     let mrca = this.getMRCA(cousin);
     return mrca.depthOf(this) + mrca.depthOf(cousin);
   };
@@ -181,12 +185,14 @@
    * @param  {Function} callback The function to be run on each Branch
    * @return {Branch} The Branch on which it was called.
    */
-  Branch.prototype.each = function(callback){
-    let branch = this, next = [branch], current;
-    while(next.length){
+  Branch.prototype.each = function(callback) {
+    let branch = this,
+      next = [branch],
+      current;
+    while (next.length) {
       current = next.reverse();
       next = [];
-      while(branch = current.pop()){
+      while ((branch = current.pop())) {
         callback(branch);
         branch.eachChild(child => next.push(child));
       }
@@ -201,7 +207,7 @@
    * @param  {Function} callback Function to run on each Branch
    * @return {Branch} The Branch on which it was called
    */
-  Branch.prototype.eachAfter = function(callback){
+  Branch.prototype.eachAfter = function(callback) {
     this.eachChild(child => child.eachAfter(callback));
     callback(this);
     return this;
@@ -214,7 +220,7 @@
    * @param  {Function} callback [description]
    * @return {[type]}            [description]
    */
-  Branch.prototype.eachBefore = function(callback){
+  Branch.prototype.eachBefore = function(callback) {
     callback(this);
     this.eachChild(child => child.eachBefore(callback));
     return this;
@@ -226,7 +232,7 @@
    * @param  {Function} callback The function to run on each child.
    * @return {Branch} The Branch on which it was called.
    */
-  Branch.prototype.eachChild = function(callback){
+  Branch.prototype.eachChild = function(callback) {
     this.children.forEach(callback);
     return this;
   };
@@ -235,14 +241,14 @@
    * Excises the Branch on which it is called and updates its parent and children.
    * @return {Branch} The parent of the excised Branch.
    */
-  Branch.prototype.excise = function(){
-    if(this.isRoot() && this.children.length > 1){
-      throw new Error('Cannot excise a root Branch with multiple children.');
+  Branch.prototype.excise = function() {
+    if (this.isRoot() && this.children.length > 1) {
+      throw new Error("Cannot excise a root Branch with multiple children.");
     }
     this.children.forEach(child => {
       child.length += this.length;
       child.parent = this.parent;
-      if(!this.isRoot()) this.parent.children.push(child);
+      if (!this.isRoot()) this.parent.children.push(child);
     });
     this.parent.children.splice(this.parent.children.indexOf(this), 1);
     return this.parent;
@@ -252,19 +258,18 @@
    * Sets the distance values (height and depth) for each Branch
    * @return {Branch} The Branch on which it is called.
    */
-  Branch.prototype.fixDistances = function(){
-    let maxdepth = 0, root = this.getRoot();
+  Branch.prototype.fixDistances = function() {
+    let maxdepth = 0,
+      root = this.getRoot();
     root.depth = 0;
-    this
-      .eachBefore(d => {
-        if(d.isRoot()) return;
-        d.depth = d.parent.depth + 1;
-        if(d.depth > maxdepth) maxdepth = d.depth;
-      })
-      .eachAfter(d => {
-        d.height = maxdepth - d.depth;
-        d.value = d.value + d.children.reduce((a, c) => a + c.value, 0);
-      });
+    this.eachBefore(d => {
+      if (d.isRoot()) return;
+      d.depth = d.parent.depth + 1;
+      if (d.depth > maxdepth) maxdepth = d.depth;
+    }).eachAfter(d => {
+      d.height = maxdepth - d.depth;
+      d.value = d.value + d.children.reduce((a, c) => a + c.value, 0);
+    });
     return this;
   };
 
@@ -278,11 +283,11 @@
    * Branch on which it is called, or all descendants?
    * @return {Branch} The Branch on which it was called.
    */
-  Branch.prototype.fixParenthood = function(nonrecursive){
+  Branch.prototype.fixParenthood = function(nonrecursive) {
     this.children.forEach(child => {
-      if(!child.parent) child.parent = this;
-      if(child.parent !== this) child.parent = this;
-      if(!nonrecursive && child.children.length > 0){
+      if (!child.parent) child.parent = this;
+      if (child.parent !== this) child.parent = this;
+      if (!nonrecursive && child.children.length > 0) {
         child.fixParenthood();
       }
     });
@@ -297,10 +302,10 @@
    * included in the results?
    * @return {Array} Every Ancestor of the Branch on which it was called.
    */
-  Branch.prototype.getAncestors = function(includeSelf){
+  Branch.prototype.getAncestors = function(includeSelf) {
     let ancestors = includeSelf ? [this] : [];
     let current = this;
-    while(current = current.parent){
+    while ((current = current.parent)) {
       ancestors.push(current);
     }
     return ancestors;
@@ -313,8 +318,8 @@
    * @return {(Branch|undefined)} The desired child Branch, or `undefined` if the
    * child doesn't exist.
    */
-  Branch.prototype.getChild = function(childID){
-    if(!typeof childID == 'string') throw Error('childID is not a String!');
+  Branch.prototype.getChild = function(childID) {
+    if (!typeof childID == "string") throw Error("childID is not a String!");
     return this.children.find(c => c.id === childID);
   };
 
@@ -325,13 +330,14 @@
    * @return {(Branch|undefined)} The descendant Branch, or `undefined` if it
    * doesn't exist
    */
-  Branch.prototype.getDescendant = function(id){
-    if(this.id === id) return this;
-    let children = this.children, n = children.length;
-    if(children){
-      for(let i = 0; i < n; i++){
+  Branch.prototype.getDescendant = function(id) {
+    if (this.id === id) return this;
+    let children = this.children,
+      n = children.length;
+    if (children) {
+      for (let i = 0; i < n; i++) {
         let descendant = children[i].getDescendant(id);
-        if(descendant) return descendant;
+        if (descendant) return descendant;
       }
     }
   };
@@ -342,9 +348,9 @@
    * called the function? This is used internally and should be ignored.
    * @return {Array} An array of all Branches descended from this Branch
    */
-  Branch.prototype.getDescendants = function(includeSelf){
+  Branch.prototype.getDescendants = function(includeSelf) {
     let descendants = includeSelf ? [this] : [];
-    if(!this.isLeaf()){
+    if (!this.isLeaf()) {
       this.children.forEach(child => {
         child.getDescendants(true).forEach(d => descendants.push(d));
       });
@@ -357,7 +363,7 @@
    * Alias of [getLeaves](#getLeaves) for people whose strong suit isn't spelling.
    * @return {Array} An array of all leaves descended from this Branch
    */
-  Branch.prototype.getLeafs = function(){
+  Branch.prototype.getLeafs = function() {
     return this.getLeaves();
   };
 
@@ -366,8 +372,8 @@
    * See also: [getLeafs](#getLeafs)
    * @return {Array} An array of all leaves descended from this Branch
    */
-  Branch.prototype.getLeaves = function(){
-    if(this.isLeaf()){
+  Branch.prototype.getLeaves = function() {
+    if (this.isLeaf()) {
       return [this];
     } else {
       let descendants = [];
@@ -386,10 +392,13 @@
    * @return {Branch} The Most Recent Common Ancestor of both the Branch on
    * which it was called and the `cousin`.
    */
-  Branch.prototype.getMRCA = function(cousin){
+  Branch.prototype.getMRCA = function(cousin) {
     let mrca = this;
-    while(!mrca.hasDescendant(cousin)){
-      if(mrca.isRoot()) throw Error('Branch and cousin do not appear to share a common ancestor!');
+    while (!mrca.hasDescendant(cousin)) {
+      if (mrca.isRoot())
+        throw Error(
+          "Branch and cousin do not appear to share a common ancestor!"
+        );
       mrca = mrca.parent;
     }
     return mrca;
@@ -400,9 +409,9 @@
    * root.
    * @return {Branch} The root Branch of the tree
    */
-  Branch.prototype.getRoot = function(){
+  Branch.prototype.getRoot = function() {
     let branch = this;
-    while(!branch.isRoot()) branch = branch.parent;
+    while (!branch.isRoot()) branch = branch.parent;
     return branch;
   };
 
@@ -411,13 +420,15 @@
    * @param  {(Branch|String)} child The Branch (or the id thereof) to check for
    * @return {Boolean}
    */
-  Branch.prototype.hasChild = function(child){
-    if(child instanceof Branch){
+  Branch.prototype.hasChild = function(child) {
+    if (child instanceof Branch) {
       return this.children.includes(child);
-    } else if(typeof child === 'string'){
+    } else if (typeof child === "string") {
       return this.children.some(c => c.id === child);
     }
-    throw Error(`Unknown type of child (${typeof child}) passed to Branch.hasChild!`);
+    throw Error(
+      `Unknown type of child (${typeof child}) passed to Branch.hasChild!`
+    );
   };
 
   /**
@@ -428,14 +439,14 @@
    * @return {Boolean} True if `descendant` is descended from the Branch from
    * which this is called, otherwise false.
    */
-  Branch.prototype.hasDescendant = function(descendant){
+  Branch.prototype.hasDescendant = function(descendant) {
     let descendants = this.getDescendants();
-    if(descendant instanceof Branch){
+    if (descendant instanceof Branch) {
       return descendants.some(d => d === descendant);
-    } else if(typeof descendant === 'string'){
+    } else if (typeof descendant === "string") {
       return descendants.some(d => d.id === descendant);
     }
-    throw Error('Unknown type of descendant passed to Branch.hasDescendant!');
+    throw Error("Unknown type of descendant passed to Branch.hasDescendant!");
   };
 
   /**
@@ -443,14 +454,14 @@
    * @return {Boolean} True if leaf is both a leaf and a descendant of the
    * Branch on which this method is called, False otherwise.
    */
-  Branch.prototype.hasLeaf = function(leaf){
+  Branch.prototype.hasLeaf = function(leaf) {
     let leaves = this.getleaves();
-    if(leaf instanceof Branch){
+    if (leaf instanceof Branch) {
       return leaves.includes(leaf);
-    } else if(typeof leaf === 'string'){
+    } else if (typeof leaf === "string") {
       return leaves.some(d => d.id === leaf);
     }
-    throw Error('Unknown type of leaf passed to Branch.hasLeaf.');
+    throw Error("Unknown type of leaf passed to Branch.hasLeaf.");
   };
 
   /**
@@ -458,9 +469,9 @@
    * internal component of [Branch.reroot](#reroot).
    * @return {Branch} The Branch object on which it was called.
    */
-  Branch.prototype.invert = function(){
+  Branch.prototype.invert = function() {
     let oldParent = this.parent;
-    if(oldParent){
+    if (oldParent) {
       this.parent = oldParent.parent;
       this.children.push(oldParent);
       oldParent.parent = this;
@@ -477,10 +488,10 @@
    * @return {Boolean} True is `parent` is the parent of this Branch, false
    * otherwise.
    */
-  Branch.prototype.isChildOf = function(parent){
-    if(parent instanceof Branch) return this.parent === parent;
-    if(typeof parent === 'string') return this.parent.id === parent;
-    throw Error('Unknown parent type passed to Branch.isChildOf');
+  Branch.prototype.isChildOf = function(parent) {
+    if (parent instanceof Branch) return this.parent === parent;
+    if (typeof parent === "string") return this.parent.id === parent;
+    throw Error("Unknown parent type passed to Branch.isChildOf");
   };
 
   /**
@@ -488,12 +499,12 @@
    * its parent and its children.
    * @return {Boolean} True if consistent, otherwise false
    */
-  Branch.prototype.isConsistent = function(){
-    if(!this.isRoot()){
-      if(!this.parent.children.includes(this)) return false;
+  Branch.prototype.isConsistent = function() {
+    if (!this.isRoot()) {
+      if (!this.parent.children.includes(this)) return false;
     }
-    if(!this.isLeaf()){
-      if(this.children.some(c => c.parent !== this)) return false;
+    if (!this.isLeaf()) {
+      if (this.children.some(c => c.parent !== this)) return false;
       return this.children.every(c => c.isConsistent());
     }
     return true;
@@ -505,9 +516,9 @@
    * @param  {Branch} ancestor The Branch to check for ancestorhood
    * @return {Boolean} If this Branch is descended from `ancestor`
    */
-  Branch.prototype.isDescendantOf = function(ancestor){
-    if(!ancestor || !this.parent) return false;
-    if(this.parent === ancestor || this.parent.id === ancestor) return true;
+  Branch.prototype.isDescendantOf = function(ancestor) {
+    if (!ancestor || !this.parent) return false;
+    if (this.parent === ancestor || this.parent.id === ancestor) return true;
     return this.parent.isDescendantOf(ancestor);
   };
 
@@ -516,7 +527,7 @@
    * children).
    * @return {Boolean} True is this Branch is a leaf, otherwise false.
    */
-  Branch.prototype.isLeaf = function(){
+  Branch.prototype.isLeaf = function() {
     return this.children.length === 0;
   };
 
@@ -530,7 +541,7 @@
    * the Branch on which it is called.
    * @return {Branch} The Branch object on which it was called.
    */
-  Branch.prototype.isolate = function(){
+  Branch.prototype.isolate = function() {
     let index = this.parent.children.indexOf(this);
     this.parent.children.splice(index, 1);
     this.setParent(null);
@@ -542,7 +553,7 @@
    * no parents).
    * @return {Boolean} True if this Branch is the root, otherwise false.
    */
-  Branch.prototype.isRoot = function(){
+  Branch.prototype.isRoot = function() {
     return this.parent === null;
   };
 
@@ -552,7 +563,7 @@
    * @type {Array} An Array of Branches which are descended from this Branch and
    * have no children.
    */
-  Branch.prototype.leafs = function(){
+  Branch.prototype.leafs = function() {
     return this.getLeaves();
   };
 
@@ -563,7 +574,7 @@
    * @type {Array} An Array of Branches which are descended from this Branch and
    * have no children.
    */
-  Branch.prototype.leaves = function(){
+  Branch.prototype.leaves = function() {
     return this.getLeaves();
   };
 
@@ -574,10 +585,10 @@
    * [d3-hierarchy compatibility method](https://github.com/d3/d3-hierarchy#node_links)
    * @return {Array} An array of plain Javascript objects
    */
-  Branch.prototype.links = function(){
+  Branch.prototype.links = function() {
     let links = [];
     this.each(d => {
-      if(d.isRoot()) return;
+      if (d.isRoot()) return;
       links.push({
         source: d.parent,
         target: d
@@ -595,16 +606,17 @@
    * @param  {Number} newmax The desired maximum value.
    * @return {Branch} The Branch on which it was called.
    */
-  Branch.prototype.normalize = function(newmin, newmax){
-    if(typeof newmax !== 'number') newmax = 1;
-    if(typeof newmin !== 'number') newmin = 0;
-    let min = Infinity, max = -Infinity;
+  Branch.prototype.normalize = function(newmin, newmax) {
+    if (typeof newmax !== "number") newmax = 1;
+    if (typeof newmin !== "number") newmin = 0;
+    let min = Infinity,
+      max = -Infinity;
     this.each(d => {
-      if(d.value < min) min = d.value;
-      if(d.value > max) max = d.value;
+      if (d.value < min) min = d.value;
+      if (d.value > max) max = d.value;
     });
     let ratio = (newmax - newmin) / (max - min);
-    return this.each(d => d.value = (d.value - min) * ratio + newmin);
+    return this.each(d => (d.value = (d.value - min) * ratio + newmin));
   };
 
   /**
@@ -614,17 +626,17 @@
    * @return {Array} An ordered Array of Branches following the path between this
    * Branch and `target`
    */
-  Branch.prototype.path = function(target){
+  Branch.prototype.path = function(target) {
     let current = this;
     let branches = [this];
     let mrca = this.getMRCA(target);
-    while(current !== mrca){
+    while (current !== mrca) {
       current = current.parent;
       branches.push(current);
     }
     let k = branches.length;
     current = target;
-    while(current !== mrca){
+    while (current !== mrca) {
       branches.splice(k, 0, current);
       current = current.parent;
     }
@@ -637,7 +649,7 @@
    * from which this Branch is removed.
    * @return {Branch} The root of the remaining tree.
    */
-  Branch.prototype.remove = function(){
+  Branch.prototype.remove = function() {
     let root = this.getRoot();
     this.isolate();
     return root;
@@ -652,18 +664,18 @@
    * @return {Branch} The new root Branch, which is either the Branch on which
    * this was called or its parent
    */
-  Branch.prototype.reroot = function(){
-    if(this.isRoot()) return this;
-    if(this.parent.isRoot() && this.isLeaf()) return this.parent;
+  Branch.prototype.reroot = function() {
+    if (this.isRoot()) return this;
+    if (this.parent.isRoot() && this.isLeaf()) return this.parent;
     let newRoot = this.isLeaf() ? this.parent : this;
     let current = newRoot;
     let toInvert = [];
-    while(!current.isRoot()){
+    while (!current.isRoot()) {
       toInvert.push(current);
       current = current.parent;
     }
     toInvert.reverse().forEach(c => c.invert());
-  	return newRoot;
+    return newRoot;
   };
 
   /**
@@ -673,9 +685,9 @@
    * Recursive appears as though the entire subtree has been flipped over.
    * @return {Branch} The Branch on which this was called.
    */
-  Branch.prototype.rotate = function(recursive){
-    if(!this.children) return this;
-    if(recursive){
+  Branch.prototype.rotate = function(recursive) {
+    if (!this.children) return this;
+    if (recursive) {
       this.each(c => c.rotate());
     } else {
       this.children.reverse();
@@ -688,7 +700,7 @@
    * @param  {number} length The new length to assign to the Branch
    * @return {Branch} The Branch object on which this was called
    */
-  Branch.prototype.setLength = function(length){
+  Branch.prototype.setLength = function(length) {
     this.length = length;
     return this;
   };
@@ -698,8 +710,9 @@
    * @param  {Branch} parent The Branch to set as parent
    * @return {Branch} The Branch on which this method was called.
    */
-  Branch.prototype.setParent = function(parent){
-    if(!parent instanceof Branch && parent !== null) throw Error('Cannot set parent to non-Branch object!');
+  Branch.prototype.setParent = function(parent) {
+    if (!parent instanceof Branch && parent !== null)
+      throw Error("Cannot set parent to non-Branch object!");
     this.parent = parent;
     return this;
   };
@@ -710,8 +723,8 @@
    * a numberic value. For details, see [MDN Array.sort](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#Description)
    * @return {Branch} The Branch on which it was called
    */
-  Branch.prototype.sort = function(comparator){
-    if(!comparator) comparator = (a, b) => a.value - b.value;
+  Branch.prototype.sort = function(comparator) {
+    if (!comparator) comparator = (a, b) => a.value - b.value;
     return this.eachBefore(d => d.children.sort(comparator));
   };
 
@@ -722,7 +735,7 @@
    * @return {Boolean} True if this might be the source of cousin, otherwise
    * false.
    */
-  Branch.prototype.sources = function(cousin){
+  Branch.prototype.sources = function(cousin) {
     let mrca = this.getMRCA(cousin);
     return mrca.depthOf(this) < mrca.depthOf(cousin);
   };
@@ -733,9 +746,11 @@
    * (numeric?) value.
    * @return {Branch} The Branch on which it was called.
    */
-  Branch.prototype.sum = function(value){
-    if(!value) value = d => d.value;
-    return this.eachAfter(d => d.value = value(d) + d.children.reduce((a, c) => a + c.value, 0));
+  Branch.prototype.sum = function(value) {
+    if (!value) value = d => d.value;
+    return this.eachAfter(
+      d => (d.value = value(d) + d.children.reduce((a, c) => a + c.value, 0))
+    );
   };
 
   /**
@@ -745,7 +760,7 @@
    * @return {Boolean} True if this might be the target of cousin, otherwise
    * false.
    */
-  Branch.prototype.targets = function(cousin){
+  Branch.prototype.targets = function(cousin) {
     return cousin.sources(this);
   };
 
@@ -755,7 +770,7 @@
    * @type {Function}
    * @returns {Object} A serializable Object
    */
-  Branch.prototype.toJSON = function(){
+  Branch.prototype.toJSON = function() {
     return this.toObject();
   };
 
@@ -765,22 +780,22 @@
    * @return {Object} An Object containing a matrix (an Array of Arrays) and
    * Array of `id`s corresponding to the rows (and columns) of the matrix.
    */
-  Branch.prototype.toMatrix = function(){
+  Branch.prototype.toMatrix = function() {
     let leafs = this.getLeaves();
     let n = leafs.length;
     let matrix = new Array(n);
-    for(let i = 0; i < n; i++){
+    for (let i = 0; i < n; i++) {
       matrix[i] = new Array(n);
       matrix[i][i] = 0;
-      for(let j = 0; j < i; j++){
+      for (let j = 0; j < i; j++) {
         let distance = leafs[i].distanceTo(leafs[j]);
         matrix[i][j] = distance;
         matrix[j][i] = distance;
       }
     }
     return {
-      'matrix': matrix,
-      'ids': leafs.map(d => d.id)
+      matrix: matrix,
+      ids: leafs.map(d => d.id)
     };
   };
 
@@ -793,14 +808,15 @@
    * @return {String} The [Newick](https://en.wikipedia.org/wiki/Newick_format)
    * representation of the Branch.
    */
-  Branch.prototype.toNewick = function(nonterminus){
-    let out = '';
-    if(!this.isLeaf()){
-      out += '(' + this.children.map(child => child.toNewick(true)).join(',') + ')';
+  Branch.prototype.toNewick = function(nonterminus) {
+    let out = "";
+    if (!this.isLeaf()) {
+      out +=
+        "(" + this.children.map(child => child.toNewick(true)).join(",") + ")";
     }
     out += this.id;
-    if(this.length) out += ':' + numberToString(this.length);
-    if(!nonterminus) out += ';';
+    if (this.length) out += ":" + numberToString(this.length);
+    if (!nonterminus) out += ";";
     return out;
   };
 
@@ -808,23 +824,23 @@
   //not use Scientific Notation.
   //It's adapted from [StackOverflow](https://stackoverflow.com/a/46545519/521121),
   //Which makes it available under the [CC BY-SA 3.0 License](https://creativecommons.org/licenses/by-sa/3.0/)
-  function numberToString(num){
+  function numberToString(num) {
     let numStr = String(num);
-    if(Math.abs(num) < 1.0){
-      let e = parseInt(num.toString().split('e-')[1]);
-      if(e){
+    if (Math.abs(num) < 1.0) {
+      let e = parseInt(num.toString().split("e-")[1]);
+      if (e) {
         let negative = num < 0;
         if (negative) num *= -1;
         num *= Math.pow(10, e - 1);
-        numStr = '0.' + (new Array(e)).join('0') + num.toString().substring(2);
-        if(negative) numStr = "-" + numStr;
+        numStr = "0." + new Array(e).join("0") + num.toString().substring(2);
+        if (negative) numStr = "-" + numStr;
       }
     } else {
-      let e = parseInt(num.toString().split('+')[1]);
-      if(e > 20){
+      let e = parseInt(num.toString().split("+")[1]);
+      if (e > 20) {
         e -= 20;
         num /= Math.pow(10, e);
-        numStr = num.toString() + (new Array(e + 1)).join('0');
+        numStr = num.toString() + new Array(e + 1).join("0");
       }
     }
     return numStr;
@@ -839,12 +855,13 @@
    * @return {Object} A serializable bare Javascript Object representing this
    * Branch and its descendants.
    */
-  Branch.prototype.toObject = function(){
+  Branch.prototype.toObject = function() {
     var output = {
       id: this.id,
       length: this.length
     };
-    if(this.children.length > 0) output.children = this.children.map(c => c.toObject());
+    if (this.children.length > 0)
+      output.children = this.children.map(c => c.toObject());
     return output;
   };
 
@@ -861,16 +878,16 @@
    * @return {Branch} The Branch representing the root of the hierarchy
    * represented by `json`.
    */
-  function parseJSON(json, idLabel, lengthLabel, childrenLabel){
-    if(!idLabel) idLabel = 'id';
-    if(!lengthLabel) lengthLabel = 'length';
-    if(!childrenLabel) childrenLabel = 'children';
-    if(typeof json === 'string') json = JSON.parse(json);
+  function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
+    if (!idLabel) idLabel = "id";
+    if (!lengthLabel) lengthLabel = "length";
+    if (!childrenLabel) childrenLabel = "children";
+    if (typeof json === "string") json = JSON.parse(json);
     let root = new Branch({
       id: json[idLabel],
       length: json[lengthLabel]
     });
-    if(json[childrenLabel] instanceof Array){
+    if (json[childrenLabel] instanceof Array) {
       json[childrenLabel].forEach(child => {
         root.addChild(parseJSON(child));
       });
@@ -888,10 +905,10 @@
    * @return {Branch} A Branch object representing the root Branch of the tree
    * inferred by neighbor joining on `matrix`.
    */
-  function parseMatrix(matrix, labels){
+  function parseMatrix(matrix, labels) {
     let that = {};
-    let N = that.N = matrix.length;
-    if(!labels) labels = [...Array(N).keys()];
+    let N = (that.N = matrix.length);
+    if (!labels) labels = [...Array(N).keys()];
     that.cN = that.N;
     that.D = matrix;
     that.labels = labels;
@@ -903,28 +920,25 @@
     that.nextIndex = N;
     that.I = new Array(that.N);
     that.S = new Array(that.N);
-    for (let i = 0; i < that.N; i++){
-      let sortedRow = sortWithIndices(that.D[i], i, true);
+    for (let i = 0; i < that.N; i++) {
+      let sortedRow = sortWithIndices(that.D[i], i);
       that.S[i] = sortedRow;
       that.I[i] = sortedRow.sortIndices;
     }
     that.removedIndices = new Set();
     that.indicesLeft = new Set();
-    for (let i = 0; i < N; i++){
+    for (let i = 0; i < N; i++) {
       that.currIndexToLabel[i] = i;
       that.indicesLeft.add(i);
     }
     that.rowSumMax = 0;
     that.PNewick = "";
-    let minI, minJ,
-        d1, d2,
-        l1, l2,
-        node1, node2, node3;
+    let minI, minJ, d1, d2, l1, l2, node1, node2, node3;
 
-    function setUpNode(labelIndex, distance){
+    function setUpNode(labelIndex, distance) {
       let node;
-      if(labelIndex < that.N){
-        node = new Branch({id: that.labels[labelIndex], length: distance});
+      if (labelIndex < that.N) {
+        node = new Branch({ id: that.labels[labelIndex], length: distance });
         that.labelToNode[labelIndex] = node;
       } else {
         node = that.labelToNode[labelIndex];
@@ -934,15 +948,17 @@
     }
 
     that.rowSums = sumRows(that.D);
-    for (let i = 0; i < that.cN; i++){
+    for (let i = 0; i < that.cN; i++) {
       if (that.rowSums[i] > that.rowSumMax) that.rowSumMax = that.rowSums[i];
     }
 
-    while(that.cN > 2){
+    while (that.cN > 2) {
       //if (that.cN % 100 == 0 ) console.log(that.cN);
       ({ minI, minJ } = search(that));
 
-      d1 = 0.5 * that.D[minI][minJ] + (that.rowSums[minI] - that.rowSums[minJ]) / (2 * that.cN - 4);
+      d1 =
+        0.5 * that.D[minI][minJ] +
+        (that.rowSums[minI] - that.rowSums[minJ]) / (2 * that.cN - 4);
       d2 = that.D[minI][minJ] - d1;
 
       l1 = that.currIndexToLabel[minI];
@@ -950,10 +966,10 @@
 
       node1 = setUpNode(l1, d1);
       node2 = setUpNode(l2, d2);
-      node3 = new Branch({children: [node1, node2]});
+      node3 = new Branch({ children: [node1, node2] });
 
       recalculateDistanceMatrix(that, minI, minJ);
-      let sorted = sortWithIndices(that.D[minJ], minJ, true);
+      let sorted = sortWithIndices(that.D[minJ], minJ);
       that.S[minJ] = sorted;
       that.I[minJ] = sorted.sortIndices;
       that.S[minI] = that.I[minI] = [];
@@ -975,44 +991,47 @@
     node1 = setUpNode(l1, d1);
     node2 = setUpNode(l2, d2);
 
-    let tree = new Branch({children: [node1, node2]});
+    let tree = new Branch({ children: [node1, node2] });
     tree.fixParenthood();
     return tree.fixDistances();
   }
 
-  function search(t){
+  function search(t) {
     let qMin = Infinity,
-        D = t.D,
-        cN = t.cN,
-        n2 = cN - 2,
-        S = t.S,
-        I = t.I,
-        rowSums = t.rowSums,
-        removedColumns = t.removedIndices,
-        uMax = t.rowSumMax,
-        q, minI = -1, minJ = -1, c2;
+      D = t.D,
+      cN = t.cN,
+      n2 = cN - 2,
+      S = t.S,
+      I = t.I,
+      rowSums = t.rowSums,
+      removedColumns = t.removedIndices,
+      uMax = t.rowSumMax,
+      q,
+      minI = -1,
+      minJ = -1,
+      c2;
 
     // initial guess for qMin
-    for (let r = 0; r < t.N; r++){
+    for (let r = 0; r < t.N; r++) {
       if (removedColumns.has(r)) continue;
       c2 = I[r][0];
       if (removedColumns.has(c2)) continue;
       q = D[r][c2] * n2 - rowSums[r] - rowSums[c2];
-      if (q < qMin){
+      if (q < qMin) {
         qMin = q;
         minI = r;
         minJ = c2;
       }
     }
 
-    for (let r = 0; r < t.N; r++){
+    for (let r = 0; r < t.N; r++) {
       if (removedColumns.has(r)) continue;
-      for (let c = 0; c < S[r].length; c++){
+      for (let c = 0; c < S[r].length; c++) {
         c2 = I[r][c];
         if (removedColumns.has(c2)) continue;
         if (S[r][c] * n2 - rowSums[r] - uMax > qMin) break;
         q = D[r][c2] * n2 - rowSums[r] - rowSums[c2];
-        if (q < qMin){
+        if (q < qMin) {
           qMin = q;
           minI = r;
           minJ = c2;
@@ -1020,21 +1039,23 @@
       }
     }
 
-    return {minI, minJ};
+    return { minI, minJ };
   }
 
-  function recalculateDistanceMatrix(t, joinedIndex1, joinedIndex2){
+  function recalculateDistanceMatrix(t, joinedIndex1, joinedIndex2) {
     let D = t.D,
-        n = D.length,
-        sum = 0, aux, aux2,
-        removedIndices = t.removedIndices,
-        rowSums = t.rowSums,
-        newRow = t.newRow,
-        rowChange = t.rowChange,
-        newMax = 0;
+      n = D.length,
+      sum = 0,
+      aux,
+      aux2,
+      removedIndices = t.removedIndices,
+      rowSums = t.rowSums,
+      newRow = t.newRow,
+      rowChange = t.rowChange,
+      newMax = 0;
 
     removedIndices.add(joinedIndex1);
-    for (let i = 0; i < n; i++){
+    for (let i = 0; i < n; i++) {
       if (removedIndices.has(i)) continue;
       aux = D[joinedIndex1][i] + D[joinedIndex2][i];
       aux2 = D[joinedIndex1][joinedIndex2];
@@ -1042,7 +1063,7 @@
       sum += newRow[i];
       rowChange[i] = -0.5 * (aux + aux2);
     }
-    for (let i = 0; i < n; i++){
+    for (let i = 0; i < n; i++) {
       D[joinedIndex1][i] = -1;
       D[i][joinedIndex1] = -1;
       if (removedIndices.has(i)) continue;
@@ -1058,14 +1079,14 @@
     t.indicesLeft.delete(joinedIndex1);
   }
 
-  function sumRows(a){
+  function sumRows(a) {
     let n = a.length,
-        sums = new Array(n);
-    for (let i = 0; i < n; i++){
+      sums = new Array(n);
+    for (let i = 0; i < n; i++) {
       let sum = 0;
-      for (let j = 0; j < n; j++){
+      for (let j = 0; j < n; j++) {
         let v = parseFloat(a[i][j]);
-        if(typeof v !== 'number') continue;
+        if (typeof v !== "number") continue;
         sum += a[i][j];
       }
       sums[i] = sum;
@@ -1073,13 +1094,13 @@
     return sums;
   }
 
-  function sortWithIndices(toSort, skip){
-    if(typeof skip === 'undefined') skip = -1;
+  function sortWithIndices(toSort, skip) {
+    if (typeof skip === "undefined") skip = -1;
     let n = toSort.length;
     let indexCopy = new Array(n);
     let valueCopy = new Array(n);
     let i2 = 0;
-    for (let i = 0; i < n; i++){
+    for (let i = 0; i < n; i++) {
       if (toSort[i] === -1 || i === skip) continue;
       indexCopy[i2] = i;
       valueCopy[i2++] = toSort[i];
@@ -1088,36 +1109,36 @@
     valueCopy.length = i2;
     indexCopy.sort((a, b) => toSort[a] - toSort[b]);
     valueCopy.sortIndices = indexCopy;
-    for (let j = 0; j < i2; j++){
+    for (let j = 0; j < i2; j++) {
       valueCopy[j] = toSort[indexCopy[j]];
     }
     return valueCopy;
   }
 
   /**
-    * Parses a Newick String and returns a Branch object representing the root
-    * of the output Tree.
-    * This is adapted Jason Davies' [newick.js](https://github.com/jasondavies/newick.js/blob/master/src/newick.js),
-    * which is released for modification under [the MIT License](https://opensource.org/licenses/MIT).
-    * @param  {string} newick A Newick String
-    * @return {Branch} A Branch representing the root of the output tree
-    */
-  function parseNewick(newick){
+   * Parses a Newick String and returns a Branch object representing the root
+   * of the output Tree.
+   * This is adapted Jason Davies' [newick.js](https://github.com/jasondavies/newick.js/blob/master/src/newick.js),
+   * which is released for modification under [the MIT License](https://opensource.org/licenses/MIT).
+   * @param  {string} newick A Newick String
+   * @return {Branch} A Branch representing the root of the output tree
+   */
+  function parseNewick(newick) {
     let ancestors = [],
-        tree = new Branch(),
-        tokens = newick.split(/\s*(;|\(|\)|,|:)\s*/),
-        n = tokens.length;
-    for(let t = 0; t < n; t++){
+      tree = new Branch(),
+      tokens = newick.split(/\s*(;|\(|\)|,|:)\s*/),
+      n = tokens.length;
+    for (let t = 0; t < n; t++) {
       let token = tokens[t];
       let c;
-      switch(token){
+      switch (token) {
         case "(": // new Branchset
           c = tree.addChild();
           ancestors.push(tree);
           tree = c;
           break;
         case ",": // another Branch
-          c = ancestors[ancestors.length-1].addChild();
+          c = ancestors[ancestors.length - 1].addChild();
           tree = c;
           break;
         case ")": // optional name next
@@ -1126,10 +1147,10 @@
         case ":": // optional length next
           break;
         default:
-          let x = tokens[t-1];
-          if (x == ')' || x == '(' || x == ',') {
+          let x = tokens[t - 1];
+          if (x == ")" || x == "(" || x == ",") {
             tree.id = token;
-          } else if (x == ':') {
+          } else if (x == ":") {
             tree.length = parseFloat(token);
           }
       }
