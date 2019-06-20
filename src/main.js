@@ -301,6 +301,15 @@ Branch.prototype.fixParenthood = function(nonrecursive) {
 };
 
 /**
+ * Reverses the order of (all of) the descendants of the Branch.
+ * Equivalent to `Branch.rotate(true)`
+ * @return {Branch} The Branch on which this was called.
+ */
+Branch.prototype.flip = function() {
+  return this.rotate(true);
+};
+
+/**
  * Returns an Array of all the ancestors of the Branch on which it is called.
  * Note that this does not include itself. For all ancestors and itself, see
  * [Branch.ancestors](#ancestors)
