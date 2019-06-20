@@ -306,6 +306,10 @@
     return this;
   };
 
+  Branch.prototype.flip = function() {
+    return this.rotate(true);
+  };
+
   /**
    * Returns an Array of all the ancestors of the Branch on which it is called.
    * Note that this does not include itself. For all ancestors and itself, see
@@ -477,8 +481,8 @@
   };
 
   /**
-   * Swaps a child with its parent. This method is probably only useful as an
-   * internal component of [Branch.reroot](#reroot).
+   * Swaps the branch on which it is called with its parent. This method is
+   * probably only useful as an internal component of [Branch.reroot](#reroot).
    * @return {Branch} The Branch object on which it was called.
    */
   Branch.prototype.invert = function() {
@@ -488,6 +492,8 @@
       this.children.push(oldParent);
       oldParent.parent = this;
       oldParent.children.splice(oldParent.children.indexOf(this), 1);
+    } else {
+      throw Error("Cannot invert root node!");
     }
     return this;
   };
@@ -673,8 +679,8 @@
    * not replace that root automatically.
    * @example
    * tree = tree.children[0].children[0].reroot();
-   * @return {Branch} The new root Branch, which is either the Branch on which
-   * this was called or its parent
+   * @return {Branch} The new root Branch, which is the Branch on which this was
+   * called
    */
   Branch.prototype.reroot = function() {
     let current = this;
@@ -683,9 +689,7 @@
       toInvert.push(current);
       current = current.parent;
     }
-    while (toInvert.length) {
-      toInvert.pop().invert();
-    }
+    toInvert.reverse().forEach(c => c.invert());
     return this;
   };
 
