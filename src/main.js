@@ -471,8 +471,8 @@ Branch.prototype.hasLeaf = function(leaf) {
 };
 
 /**
- * Swaps a child with its parent. This method is probably only useful as an
- * internal component of [Branch.reroot](#reroot).
+ * Swaps the branch on which it is called with its parent. This method is
+ * probably only useful as an internal component of [Branch.reroot](#reroot).
  * @return {Branch} The Branch object on which it was called.
  */
 Branch.prototype.invert = function() {
@@ -482,6 +482,8 @@ Branch.prototype.invert = function() {
     this.children.push(oldParent);
     oldParent.parent = this;
     oldParent.children.splice(oldParent.children.indexOf(this), 1);
+  } else {
+    throw Error("Cannot invert root node!");
   }
   return this;
 };
