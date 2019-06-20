@@ -667,8 +667,8 @@ Branch.prototype.remove = function() {
  * not replace that root automatically.
  * @example
  * tree = tree.children[0].children[0].reroot();
- * @return {Branch} The new root Branch, which is either the Branch on which
- * this was called or its parent
+ * @return {Branch} The new root Branch, which is the Branch on which this was
+ * called
  */
 Branch.prototype.reroot = function() {
   let current = this;
@@ -677,9 +677,7 @@ Branch.prototype.reroot = function() {
     toInvert.push(current);
     current = current.parent;
   }
-  while (toInvert.length) {
-    toInvert.pop().invert();
-  }
+  toInvert.reverse().forEach(c => c.invert());
   return this;
 };
 
