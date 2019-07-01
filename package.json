@@ -1,6 +1,6 @@
 {
   "name": "patristic",
-  "version": "0.3.9",
+  "version": "0.4.0",
   "description": "Patristic Inference library for Node and Browser",
   "homepage": "https://cdcgov.github.io/patristic/",
   "bugs": "https://github.com/CDCgov/patristic/issues",
@@ -27,7 +27,7 @@
   "devDependencies": {
     "documentation": "^9.3.1",
     "jest": "^24.8.0",
-    "rollup": "^1.15.6",
+    "rollup": "^1.16.3",
     "rollup-plugin-commonjs": "^9.3.4",
     "rollup-plugin-node-resolve": "^4.2.4",
     "terser": "^3.17.0"
