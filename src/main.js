@@ -147,14 +147,13 @@ Branch.prototype.descendants = function() {
  * descendant of this Branch.
  */
 Branch.prototype.depthOf = function(descendant) {
-  let distance = 0;
-  if (typeof descendant === "string")
+  let distance = this.length;
+  if (typeof descendant == "string")
     descendant = this.getDescendant(descendant);
-  if (typeof descendant === "undefined")
+  if (typeof descendant == "undefined")
     throw Error("Cannot compute depth of undefined descendant!");
   let current = descendant;
-  while (!current.isRoot()) {
-    if (current === this) break;
+  while (current != this) {
     distance += current.length;
     current = current.parent;
   }
