@@ -871,6 +871,21 @@ Branch.prototype.toObject = function() {
 };
 
 /**
+ * Returns a valid JSON-string version of this Branch and its descendants.
+ * @param {Function} replacer A replacer function to [pass to `JSON.stringify`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Parameters).
+ * @param {(Number|String)} space A string or number of spaces to use for
+ * indenting the output. See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Parameters
+ * for additional details.
+ * @return {Object} A valid JSON string representing this Branch and its
+ * descendants.
+ */
+Branch.prototype.toString = function(replacer, width) {
+  if (!replacer) replacer = null;
+  if (!width) width = 0;
+  return JSON.stringify(this, replacer, width);
+};
+
+/**
  * Parses a hierarchical JSON string (or Object) as a Branch object.
  * @param  {(String|Object)} json A json string (or Javascript Object)
  * representing hierarchical data.
