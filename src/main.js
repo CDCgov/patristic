@@ -47,7 +47,7 @@ function guid(a) {
  * @param  {(Branch|Object)} [data={}] The new Branch, or data to attach to it.
  * @return {Branch} The (possibly new) child Branch
  */
-Branch.prototype.addChild = function(data) {
+Branch.prototype.addChild = function (data) {
   let c;
   if (data instanceof Branch) {
     c = data;
@@ -71,7 +71,7 @@ Branch.prototype.addChild = function(data) {
  * @param  {Array} [siblings=[]] An array of Branches to be the children of the new parent Branch (i.e. siblings of this Branch)
  * @return {Branch} The Branch on which this was called
  */
-Branch.prototype.addParent = function(data, siblings) {
+Branch.prototype.addParent = function (data, siblings) {
   if (!siblings) siblings = [];
   let c;
   if (data instanceof Branch) {
@@ -91,7 +91,7 @@ Branch.prototype.addParent = function(data, siblings) {
  * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_ancestors)
  * @type {Array} An array of Branches
  */
-Branch.prototype.ancestors = function() {
+Branch.prototype.ancestors = function () {
   return this.getAncestors(true);
 };
 
@@ -101,7 +101,7 @@ Branch.prototype.ancestors = function() {
  * descendant Branches.
  * @return {Branch} A clone of the Branch on which it is called.
  */
-Branch.prototype.clone = function() {
+Branch.prototype.clone = function () {
   return parseJSON(this.toObject());
 };
 
@@ -114,7 +114,7 @@ Branch.prototype.clone = function() {
  * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_copy)
  * @return {Branch} A clone of the Branch on which it is called.
  */
-Branch.prototype.copy = function() {
+Branch.prototype.copy = function () {
   var newThis = parseJSON(this.toObject());
   newThis.parent = null;
   return newThis.fixDistances();
@@ -124,7 +124,7 @@ Branch.prototype.copy = function() {
  * Sets the values of all nodes to be equal to the number of their descendants.
  * @return {Branch} The Branch on which it was called
  */
-Branch.prototype.count = function() {
+Branch.prototype.count = function () {
   return this.sum(() => 1);
 };
 
@@ -133,7 +133,7 @@ Branch.prototype.count = function() {
  * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_descendants)
  * @type {Array} An Array of Branches, starting with this one.
  */
-Branch.prototype.descendants = function() {
+Branch.prototype.descendants = function () {
   return this.getDescendants(true);
 };
 
@@ -146,7 +146,7 @@ Branch.prototype.descendants = function() {
  * which it is called and `descendant`. Throws an error if `descendant` is not a
  * descendant of this Branch.
  */
-Branch.prototype.depthOf = function(descendant) {
+Branch.prototype.depthOf = function (descendant) {
   let distance = this.length;
   if (typeof descendant == "string")
     descendant = this.getDescendant(descendant);
@@ -167,7 +167,7 @@ Branch.prototype.depthOf = function(descendant) {
  * @param  {Branch} descendantB The Branch to which you wish to compute distance
  * @return {number} The patristic distance between the given descendants.
  */
-Branch.prototype.distanceBetween = function(descendantA, descendantB) {
+Branch.prototype.distanceBetween = function (descendantA, descendantB) {
   let mrca = descendantA.getMRCA(descendantB);
   return mrca.depthOf(descendantA) + mrca.depthOf(descendantB);
 };
@@ -179,7 +179,7 @@ Branch.prototype.distanceBetween = function(descendantA, descendantB) {
  * @return {number} The patristic distance between `cousin` and the Branch on
  * this method is called.
  */
-Branch.prototype.distanceTo = function(cousin) {
+Branch.prototype.distanceTo = function (cousin) {
   let mrca = this.getMRCA(cousin);
   return mrca.depthOf(this) + mrca.depthOf(cousin);
 };
@@ -190,7 +190,7 @@ Branch.prototype.distanceTo = function(cousin) {
  * @param  {Function} callback The function to be run on each Branch
  * @return {Branch} The Branch on which it was called.
  */
-Branch.prototype.each = function(callback) {
+Branch.prototype.each = function (callback) {
   let branch = this,
     next = [branch],
     current;
@@ -212,7 +212,7 @@ Branch.prototype.each = function(callback) {
  * @param  {Function} callback Function to run on each Branch
  * @return {Branch} The Branch on which it was called
  */
-Branch.prototype.eachAfter = function(callback) {
+Branch.prototype.eachAfter = function (callback) {
   this.eachChild(child => child.eachAfter(callback));
   callback(this);
   return this;
@@ -225,7 +225,7 @@ Branch.prototype.eachAfter = function(callback) {
  * @param  {Function} callback [description]
  * @return {[type]}            [description]
  */
-Branch.prototype.eachBefore = function(callback) {
+Branch.prototype.eachBefore = function (callback) {
   callback(this);
   this.eachChild(child => child.eachBefore(callback));
   return this;
@@ -237,7 +237,7 @@ Branch.prototype.eachBefore = function(callback) {
  * @param  {Function} callback The function to run on each child.
  * @return {Branch} The Branch on which it was called.
  */
-Branch.prototype.eachChild = function(callback) {
+Branch.prototype.eachChild = function (callback) {
   this.children.forEach(callback);
   return this;
 };
@@ -246,7 +246,7 @@ Branch.prototype.eachChild = function(callback) {
  * Excises the Branch on which it is called and updates its parent and children.
  * @return {Branch} The parent of the excised Branch.
  */
-Branch.prototype.excise = function() {
+Branch.prototype.excise = function () {
   if (this.isRoot() && this.children.length > 1) {
     throw new Error("Cannot excise a root Branch with multiple children.");
   }
@@ -263,7 +263,7 @@ Branch.prototype.excise = function() {
  * Sets the distance values (height and depth) for each Branch
  * @return {Branch} The Branch on which it is called.
  */
-Branch.prototype.fixDistances = function() {
+Branch.prototype.fixDistances = function () {
   let maxdepth = 0,
     root = this.getRoot();
   root.depth = 0;
@@ -288,7 +288,7 @@ Branch.prototype.fixDistances = function() {
  * Branch on which it is called, or all descendants?
  * @return {Branch} The Branch on which it was called.
  */
-Branch.prototype.fixParenthood = function(nonrecursive) {
+Branch.prototype.fixParenthood = function (nonrecursive) {
   this.children.forEach(child => {
     if (!child.parent) child.parent = this;
     if (child.parent !== this) child.parent = this;
@@ -303,7 +303,7 @@ Branch.prototype.fixParenthood = function(nonrecursive) {
  * Reverses the order of (all of) the descendants of the Branch.
  * @return {Branch} The Branch on which this was called.
  */
-Branch.prototype.flip = function() {
+Branch.prototype.flip = function () {
   return this.each(c => c.rotate());
 };
 
@@ -315,7 +315,7 @@ Branch.prototype.flip = function() {
  * included in the results?
  * @return {Array} Every Ancestor of the Branch on which it was called.
  */
-Branch.prototype.getAncestors = function(includeSelf) {
+Branch.prototype.getAncestors = function (includeSelf) {
   let ancestors = includeSelf ? [this] : [];
   let current = this;
   while ((current = current.parent)) {
@@ -331,7 +331,7 @@ Branch.prototype.getAncestors = function(includeSelf) {
  * @return {(Branch|undefined)} The desired child Branch, or `undefined` if the
  * child doesn't exist.
  */
-Branch.prototype.getChild = function(childID) {
+Branch.prototype.getChild = function (childID) {
   if (!typeof childID == "string") throw Error("childID is not a String!");
   return this.children.find(c => c.id === childID);
 };
@@ -343,7 +343,7 @@ Branch.prototype.getChild = function(childID) {
  * @return {(Branch|undefined)} The descendant Branch, or `undefined` if it
  * doesn't exist
  */
-Branch.prototype.getDescendant = function(id) {
+Branch.prototype.getDescendant = function (id) {
   if (this.id === id) return this;
   let children = this.children,
     n = children.length;
@@ -361,7 +361,7 @@ Branch.prototype.getDescendant = function(id) {
  * called the function? This is used internally and should be ignored.
  * @return {Array} An array of all Branches descended from this Branch
  */
-Branch.prototype.getDescendants = function(includeSelf) {
+Branch.prototype.getDescendants = function (includeSelf) {
   let descendants = includeSelf ? [this] : [];
   if (!this.isLeaf()) {
     this.children.forEach(child => {
@@ -376,7 +376,7 @@ Branch.prototype.getDescendants = function(includeSelf) {
  * Alias of [getLeaves](#getLeaves) for people whose strong suit isn't spelling.
  * @return {Array} An array of all leaves descended from this Branch
  */
-Branch.prototype.getLeafs = function() {
+Branch.prototype.getLeafs = function () {
   return this.getLeaves();
 };
 
@@ -385,7 +385,7 @@ Branch.prototype.getLeafs = function() {
  * See also: [getLeafs](#getLeafs)
  * @return {Array} An array of all leaves descended from this Branch
  */
-Branch.prototype.getLeaves = function() {
+Branch.prototype.getLeaves = function () {
   if (this.isLeaf()) {
     return [this];
   } else {
@@ -405,7 +405,7 @@ Branch.prototype.getLeaves = function() {
  * @return {Branch} The Most Recent Common Ancestor of both the Branch on
  * which it was called and the `cousin`.
  */
-Branch.prototype.getMRCA = function(cousin) {
+Branch.prototype.getMRCA = function (cousin) {
   let mrca = this;
   while (!mrca.hasDescendant(cousin)) {
     if (mrca.isRoot())
@@ -422,7 +422,7 @@ Branch.prototype.getMRCA = function(cousin) {
  * root.
  * @return {Branch} The root Branch of the tree
  */
-Branch.prototype.getRoot = function() {
+Branch.prototype.getRoot = function () {
   let branch = this;
   while (!branch.isRoot()) branch = branch.parent;
   return branch;
@@ -433,7 +433,7 @@ Branch.prototype.getRoot = function() {
  * @param  {(Branch|String)} child The Branch (or the id thereof) to check for
  * @return {Boolean}
  */
-Branch.prototype.hasChild = function(child) {
+Branch.prototype.hasChild = function (child) {
   if (child instanceof Branch) {
     return this.children.includes(child);
   } else if (typeof child === "string") {
@@ -452,7 +452,7 @@ Branch.prototype.hasChild = function(child) {
  * @return {Boolean} True if `descendant` is descended from the Branch from
  * which this is called, otherwise false.
  */
-Branch.prototype.hasDescendant = function(descendant) {
+Branch.prototype.hasDescendant = function (descendant) {
   let descendants = this.getDescendants();
   if (descendant instanceof Branch) {
     return descendants.some(d => d === descendant);
@@ -467,7 +467,7 @@ Branch.prototype.hasDescendant = function(descendant) {
  * @return {Boolean} True if leaf is both a leaf and a descendant of the
  * Branch on which this method is called, False otherwise.
  */
-Branch.prototype.hasLeaf = function(leaf) {
+Branch.prototype.hasLeaf = function (leaf) {
   let leaves = this.getleaves();
   if (leaf instanceof Branch) {
     return leaves.includes(leaf);
@@ -482,9 +482,12 @@ Branch.prototype.hasLeaf = function(leaf) {
  * probably only useful as an internal component of [Branch.reroot](#reroot).
  * @return {Branch} The Branch object on which it was called.
  */
-Branch.prototype.invert = function() {
+Branch.prototype.invert = function () {
   let oldParent = this.parent;
   if (oldParent) {
+    var temp = this.parent.length;
+    this.parent.length = this.length;
+    this.length = temp;
     this.parent = oldParent.parent;
     this.children.push(oldParent);
     oldParent.parent = this;
@@ -503,7 +506,7 @@ Branch.prototype.invert = function() {
  * @return {Boolean} True is `parent` is the parent of this Branch, false
  * otherwise.
  */
-Branch.prototype.isChildOf = function(parent) {
+Branch.prototype.isChildOf = function (parent) {
   if (parent instanceof Branch) return this.parent === parent;
   if (typeof parent === "string") return this.parent.id === parent;
   throw Error("Unknown parent type passed to Branch.isChildOf");
@@ -514,7 +517,7 @@ Branch.prototype.isChildOf = function(parent) {
  * its parent and its children.
  * @return {Boolean} True if consistent, otherwise false
  */
-Branch.prototype.isConsistent = function() {
+Branch.prototype.isConsistent = function () {
   if (!this.isRoot()) {
     if (!this.parent.children.includes(this)) return false;
   }
@@ -531,7 +534,7 @@ Branch.prototype.isConsistent = function() {
  * @param  {Branch} ancestor The Branch to check for ancestorhood
  * @return {Boolean} If this Branch is descended from `ancestor`
  */
-Branch.prototype.isDescendantOf = function(ancestor) {
+Branch.prototype.isDescendantOf = function (ancestor) {
   if (!ancestor || !this.parent) return false;
   if (this.parent === ancestor || this.parent.id === ancestor) return true;
   return this.parent.isDescendantOf(ancestor);
@@ -542,7 +545,7 @@ Branch.prototype.isDescendantOf = function(ancestor) {
  * children).
  * @return {Boolean} True is this Branch is a leaf, otherwise false.
  */
-Branch.prototype.isLeaf = function() {
+Branch.prototype.isLeaf = function () {
   return this.children.length === 0;
 };
 
@@ -556,7 +559,7 @@ Branch.prototype.isLeaf = function() {
  * the Branch on which it is called.
  * @return {Branch} The Branch object on which it was called.
  */
-Branch.prototype.isolate = function() {
+Branch.prototype.isolate = function () {
   let index = this.parent.children.indexOf(this);
   this.parent.children.splice(index, 1);
   this.setParent(null);
@@ -568,7 +571,7 @@ Branch.prototype.isolate = function() {
  * no parents).
  * @return {Boolean} True if this Branch is the root, otherwise false.
  */
-Branch.prototype.isRoot = function() {
+Branch.prototype.isRoot = function () {
   return this.parent === null;
 };
 
@@ -578,7 +581,7 @@ Branch.prototype.isRoot = function() {
  * @type {Array} An Array of Branches which are descended from this Branch and
  * have no children.
  */
-Branch.prototype.leafs = function() {
+Branch.prototype.leafs = function () {
   return this.getLeaves();
 };
 
@@ -589,7 +592,7 @@ Branch.prototype.leafs = function() {
  * @type {Array} An Array of Branches which are descended from this Branch and
  * have no children.
  */
-Branch.prototype.leaves = function() {
+Branch.prototype.leaves = function () {
   return this.getLeaves();
 };
 
@@ -600,7 +603,7 @@ Branch.prototype.leaves = function() {
  * [d3-hierarchy compatibility method](https://github.com/d3/d3-hierarchy#node_links)
  * @return {Array} An array of plain Javascript objects
  */
-Branch.prototype.links = function() {
+Branch.prototype.links = function () {
   let links = [];
   this.each(d => {
     if (d.isRoot()) return;
@@ -621,7 +624,7 @@ Branch.prototype.links = function() {
  * @param  {Number} newmax The desired maximum value.
  * @return {Branch} The Branch on which it was called.
  */
-Branch.prototype.normalize = function(newmin, newmax) {
+Branch.prototype.normalize = function (newmin, newmax) {
   if (typeof newmax !== "number") newmax = 1;
   if (typeof newmin !== "number") newmin = 0;
   let min = Infinity,
@@ -641,7 +644,7 @@ Branch.prototype.normalize = function(newmin, newmax) {
  * @return {Array} An ordered Array of Branches following the path between this
  * Branch and `target`
  */
-Branch.prototype.path = function(target) {
+Branch.prototype.path = function (target) {
   let current = this;
   let branches = [this];
   let mrca = this.getMRCA(target);
@@ -664,7 +667,7 @@ Branch.prototype.path = function(target) {
  * from which this Branch is removed.
  * @return {Branch} The root of the remaining tree.
  */
-Branch.prototype.remove = function() {
+Branch.prototype.remove = function () {
   let root = this.getRoot();
   this.isolate();
   return root;
@@ -679,7 +682,7 @@ Branch.prototype.remove = function() {
  * @return {Branch} The new root Branch, which is the Branch on which this was
  * called
  */
-Branch.prototype.reroot = function() {
+Branch.prototype.reroot = function () {
   let current = this;
   let toInvert = [];
   while (!current.isRoot()) {
@@ -687,14 +690,14 @@ Branch.prototype.reroot = function() {
     current = current.parent;
   }
   toInvert.reverse().forEach(c => c.invert());
-  return this;
+  return this.fixDistances();
 };
 
 /**
  * Reverses the order of the children of the branch on which it is called.
  * @return {Branch} The Branch on which this was called.
  */
-Branch.prototype.rotate = function(recursive) {
+Branch.prototype.rotate = function (recursive) {
   if (!this.children) return this;
   this.children.reverse();
   return this;
@@ -705,7 +708,7 @@ Branch.prototype.rotate = function(recursive) {
  * @param  {number} length The new length to assign to the Branch
  * @return {Branch} The Branch object on which this was called
  */
-Branch.prototype.setLength = function(length) {
+Branch.prototype.setLength = function (length) {
   this.length = length;
   return this;
 };
@@ -715,7 +718,7 @@ Branch.prototype.setLength = function(length) {
  * @param  {Branch} parent The Branch to set as parent
  * @return {Branch} The Branch on which this method was called.
  */
-Branch.prototype.setParent = function(parent) {
+Branch.prototype.setParent = function (parent) {
   if (!parent instanceof Branch && parent !== null)
     throw Error("Cannot set parent to non-Branch object!");
   this.parent = parent;
@@ -728,7 +731,7 @@ Branch.prototype.setParent = function(parent) {
  * a numberic value. For details, see [MDN Array.sort](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#Description)
  * @return {Branch} The Branch on which it was called
  */
-Branch.prototype.sort = function(comparator) {
+Branch.prototype.sort = function (comparator) {
   if (!comparator) comparator = (a, b) => a.value - b.value;
   return this.eachBefore(d => d.children.sort(comparator));
 };
@@ -740,7 +743,7 @@ Branch.prototype.sort = function(comparator) {
  * @return {Boolean} True if this might be the source of cousin, otherwise
  * false.
  */
-Branch.prototype.sources = function(cousin) {
+Branch.prototype.sources = function (cousin) {
   let mrca = this.getMRCA(cousin);
   return mrca.depthOf(this) < mrca.depthOf(cousin);
 };
@@ -751,7 +754,7 @@ Branch.prototype.sources = function(cousin) {
  * (numeric?) value.
  * @return {Branch} The Branch on which it was called.
  */
-Branch.prototype.sum = function(value) {
+Branch.prototype.sum = function (value) {
   if (!value) value = d => d.value;
   return this.eachAfter(
     d => (d.value = value(d) + d.children.reduce((a, c) => a + c.value, 0))
@@ -765,7 +768,7 @@ Branch.prototype.sum = function(value) {
  * @return {Boolean} True if this might be the target of cousin, otherwise
  * false.
  */
-Branch.prototype.targets = function(cousin) {
+Branch.prototype.targets = function (cousin) {
   return cousin.sources(this);
 };
 
@@ -775,7 +778,7 @@ Branch.prototype.targets = function(cousin) {
  * @type {Function}
  * @returns {Object} A serializable Object
  */
-Branch.prototype.toJSON = function() {
+Branch.prototype.toJSON = function () {
   return this.toObject();
 };
 
@@ -785,7 +788,7 @@ Branch.prototype.toJSON = function() {
  * @return {Object} An Object containing a matrix (an Array of Arrays) and
  * Array of `id`s corresponding to the rows (and columns) of the matrix.
  */
-Branch.prototype.toMatrix = function() {
+Branch.prototype.toMatrix = function () {
   let leafs = this.getLeaves();
   let n = leafs.length;
   let matrix = new Array(n);
@@ -813,7 +816,7 @@ Branch.prototype.toMatrix = function() {
  * @return {String} The [Newick](https://en.wikipedia.org/wiki/Newick_format)
  * representation of the Branch.
  */
-Branch.prototype.toNewick = function(nonterminus) {
+Branch.prototype.toNewick = function (nonterminus) {
   let out = "";
   if (!this.isLeaf()) {
     out +=
@@ -860,7 +863,7 @@ function numberToString(num) {
  * @return {Object} A serializable bare Javascript Object representing this
  * Branch and its descendants.
  */
-Branch.prototype.toObject = function() {
+Branch.prototype.toObject = function () {
   var output = {
     id: this.id,
     length: this.length
@@ -879,7 +882,7 @@ Branch.prototype.toObject = function() {
  * @return {Object} A valid JSON string representing this Branch and its
  * descendants.
  */
-Branch.prototype.toString = function(replacer, width) {
+Branch.prototype.toString = function (replacer, width) {
   if (!replacer) replacer = null;
   if (!width) width = 0;
   return JSON.stringify(this, replacer, width);
