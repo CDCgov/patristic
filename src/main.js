@@ -301,11 +301,10 @@ Branch.prototype.fixParenthood = function(nonrecursive) {
 
 /**
  * Reverses the order of (all of) the descendants of the Branch.
- * Equivalent to `Branch.rotate(true)`
  * @return {Branch} The Branch on which this was called.
  */
 Branch.prototype.flip = function() {
-  return this.rotate(true);
+  return this.each(c => c.rotate());
 };
 
 /**
@@ -692,19 +691,12 @@ Branch.prototype.reroot = function() {
 };
 
 /**
- * Reverses the order of children (or descendants, if `recursive` of a Branch.
- * @param {Boolean} recursive Whether or not to rotate all descendants, or just
- * children. Non-recursive appears as though Branches have been swapped.
- * Recursive appears as though the entire subtree has been flipped over.
+ * Reverses the order of the children of the branch on which it is called.
  * @return {Branch} The Branch on which this was called.
  */
 Branch.prototype.rotate = function(recursive) {
   if (!this.children) return this;
-  if (recursive) {
-    this.each(c => c.rotate());
-  } else {
-    this.children.reverse();
-  }
+  this.children.reverse();
   return this;
 };
 
