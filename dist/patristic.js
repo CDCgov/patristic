@@ -112,23 +112,6 @@
   };
 
   /**
-   * If called on the root, returns the root. Otherwise, collapses the Branch on
-   * which it was called into its parent, removes it from its siblings, and
-   * returns its parent.
-   * @return {Branch} The parent of the Branch on which it was called (or the root
-   * Branch).
-   */
-  Branch.prototype.collapse = function() {
-    if (this.isRoot()) return this;
-    let siblings = this.parent.children;
-    siblings.splice(siblings.indexOf(this), 1);
-    this.eachChild(child => {
-      child.parent = this.parent;
-    });
-    return this.parent;
-  };
-
-  /**
    * Returns a clone of the Branch on which it is called. Note that this also
    * clones all descendants, rather than providing references to the existing
    * descendant Branches. (For a shallow clone, see [Branch.clone](#clone).
@@ -257,7 +240,6 @@
 
   /**
    * Runs a function on each child of the Branch on which it is called.
-   * This is mostly a helper-function to the other Branch.each* methods.
    * @param  {Function} callback The function to run on each child.
    * @return {Branch} The Branch on which it was called.
    */
@@ -274,7 +256,7 @@
     if (this.isRoot() && this.children.length > 1) {
       throw new Error("Cannot excise a root Branch with multiple children.");
     }
-    this.children.forEach(child => {
+    this.eachChild(child => {
       child.length += this.length;
       child.parent = this.parent;
       if (!this.isRoot()) this.parent.children.push(child);
@@ -758,8 +740,9 @@
   Branch.prototype.simplify = function(aggressive) {
     return this.copy()
       .eachAfter(branch => {
+        if (branch.isRoot()) return;
         if (branch.length == 0 && (aggressive || branch.id == "")) {
-          branch.collapse();
+          branch.excise();
         }
       })
       .fixDistances();
