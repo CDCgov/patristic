@@ -70,5 +70,5 @@ test("Simplification works", () => {
   let simplifiable = "(A:0.1,B:0.2,(C,D:0.4):0.5);";
   let simpTree = patristic.parseNewick(simplifiable);
   expect(simpTree.simplify(false).toNewick()).toBe(simplifiable);
-  expect(simpTree.simplify(true).toNewick()).toBe("(A:0.1,B:0.2,(D:0.4):0.5);");
+  expect(simpTree.simplify(true).toNewick()).toBe("(A:0.1,B:0.2,D:0.9);");
 });

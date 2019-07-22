@@ -318,9 +318,7 @@ Branch.prototype.flip = function() {
 Branch.prototype.getAncestors = function(includeSelf) {
   let ancestors = includeSelf ? [this] : [];
   let current = this;
-  while ((current = current.parent)) {
-    ancestors.push(current);
-  }
+  while ((current = current.parent)) ancestors.push(current);
   return ancestors;
 };
 
@@ -727,17 +725,20 @@ Branch.prototype.setParent = function(parent) {
 
 /**
  * Returns a clone of the subtree from a given Branch for which all descendant
- * Branches with zero length are collapsed.
+ * Branches with zero length are excised, as well as any branches which have
+ * only-children
  * @param {Boolean} aggressive - Should named branches be collapsed?
  * @return {Branch} The clone of the Branch on which this method was called.
  */
 Branch.prototype.simplify = function(aggressive) {
   return this.copy()
     .eachAfter(branch => {
-      if (branch.isRoot()) return;
-      if (branch.length == 0 && (aggressive || branch.id == "")) {
-        branch.excise();
-      }
+      if (!aggressive && branch.id != "") return;
+      if (
+        branch.children.length == 1 ||
+        (branch.length == 0 && !branch.isRoot())
+      )
+        return branch.excise();
     })
     .fixDistances();
 };
