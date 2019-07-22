@@ -678,6 +678,20 @@
   };
 
   /**
+   * Removes a Branch and its subtree from the tree, and replaces it.
+   * @param {Branch} replacement - The branch to replace the branch on which the
+   * method is called.
+   * @return {Branch} The root of the modified tree.
+   */
+  Branch.prototype.replace = function(replacement) {
+    let root = this.getRoot();
+    let parent = this.parent;
+    let index = this.parent.children.indexOf(this);
+    this.parent.children.splice(index, 1, replacement);
+    return root;
+  };
+
+  /**
    * Reroots a tree on this Branch. Use with caution, this returns the new root,
    * which should typically supplant the existing root Branch object, but does
    * not replace that root automatically.
