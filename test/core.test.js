@@ -2,10 +2,10 @@ const patristic = require("../dist/patristic");
 if (!test) test = require("jest");
 
 const newick = "(A:0.1,B:0.2,(C:0.3,D:0.4):0.5);";
-var tree = patristic.parseNewick(newick);
+let tree = patristic.parseNewick(newick);
 
 test("Newick Parsing and Serialization", () => {
-  expect(tree.toNewick()).toEqual("(A:0.1,B:0.2,(C:0.3,D:0.4):0.5);");
+  expect(tree.toNewick()).toEqual(newick);
 });
 
 test("JSON Serialization", () => {
@@ -54,14 +54,21 @@ test("Tree can find descendants", () => {
 });
 
 test("Rerooting works", () => {
-  var dtbe = patristic.parseNewick(
+  let dtbe = patristic.parseNewick(
     "(19RF0118:2,(((((10L7127:1,11L1117:1),(10L9175,10L8592):1),(17RF3547:4,(((((((17RF6547,18RF2741),18RF0577),19RF0987):8,18RF0763:4),12L0360:5),18RF6688:5):1,(18RF5919:8,MRCA):1):2):2),12L6184:2),16RF7906:2):2);"
   );
-  var a = dtbe.getDescendant("19RF0118");
-  var b = dtbe.getDescendant("18RF5919");
+  let a = dtbe.getDescendant("19RF0118");
+  let b = dtbe.getDescendant("18RF5919");
   expect(dtbe.distanceBetween(a, b)).toEqual(17);
-  var rooted = dtbe.getDescendant("MRCA").reroot();
+  let rooted = dtbe.getDescendant("MRCA").reroot();
   expect(rooted.distanceBetween(a, b)).toEqual(17);
-  var rerooted = rooted.getDescendant("10L8592").reroot();
+  let rerooted = rooted.getDescendant("10L8592").reroot();
   expect(rerooted.distanceBetween(a, b)).toEqual(17);
+});
+
+test("Simplification works", () => {
+  let simplifiable = "(A:0.1,B:0.2,(C,D:0.4):0.5);";
+  let simpTree = patristic.parseNewick(simplifiable);
+  expect(simpTree.simplify(false).toNewick()).toBe(simplifiable);
+  expect(simpTree.simplify(true).toNewick()).toBe("(A:0.1,B:0.2,(D:0.4):0.5);");
 });
