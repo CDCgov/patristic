@@ -1,6 +1,6 @@
 {
   "name": "patristic",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Patristic Inference library for Node and Browser",
   "homepage": "https://cdcgov.github.io/patristic/",
   "bugs": "https://github.com/CDCgov/patristic/issues",

@@ -11,7 +11,7 @@
    * @example
    * console.log(patristic.version);
    */
-  const version = "0.5.1";
+  const version = "0.5.2";
 
   /**
    * A class for representing Branches in trees.
@@ -36,7 +36,8 @@
       length: data.length || 0,
       parent: data.parent || null,
       children: children(data) || [],
-      value: data.value || 1
+      value: data.value || 1,
+      respresenting: 1
     });
   }
 
@@ -282,6 +283,7 @@
       if (!this.isRoot()) this.parent.children.push(child);
     });
     this.parent.children.splice(this.parent.children.indexOf(this), 1);
+    this.parent.representing++;
     return this.parent;
   };
 
