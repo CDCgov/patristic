@@ -66,9 +66,14 @@ test("Rerooting works", () => {
   expect(rerooted.distanceBetween(a, b)).toEqual(17);
 });
 
-test("Simplification works", () => {
+test("Consolidation works", () => {
   let simplifiable = "(A:0.1,B:0.2,(C,D:0.4):0.5);";
   let simpTree = patristic.parseNewick(simplifiable);
-  expect(simpTree.simplify(false).toNewick()).toBe(simplifiable);
-  expect(simpTree.simplify(true).toNewick()).toBe("(A:0.1,B:0.2,D:0.9);");
+  expect(simpTree.consolidate().toNewick()).toBe("(A:0.1,B:0.2,(D:0.4)C:0.5);");
+});
+
+test("Simplification works", () => {
+  let simplifiable = "(A:0.1,B:0.2,(D:0.4):0.5);";
+  let simpTree = patristic.parseNewick(simplifiable);
+  expect(simpTree.simplify().toNewick()).toBe("(A:0.1,B:0.2,D:0.9);");
 });

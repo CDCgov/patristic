@@ -106,6 +106,26 @@ Branch.prototype.clone = function() {
 };
 
 /**
+ * Returns a clone of the subtree from a given Branch for which all descendant
+ * Branches with zero length are excised
+ * @return {Branch} The clone of the Branch on which this method was called.
+ */
+Branch.prototype.consolidate = function() {
+  return this.copy()
+    .eachAfter(branch => {
+      if (branch.length == 0 && !branch.isRoot()){
+        if(branch.parent.id == ""){
+          branch.parent.id = branch.id;
+        } else {
+          branch.parent.id += '+'+branch.id;
+        }
+        branch.excise();
+      }
+    })
+    .fixDistances();
+};
+
+/**
  * Returns a clone of the Branch on which it is called. Note that this also
  * clones all descendants, rather than providing references to the existing
  * descendant Branches. (For a shallow clone, see [Branch.clone](#clone).
@@ -739,20 +759,15 @@ Branch.prototype.setParent = function(parent) {
 
 /**
  * Returns a clone of the subtree from a given Branch for which all descendant
- * Branches with zero length are excised, as well as any branches which have
- * only-children
- * @param {Boolean} aggressive - Should named branches be collapsed?
+ * Branches with one child are transformed into a single continuous branch
  * @return {Branch} The clone of the Branch on which this method was called.
  */
-Branch.prototype.simplify = function(aggressive) {
+Branch.prototype.simplify = function() {
   return this.copy()
     .eachAfter(branch => {
-      if (!aggressive && branch.id != "") return;
-      if (
-        branch.children.length == 1 ||
-        (branch.length == 0 && !branch.isRoot())
-      )
-        return branch.excise();
+      if(branch.children.length == 1){
+        branch.excise();
+      }
     })
     .fixDistances();
 };
