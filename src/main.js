@@ -113,7 +113,7 @@ Branch.prototype.clone = function() {
 Branch.prototype.consolidate = function() {
   return this.copy()
     .eachAfter(branch => {
-      if (branch.length == 0 && !branch.isRoot()){
+      if (branch.length > 0.0000001 && !branch.isRoot()){
         if(branch.parent.id == ""){
           branch.parent.id = branch.id;
         } else {
@@ -766,6 +766,11 @@ Branch.prototype.simplify = function() {
   return this.copy()
     .eachAfter(branch => {
       if(branch.children.length == 1){
+        if(branch.parent.id == ''){
+          branch.parent.id = branch.id;
+        } else {
+          branch.parent.id += "+" + branch.id;
+        }
         branch.excise();
       }
     })
