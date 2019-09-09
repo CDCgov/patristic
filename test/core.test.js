@@ -67,13 +67,13 @@ test("Rerooting works", () => {
 });
 
 test("Consolidation works", () => {
-  let simplifiable = "(A:0.1,B:0.2,(C,D:0.4):0.5);";
-  let simpTree = patristic.parseNewick(simplifiable);
-  expect(simpTree.consolidate().toNewick()).toBe("(A:0.1,B:0.2,(D:0.4)C:0.5);");
+  let consolidatable = "(A:0.1,B:0.2,(C,D:0.4):0.5);";
+  let tree = patristic.parseNewick(consolidatable);
+  expect(tree.consolidate().toNewick()).toBe("(A:0.1,B:0.2,(D:0.4)C:0.5);");
 });
 
 test("Simplification works", () => {
-  let simplifiable = "(A:0.1,B:0.2,(D:0.4):0.5);";
+  let simplifiable = "(A:0.1,B:0.2,(D:0.4)C:0.5);";
   let simpTree = patristic.parseNewick(simplifiable);
-  expect(simpTree.simplify().toNewick()).toBe("(A:0.1,B:0.2,D:0.9);");
+  expect(simpTree.simplify().toNewick()).toBe("(A:0.1,B:0.2,C+D:0.9);");
 });
