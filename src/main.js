@@ -754,23 +754,26 @@ Branch.prototype.setParent = function(parent) {
 };
 
 /**
- * Returns a clone of the subtree from a given Branch for which all descendant
- * Branches with one child are transformed into a single continuous branch
+ * Collapses each descendant Branch with exactly one child into a single
+ * continuous branch.
  * @return {Branch} The clone of the Branch on which this method was called.
  */
 Branch.prototype.simplify = function() {
-  return this.copy()
-    .eachAfter(branch => {
-      if(branch.children.length == 1){
-        if(branch.parent.id == ''){
-          branch.parent.id = branch.id;
-        } else {
-          branch.parent.id += "+" + branch.id;
-        }
-        branch.excise();
+  let replacements = 0;
+  this.eachAfter(branch => {
+    if(branch.children.length == 1){
+      let child = branch.children[0];
+      if(child.id == ''){
+        child.id = branch.id;
+      } else {
+        child.id = branch.id + "+" + child.id;
       }
-    })
-    .fixDistances();
+      branch.excise();
+      replacements++;
+    }
+  });
+  if(replacements > 0) return this.simplify();
+  return this.fixDistances();
 };
 
 /**
