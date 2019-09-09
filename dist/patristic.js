@@ -11,7 +11,7 @@
    * @example
    * console.log(patristic.version);
    */
-  const version = "0.5.3";
+  const version = "0.5.4";
 
   /**
    * A class for representing Branches in trees.
@@ -762,10 +762,9 @@
   /**
    * Collapses each descendant Branch with exactly one child into a single
    * continuous branch.
-   * @return {Branch} The clone of the Branch on which this method was called.
+   * @return {Branch} The Branch on which this method was called.
    */
   Branch.prototype.simplify = function() {
-    let replacements = 0;
     this.eachAfter(branch => {
       if(branch.children.length == 1){
         let child = branch.children[0];
@@ -775,10 +774,8 @@
           child.id = branch.id + "+" + child.id;
         }
         branch.excise();
-        replacements++;
       }
     });
-    if(replacements > 0) return this.simplify();
     return this.fixDistances();
   };
 
