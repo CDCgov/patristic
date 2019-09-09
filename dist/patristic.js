@@ -11,7 +11,7 @@
    * @example
    * console.log(patristic.version);
    */
-  const version = "0.5.2";
+  const version = "0.5.3";
 
   /**
    * A class for representing Branches in trees.
@@ -41,12 +41,10 @@
     });
   }
 
-  function guid(a) {
-    if (a) {
+  function guid(){
+    return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, a => {
       return (a ^ ((Math.random() * 16) >> (a / 4))).toString(16);
-    } else {
-      return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, guid);
-    }
+    });
   }
 
   /**
@@ -113,23 +111,19 @@
   };
 
   /**
-   * Returns a clone of the subtree from a given Branch for which all descendant
-   * Branches with zero length are excised
-   * @return {Branch} The clone of the Branch on which this method was called.
+   * All descendant Branches with near-zero length are excised
+   * @return {Branch} The Branch on which this method was called.
    */
   Branch.prototype.consolidate = function() {
-    return this.copy()
-      .eachAfter(branch => {
-        if (branch.length > 0.0000001 && !branch.isRoot()){
-          if(branch.parent.id == ""){
-            branch.parent.id = branch.id;
-          } else {
-            branch.parent.id += '+'+branch.id;
-          }
-          branch.excise();
-        }
-      })
-      .fixDistances();
+    return this.eachAfter(branch => {
+      if (branch.isRoot() || branch.length >= 0.0005) return;
+      if(branch.parent.id == ""){
+        branch.parent.id = branch.id;
+      } else {
+        branch.parent.id += '+'+branch.id;
+      }
+      branch.excise();
+    }).fixDistances();
   };
 
   /**
@@ -766,23 +760,26 @@
   };
 
   /**
-   * Returns a clone of the subtree from a given Branch for which all descendant
-   * Branches with one child are transformed into a single continuous branch
+   * Collapses each descendant Branch with exactly one child into a single
+   * continuous branch.
    * @return {Branch} The clone of the Branch on which this method was called.
    */
   Branch.prototype.simplify = function() {
-    return this.copy()
-      .eachAfter(branch => {
-        if(branch.children.length == 1){
-          if(branch.parent.id == ''){
-            branch.parent.id = branch.id;
-          } else {
-            branch.parent.id += "+" + branch.id;
-          }
-          branch.excise();
+    let replacements = 0;
+    this.eachAfter(branch => {
+      if(branch.children.length == 1){
+        let child = branch.children[0];
+        if(child.id == ''){
+          child.id = branch.id;
+        } else {
+          child.id = branch.id + "+" + child.id;
         }
-      })
-      .fixDistances();
+        branch.excise();
+        replacements++;
+      }
+    });
+    if(replacements > 0) return this.simplify();
+    return this.fixDistances();
   };
 
   /**
