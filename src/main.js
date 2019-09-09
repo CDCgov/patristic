@@ -105,23 +105,19 @@ Branch.prototype.clone = function() {
 };
 
 /**
- * Returns a clone of the subtree from a given Branch for which all descendant
- * Branches with zero length are excised
- * @return {Branch} The clone of the Branch on which this method was called.
+ * All descendant Branches with near-zero length are excised
+ * @return {Branch} The Branch on which this method was called.
  */
 Branch.prototype.consolidate = function() {
-  return this.copy()
-    .eachAfter(branch => {
-      if (branch.length > 0.0000001 && !branch.isRoot()){
-        if(branch.parent.id == ""){
-          branch.parent.id = branch.id;
-        } else {
-          branch.parent.id += '+'+branch.id;
-        }
-        branch.excise();
-      }
-    })
-    .fixDistances();
+  return this.eachAfter(branch => {
+    if (branch.isRoot() || branch.length >= 0.0005) return;
+    if(branch.parent.id == ""){
+      branch.parent.id = branch.id;
+    } else {
+      branch.parent.id += '+'+branch.id;
+    }
+    branch.excise();
+  }).fixDistances();
 };
 
 /**
