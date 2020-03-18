@@ -1033,10 +1033,8 @@
       //if (that.cN % 100 == 0 ) console.log(that.cN);
       ({ minI, minJ } = search(that));
 
-      d1 =
-        0.5 * that.D[minI][minJ] +
-        (that.rowSums[minI] - that.rowSums[minJ]) / (2 * that.cN - 4);
-      d2 = that.D[minI][minJ] - d1;
+      d1 = Math.abs(0.5 * that.D[minI][minJ] + (that.rowSums[minI] - that.rowSums[minJ]) / (2 * that.cN - 4));
+      d2 = Math.abs(that.D[minI][minJ] - d1);
 
       l1 = that.currIndexToLabel[minI];
       l2 = that.currIndexToLabel[minJ];
