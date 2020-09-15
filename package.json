@@ -1,17 +1,17 @@
 {
   "name": "patristic",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "Patristic Inference library for Node and Browser",
   "homepage": "https://cdcgov.github.io/patristic/",
   "bugs": "https://github.com/CDCgov/patristic/issues",
   "main": "dist/patristic.js",
   "scripts": {
-    "build": "rollup -c",
-    "coverage": "./node_modules/jest/bin/jest.js --coverage",
+    "build": "npx rollup -c",
+    "coverage": "npx jest --coverage",
     "demo": "npx http-server",
-    "doc": "documentation build src/main.js -f md -o docs/README.md",
-    "minify": "terser dist/patristic.js --compress > dist/patristic.min.js",
-    "test": "jest"
+    "doc": "npx documentation build src/main.js -f md -o docs/README.md",
+    "minify": "npx terser dist/patristic.js --compress > dist/patristic.min.js",
+    "test": "npx jest"
   },
   "keywords": [
     "phylogeny"
@@ -21,16 +21,7 @@
     "url": "git+https://github.com/CDCgov/patristic.git"
   },
   "contributors": [
-    "Tony Boyles <nsp3@cdc.gov>"
+    "Tony Boyles <tony@ephemer.ai>"
   ],
-  "license": "Apache-2.0",
-  "devDependencies": {
-    "diff": ">=3.5.0",
-    "documentation": "^9.3.1",
-    "jest": "^25.4.0",
-    "rollup": "^1.21.2",
-    "rollup-plugin-commonjs": "^9.3.4",
-    "rollup-plugin-node-resolve": "^4.2.4",
-    "terser": "^3.17.0"
-  }
+  "license": "Apache-2.0"
 }

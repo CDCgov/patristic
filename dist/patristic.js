@@ -1,8 +1,8 @@
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
-  (global = global || self, factory(global.patristic = {}));
-}(this, function (exports) { 'use strict';
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.patristic = {}));
+}(this, (function (exports) { 'use strict';
 
   /**
    * The [SemVer](https://semver.org/) version string of the patristic library
@@ -11,7 +11,7 @@
    * @example
    * console.log(patristic.version);
    */
-  const version = "0.5.4";
+  const version = "0.5.6";
 
   /**
    * A class for representing Branches in trees.
@@ -415,7 +415,6 @@
       });
       return descendants;
     }
-    throw new Error("Something very weird happened. Sorry about that!");
   };
 
   /**
@@ -1033,8 +1032,10 @@
       //if (that.cN % 100 == 0 ) console.log(that.cN);
       ({ minI, minJ } = search(that));
 
-      d1 = Math.abs(0.5 * that.D[minI][minJ] + (that.rowSums[minI] - that.rowSums[minJ]) / (2 * that.cN - 4));
-      d2 = Math.abs(that.D[minI][minJ] - d1);
+      d1 =
+        0.5 * that.D[minI][minJ] +
+        (that.rowSums[minI] - that.rowSums[minJ]) / (2 * that.cN - 4);
+      d2 = that.D[minI][minJ] - d1;
 
       l1 = that.currIndexToLabel[minI];
       l2 = that.currIndexToLabel[minJ];
@@ -1241,4 +1242,4 @@
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
-}));
+})));

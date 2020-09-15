@@ -12,77 +12,77 @@
         -   [Parameters][8]
     -   [ancestors][9]
     -   [clone][10]
-    -   [copy][11]
-    -   [count][12]
-    -   [descendants][13]
-    -   [depthOf][14]
-        -   [Parameters][15]
-    -   [distanceBetween][16]
-        -   [Parameters][17]
-    -   [distanceTo][18]
-        -   [Parameters][19]
-    -   [each][20]
-        -   [Parameters][21]
-    -   [eachAfter][22]
-        -   [Parameters][23]
-    -   [eachBefore][24]
-        -   [Parameters][25]
-    -   [eachChild][26]
-        -   [Parameters][27]
-    -   [excise][28]
-    -   [fixDistances][29]
-    -   [fixParenthood][30]
-        -   [Parameters][31]
-    -   [flip][32]
-    -   [getAncestors][33]
-        -   [Parameters][34]
-    -   [getChild][35]
-        -   [Parameters][36]
-    -   [getDescendant][37]
-        -   [Parameters][38]
-    -   [getDescendants][39]
-        -   [Parameters][40]
-    -   [getLeafs][41]
-    -   [getLeaves][42]
-    -   [getMRCA][43]
-        -   [Parameters][44]
-    -   [getRoot][45]
-    -   [hasChild][46]
-        -   [Parameters][47]
-    -   [hasDescendant][48]
-        -   [Parameters][49]
-    -   [hasLeaf][50]
-        -   [Parameters][51]
-    -   [invert][52]
-    -   [isChildOf][53]
-        -   [Parameters][54]
-    -   [isConsistent][55]
-    -   [isDescendantOf][56]
-        -   [Parameters][57]
-    -   [isLeaf][58]
-    -   [isolate][59]
-    -   [isRoot][60]
-    -   [leafs][61]
-    -   [leaves][62]
-    -   [links][63]
-    -   [normalize][64]
-        -   [Parameters][65]
-        -   [Examples][66]
-    -   [path][67]
-        -   [Parameters][68]
-    -   [remove][69]
-    -   [replace][70]
-        -   [Parameters][71]
-    -   [reroot][72]
-        -   [Examples][73]
-    -   [rotate][74]
-        -   [Parameters][75]
-    -   [setLength][76]
-        -   [Parameters][77]
-    -   [setParent][78]
-        -   [Parameters][79]
-    -   [simplify][80]
-        -   [Parameters][81]
+    -   [consolidate][11]
+    -   [copy][12]
+    -   [count][13]
+    -   [descendants][14]
+    -   [depthOf][15]
+        -   [Parameters][16]
+    -   [distanceBetween][17]
+        -   [Parameters][18]
+    -   [distanceTo][19]
+        -   [Parameters][20]
+    -   [each][21]
+        -   [Parameters][22]
+    -   [eachAfter][23]
+        -   [Parameters][24]
+    -   [eachBefore][25]
+        -   [Parameters][26]
+    -   [eachChild][27]
+        -   [Parameters][28]
+    -   [excise][29]
+    -   [fixDistances][30]
+    -   [fixParenthood][31]
+        -   [Parameters][32]
+    -   [flip][33]
+    -   [getAncestors][34]
+        -   [Parameters][35]
+    -   [getChild][36]
+        -   [Parameters][37]
+    -   [getDescendant][38]
+        -   [Parameters][39]
+    -   [getDescendants][40]
+        -   [Parameters][41]
+    -   [getLeafs][42]
+    -   [getLeaves][43]
+    -   [getMRCA][44]
+        -   [Parameters][45]
+    -   [getRoot][46]
+    -   [hasChild][47]
+        -   [Parameters][48]
+    -   [hasDescendant][49]
+        -   [Parameters][50]
+    -   [hasLeaf][51]
+        -   [Parameters][52]
+    -   [invert][53]
+    -   [isChildOf][54]
+        -   [Parameters][55]
+    -   [isConsistent][56]
+    -   [isDescendantOf][57]
+        -   [Parameters][58]
+    -   [isLeaf][59]
+    -   [isolate][60]
+    -   [isRoot][61]
+    -   [leafs][62]
+    -   [leaves][63]
+    -   [links][64]
+    -   [normalize][65]
+        -   [Parameters][66]
+        -   [Examples][67]
+    -   [path][68]
+        -   [Parameters][69]
+    -   [remove][70]
+    -   [replace][71]
+        -   [Parameters][72]
+    -   [reroot][73]
+        -   [Examples][74]
+    -   [rotate][75]
+        -   [Parameters][76]
+    -   [setLength][77]
+        -   [Parameters][78]
+    -   [setParent][79]
+        -   [Parameters][80]
+    -   [simplify][81]
     -   [sort][82]
         -   [Parameters][83]
     -   [sources][84]
@@ -168,6 +168,12 @@ not clone all descendants, rather than providing references to the existing
 descendant Branches.
 
 Returns **[Branch][108]** A clone of the Branch on which it is called.
+
+### consolidate
+
+All descendant Branches with near-zero length are excised
+
+Returns **[Branch][108]** The Branch on which this method was called.
 
 ### copy
 
@@ -429,7 +435,7 @@ Branch on which this method is called, False otherwise.
 ### invert
 
 Swaps the branch on which it is called with its parent. This method is
-probably only useful as an internal component of [Branch.reroot][72].
+probably only useful as an internal component of [Branch.reroot][73].
 
 Returns **[Branch][108]** The Branch object on which it was called.
 
@@ -478,7 +484,7 @@ Returns a boolean indicating whether or not this Branch is olate.
 ...Just kidding!
 
 Isolates a Branch and its subtree (i.e. removes everything above it, making
-it the root Branch). Similar to [Branch.remove][69], only it returns
+it the root Branch). Similar to [Branch.remove][70], only it returns
 the Branch on which it is called.
 
 Returns **[Branch][108]** The Branch object on which it was called.
@@ -548,7 +554,7 @@ Branch and `target`
 ### remove
 
 Removes a Branch and its subtree from the tree. Similar to
-[Branch.isolate][59], only it returns the root Branch of the tree
+[Branch.isolate][60], only it returns the root Branch of the tree
 from which this Branch is removed.
 
 Returns **[Branch][108]** The root of the remaining tree.
@@ -611,15 +617,10 @@ Returns **[Branch][108]** The Branch on which this method was called.
 
 ### simplify
 
-Returns a clone of the subtree from a given Branch for which all descendant
-Branches with zero length are excised, as well as any branches which have
-only-children
+Collapses each descendant Branch with exactly one child into a single
+continuous branch.
 
-#### Parameters
-
--   `aggressive` **[Boolean][118]** Should named branches be collapsed?
-
-Returns **[Branch][108]** The clone of the Branch on which this method was called.
+Returns **[Branch][108]** The Branch on which this method was called.
 
 ### sort
 
@@ -790,163 +791,163 @@ Returns **[Branch][108]** A Branch representing the root of the output tree
 
 [10]: #clone
 
-[11]: #copy
+[11]: #consolidate
 
-[12]: #count
+[12]: #copy
 
-[13]: #descendants
+[13]: #count
 
-[14]: #depthof
+[14]: #descendants
 
-[15]: #parameters-3
+[15]: #depthof
 
-[16]: #distancebetween
+[16]: #parameters-3
 
-[17]: #parameters-4
+[17]: #distancebetween
 
-[18]: #distanceto
+[18]: #parameters-4
 
-[19]: #parameters-5
+[19]: #distanceto
 
-[20]: #each
+[20]: #parameters-5
 
-[21]: #parameters-6
+[21]: #each
 
-[22]: #eachafter
+[22]: #parameters-6
 
-[23]: #parameters-7
+[23]: #eachafter
 
-[24]: #eachbefore
+[24]: #parameters-7
 
-[25]: #parameters-8
+[25]: #eachbefore
 
-[26]: #eachchild
+[26]: #parameters-8
 
-[27]: #parameters-9
+[27]: #eachchild
 
-[28]: #excise
+[28]: #parameters-9
 
-[29]: #fixdistances
+[29]: #excise
 
-[30]: #fixparenthood
+[30]: #fixdistances
 
-[31]: #parameters-10
+[31]: #fixparenthood
 
-[32]: #flip
+[32]: #parameters-10
 
-[33]: #getancestors
+[33]: #flip
 
-[34]: #parameters-11
+[34]: #getancestors
 
-[35]: #getchild
+[35]: #parameters-11
 
-[36]: #parameters-12
+[36]: #getchild
 
-[37]: #getdescendant
+[37]: #parameters-12
 
-[38]: #parameters-13
+[38]: #getdescendant
 
-[39]: #getdescendants
+[39]: #parameters-13
 
-[40]: #parameters-14
+[40]: #getdescendants
 
-[41]: #getleafs
+[41]: #parameters-14
 
-[42]: #getleaves
+[42]: #getleafs
 
-[43]: #getmrca
+[43]: #getleaves
 
-[44]: #parameters-15
+[44]: #getmrca
 
-[45]: #getroot
+[45]: #parameters-15
 
-[46]: #haschild
+[46]: #getroot
 
-[47]: #parameters-16
+[47]: #haschild
 
-[48]: #hasdescendant
+[48]: #parameters-16
 
-[49]: #parameters-17
+[49]: #hasdescendant
 
-[50]: #hasleaf
+[50]: #parameters-17
 
-[51]: #parameters-18
+[51]: #hasleaf
 
-[52]: #invert
+[52]: #parameters-18
 
-[53]: #ischildof
+[53]: #invert
 
-[54]: #parameters-19
+[54]: #ischildof
 
-[55]: #isconsistent
+[55]: #parameters-19
 
-[56]: #isdescendantof
+[56]: #isconsistent
 
-[57]: #parameters-20
+[57]: #isdescendantof
 
-[58]: #isleaf
+[58]: #parameters-20
 
-[59]: #isolate
+[59]: #isleaf
 
-[60]: #isroot
+[60]: #isolate
 
-[61]: #leafs
+[61]: #isroot
 
-[62]: #leaves
+[62]: #leafs
 
-[63]: #links
+[63]: #leaves
 
-[64]: #normalize
+[64]: #links
 
-[65]: #parameters-21
+[65]: #normalize
 
-[66]: #examples-1
+[66]: #parameters-21
 
-[67]: #path
+[67]: #examples-1
 
-[68]: #parameters-22
+[68]: #path
 
-[69]: #remove
+[69]: #parameters-22
 
-[70]: #replace
+[70]: #remove
 
-[71]: #parameters-23
+[71]: #replace
 
-[72]: #reroot
+[72]: #parameters-23
 
-[73]: #examples-2
+[73]: #reroot
 
-[74]: #rotate
+[74]: #examples-2
 
-[75]: #parameters-24
+[75]: #rotate
 
-[76]: #setlength
+[76]: #parameters-24
 
-[77]: #parameters-25
+[77]: #setlength
 
-[78]: #setparent
+[78]: #parameters-25
 
-[79]: #parameters-26
+[79]: #setparent
 
-[80]: #simplify
+[80]: #parameters-26
 
-[81]: #parameters-27
+[81]: #simplify
 
 [82]: #sort
 
-[83]: #parameters-28
+[83]: #parameters-27
 
 [84]: #sources
 
-[85]: #parameters-29
+[85]: #parameters-28
 
 [86]: #sum
 
-[87]: #parameters-30
+[87]: #parameters-29
 
 [88]: #targets
 
-[89]: #parameters-31
+[89]: #parameters-30
 
 [90]: #tojson
 
@@ -954,25 +955,25 @@ Returns **[Branch][108]** A Branch representing the root of the output tree
 
 [92]: #tonewick
 
-[93]: #parameters-32
+[93]: #parameters-31
 
 [94]: #toobject
 
 [95]: #tostring
 
-[96]: #parameters-33
+[96]: #parameters-32
 
 [97]: #parsejson
 
-[98]: #parameters-34
+[98]: #parameters-33
 
 [99]: #parsematrix
 
-[100]: #parameters-35
+[100]: #parameters-34
 
 [101]: #parsenewick
 
-[102]: #parameters-36
+[102]: #parameters-35
 
 [103]: https://semver.org/
 
