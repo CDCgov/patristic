@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1600192292129" clover="3.2.0">
-  <project timestamp="1600192292129" name="All files">
+<coverage generated="1615562705856" clover="3.2.0">
+  <project timestamp="1615562705856" name="All files">
     <metrics statements="531" coveredstatements="227" conditionals="224" coveredconditionals="85" methods="111" coveredmethods="50" elements="866" coveredelements="362" complexity="0" loc="531" ncloc="531" packages="1" files="1" classes="1"/>
     <file name="patristic.js" path="/Users/aaboyles/Projects/patristic/dist/patristic.js">
       <metrics statements="531" coveredstatements="227" conditionals="224" coveredconditionals="85" methods="111" coveredmethods="50"/>

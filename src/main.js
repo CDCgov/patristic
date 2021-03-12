@@ -5,7 +5,7 @@
  * @example
  * console.log(patristic.version);
  */
-export const version = "0.5.6";
+export const version = "0.5.7";
 
 /**
  * A class for representing Branches in trees.
@@ -162,7 +162,7 @@ Branch.prototype.descendants = function() {
  * descendant of this Branch.
  */
 Branch.prototype.depthOf = function(descendant) {
-  let distance = this.length;
+  let distance = 0;
   if (typeof descendant == "string")
     descendant = this.getDescendant(descendant);
   if (typeof descendant == "undefined")

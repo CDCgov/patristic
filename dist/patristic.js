@@ -11,7 +11,7 @@
    * @example
    * console.log(patristic.version);
    */
-  const version = "0.5.6";
+  const version = "0.5.7";
 
   /**
    * A class for representing Branches in trees.
@@ -168,7 +168,7 @@
    * descendant of this Branch.
    */
   Branch.prototype.depthOf = function(descendant) {
-    let distance = this.length;
+    let distance = 0;
     if (typeof descendant == "string")
       descendant = this.getDescendant(descendant);
     if (typeof descendant == "undefined")
@@ -700,7 +700,7 @@
    */
   Branch.prototype.replace = function(replacement) {
     let root = this.getRoot();
-    let parent = this.parent;
+    this.parent;
     let index = this.parent.children.indexOf(this);
     this.parent.children.splice(index, 1, replacement);
     return root;
