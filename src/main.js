@@ -703,9 +703,9 @@ Branch.prototype.removeIfNoChildren = function(nonrecursive) {
 
   if (this.children.length === 0) {
     this.remove();
-  }
-  if (!nonrecursive) {
-    this.parent.removeIfNoChildren();
+    if (!nonrecursive) {
+      this.parent.removeIfNoChildren();
+    }
   }
 
   return root;
