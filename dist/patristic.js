@@ -2,7 +2,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.patristic = {}));
-}(this, (function (exports) { 'use strict';
+})(this, (function (exports) { 'use strict';
 
   /**
    * The [SemVer](https://semver.org/) version string of the patristic library
@@ -684,11 +684,35 @@
    * Removes a Branch and its subtree from the tree. Similar to
    * [Branch.isolate](#isolate), only it returns the root Branch of the tree
    * from which this Branch is removed.
+   * @param {Boolean} pruneAncestors - If true, removes ancestors with no remaining children as well
    * @return {Branch} The root of the remaining tree.
    */
-  Branch.prototype.remove = function() {
+  Branch.prototype.remove = function(pruneAncestors) {
     let root = this.getRoot();
     this.isolate();
+    if (pruneAncestors) {
+      this.parent?.removeIfNoChildren();
+    }
+    return root;
+  };
+
+  /**
+   * Removes the branch if it has no children. Then recursively removes all
+   * ancestors with no children.
+   *
+   * @param {Boolean} nonrecursive - If true, does not remove ancestors with no children
+   * @return {Branch} The root of the modified tree.
+   */
+  Branch.prototype.removeIfNoChildren = function(nonrecursive) {
+    let root = this.getRoot();
+
+    if (this.children.length === 0) {
+      this.remove();
+      if (!nonrecursive) {
+        this.parent.removeIfNoChildren();
+      }
+    }
+
     return root;
   };
 
@@ -1240,6 +1264,4 @@
   exports.parseNewick = parseNewick;
   exports.version = version;
 
-  Object.defineProperty(exports, '__esModule', { value: true });
-
-})));
+}));

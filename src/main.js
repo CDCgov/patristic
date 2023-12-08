@@ -679,13 +679,37 @@ Branch.prototype.path = function(target) {
  * Removes a Branch and its subtree from the tree. Similar to
  * [Branch.isolate](#isolate), only it returns the root Branch of the tree
  * from which this Branch is removed.
+ * @param {Boolean} pruneAncestors - If true, removes ancestors with no remaining children as well
  * @return {Branch} The root of the remaining tree.
  */
-Branch.prototype.remove = function() {
+Branch.prototype.remove = function(pruneAncestors) {
   let root = this.getRoot();
   this.isolate();
+  if (pruneAncestors) {
+    this.parent?.removeIfNoChildren();
+  }
   return root;
 };
+
+/**
+ * Removes the branch if it has no children. Then recursively removes all
+ * ancestors with no children.
+ *
+ * @param {Boolean} nonrecursive - If true, does not remove ancestors with no children
+ * @return {Branch} The root of the modified tree.
+ */
+Branch.prototype.removeIfNoChildren = function(nonrecursive) {
+  let root = this.getRoot();
+
+  if (this.children.length === 0) {
+    this.remove();
+    if (!nonrecursive) {
+      this.parent.removeIfNoChildren();
+    }
+  }
+
+  return root;
+}
 
 /**
  * Removes a Branch and its subtree from the tree, and replaces it.
