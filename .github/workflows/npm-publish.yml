@@ -6,9 +6,8 @@ name: Node.js Package
 on:
   release:
     types: [created]
-
+jobs:
   publish-npm:
-    needs: build
     runs-on: ubuntu-latest
     environment: npm_publish
     steps:
