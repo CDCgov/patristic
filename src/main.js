@@ -482,7 +482,7 @@ Branch.prototype.hasDescendant = function(descendant) {
  * Branch on which this method is called, False otherwise.
  */
 Branch.prototype.hasLeaf = function(leaf) {
-  let leaves = this.getleaves();
+  let leaves = this.getLeaves();
   if (leaf instanceof Branch) {
     return leaves.includes(leaf);
   } else if (typeof leaf === "string") {
