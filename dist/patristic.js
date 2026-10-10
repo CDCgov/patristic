@@ -1010,7 +1010,8 @@
     let N = (that.N = matrix.length);
     if (!labels) labels = [...Array(N).keys()];
     that.cN = that.N;
-    that.D = matrix;
+    // Copy the matrix: neighbor joining overwrites it as it goes.
+    that.D = Array.from(matrix, row => Array.from(row));
     that.labels = labels;
     that.labelToTaxon = {};
     that.currIndexToLabel = new Array(N);

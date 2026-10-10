@@ -492,7 +492,7 @@ describe("parseMatrix", () => {
       }
   });
 
-  test.failing("does not modify its input", () => {
+  test("does not modify its input", () => {
     let input = copy(additive);
     patristic.parseMatrix(input, labels);
     expect(input).toEqual(additive);
