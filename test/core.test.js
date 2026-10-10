@@ -439,6 +439,16 @@ describe("restructuring", () => {
     expect(tree.children[0].id).toBe("A+short");
   });
 
+  test("simplify and consolidate leave the Branch they're called on", () => {
+    let t = patristic.parseNewick("((A:1,B:1)X:1)R;");
+    expect(t.simplify()).toBe(t);
+    expect(t.toNewick()).toBe("((A:1,B:1)X:1)R;");
+    let u = patristic.parseNewick("((A:1,B:1)X:0.0001,C:1);");
+    let x = u.children[0];
+    expect(x.consolidate()).toBe(x);
+    expect(x.parent).toBe(u);
+  });
+
   test("simplify collapses single-child Branches", () => {
     let t = patristic.parseNewick("((A:1)P:1,B:1);");
     t.simplify();

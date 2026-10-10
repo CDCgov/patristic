@@ -114,7 +114,7 @@ Branch.prototype.consolidate = function() {
   let branches = [];
   this.eachAfter(branch => branches.push(branch));
   branches.forEach(branch => {
-    if (branch.isRoot() || branch.length >= 0.0005) return;
+    if (branch === this || branch.isRoot() || branch.length >= 0.0005) return;
     if(branch.parent.id == ""){
       branch.parent.id = branch.id;
     } else {
@@ -792,11 +792,13 @@ Branch.prototype.setParent = function(parent) {
 
 /**
  * Collapses each descendant Branch with exactly one child into a single
- * continuous branch.
+ * continuous branch. The Branch on which it is called is left in place.
  * @return {Branch} The Branch on which this method was called.
  */
 Branch.prototype.simplify = function() {
   this.eachAfter(branch => {
+    // Excising this Branch would detach it from the tree we return.
+    if (branch === this) return;
     if(branch.children.length == 1){
       let child = branch.children[0];
       if(child.id == ''){
