@@ -584,13 +584,13 @@ describe("known bugs", () => {
     expect(t.toNewick()).toBe("((P+A:2,Q+B:2)X:1,C:1);");
   });
 
-  test.failing("simplify and consolidate don't add '+' for unlabeled Branches", () => {
+  test("simplify and consolidate don't add '+' for unlabeled Branches", () => {
     let t = patristic.parseNewick("((A:1):1,B:1);");
     t.simplify();
     expect(t.toNewick()).toBe("(A:2,B:1);");
-    let u = patristic.parseNewick("((A:0.0001,B:1):1,C:1);");
+    let u = patristic.parseNewick("(((A:1,B:1):0.0001,C:1)P:1,D:1);");
     u.consolidate();
-    expect(u.toNewick()).toBe("((B:1)A:1,C:1);");
+    expect(u.toNewick()).toBe("((A:1.0001,B:1.0001,C:1)P:1,D:1);");
   });
 
   test.failing("parseJSON applies custom labels to descendants", () => {

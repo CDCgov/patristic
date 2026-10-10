@@ -115,15 +115,18 @@ Branch.prototype.consolidate = function() {
   this.eachAfter(branch => branches.push(branch));
   branches.forEach(branch => {
     if (branch === this || branch.isRoot() || branch.length >= 0.0005) return;
-    if(branch.parent.id == ""){
-      branch.parent.id = branch.id;
-    } else {
-      branch.parent.id += '+'+branch.id;
-    }
+    branch.parent.id = joinIds(branch.parent.id, branch.id);
     branch.excise();
   });
   return this.fixDistances();
 };
+
+// Combines the ids of two merged Branches, ignoring empty ones.
+function joinIds(a, b) {
+  if (a === "") return b;
+  if (b === "") return a;
+  return a + "+" + b;
+}
 
 /**
  * Returns a clone of the Branch on which it is called. Note that this also
@@ -801,11 +804,7 @@ Branch.prototype.simplify = function() {
     if (branch === this) return;
     if(branch.children.length == 1){
       let child = branch.children[0];
-      if(child.id == ''){
-        child.id = branch.id;
-      } else {
-        child.id = branch.id + "+" + child.id;
-      }
+      child.id = joinIds(branch.id, child.id);
       branch.excise();
     }
   });
