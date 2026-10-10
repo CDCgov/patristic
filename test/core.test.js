@@ -524,7 +524,7 @@ describe("known bugs", () => {
     expect(tree.toNewick()).toContain("A:12500000000000000000000,");
   });
 
-  test.failing("fixDistances is idempotent", () => {
+  test("fixDistances is idempotent", () => {
     let before = tree.descendants().map(d => [d.depth, d.height, d.value]);
     tree.fixDistances().fixDistances();
     expect(tree.descendants().map(d => [d.depth, d.height, d.value])).toEqual(
@@ -590,7 +590,7 @@ describe("known bugs", () => {
     expect(t.toNewick()).toBe("(a:1,b:2)r;");
   });
 
-  test.failing("parseJSON computes values once", () => {
+  test("parseJSON computes values once", () => {
     let t = patristic.parseJSON(tree.toObject());
     expect(t.value).toBe(6);
     expect(t.children[2].value).toBe(3);

@@ -276,7 +276,9 @@ Branch.prototype.excise = function() {
 };
 
 /**
- * Sets the distance values (height and depth) for each Branch
+ * Sets the distance values (height and depth) for each Branch, and sets each
+ * Branch's value to the number of Branches in its subtree (see
+ * [Branch.count](#count)).
  * @return {Branch} The Branch on which it is called.
  */
 Branch.prototype.fixDistances = function() {
@@ -289,7 +291,7 @@ Branch.prototype.fixDistances = function() {
     if (d.depth > maxdepth) maxdepth = d.depth;
   }).eachAfter(d => {
     d.height = maxdepth - d.depth;
-    d.value = d.value + d.children.reduce((a, c) => a + c.value, 0);
+    d.value = 1 + d.children.reduce((a, c) => a + c.value, 0);
   });
   return this;
 };
