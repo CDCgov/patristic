@@ -528,7 +528,7 @@ describe("known bugs", () => {
     );
   });
 
-  test.failing("small numbers are written without float artifacts", () => {
+  test("small numbers are written without float artifacts", () => {
     tree.children[0].length = 1e-7;
     expect(tree.toNewick()).toContain("A:0.0000001,");
     tree.children[0].length = -1.5e-8;

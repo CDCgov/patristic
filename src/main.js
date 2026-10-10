@@ -911,30 +911,17 @@ Branch.prototype.toNewick = function(nonterminus) {
   return out;
 };
 
-//This function takes a number and returns a string representation that does
-//not use Scientific Notation.
-//It's adapted from [StackOverflow](https://stackoverflow.com/a/46545519/521121),
-//Which makes it available under the [CC BY-SA 3.0 License](https://creativecommons.org/licenses/by-sa/3.0/)
+// Returns a string representation of a number that doesn't use scientific
+// notation. Works on the digits of JavaScript's own (shortest round-trip)
+// representation, so it introduces no floating point artifacts.
 function numberToString(num) {
-  let numStr = String(num);
-  if (Math.abs(num) < 1.0) {
-    let e = parseInt(num.toString().split("e-")[1]);
-    if (e) {
-      let negative = num < 0;
-      if (negative) num *= -1;
-      num *= Math.pow(10, e - 1);
-      numStr = "0." + new Array(e).join("0") + num.toString().substring(2);
-      if (negative) numStr = "-" + numStr;
-    }
-  } else {
-    let e = parseInt(num.toString().split("+")[1]);
-    if (e > 20) {
-      e -= 20;
-      num /= Math.pow(10, e);
-      numStr = num.toString() + new Array(e + 1).join("0");
-    }
-  }
-  return numStr;
+  let str = String(num);
+  let match = str.match(/^(-?)(\d)(?:\.(\d+))?e([+-]\d+)$/);
+  if (!match) return str;
+  let [, sign, whole, fraction = "", exponent] = match;
+  let e = Number(exponent);
+  if (e < 0) return sign + "0." + "0".repeat(-e - 1) + whole + fraction;
+  return sign + whole + fraction + "0".repeat(e - fraction.length);
 }
 
 /**
