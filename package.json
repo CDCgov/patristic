@@ -11,7 +11,8 @@
     "demo": "npx http-server",
     "doc": "npx documentation build src/main.js -f md -o docs/README.md",
     "minify": "npx terser dist/patristic.js --compress > dist/patristic.min.js",
-    "test": "npx jest"
+    "test": "npx jest",
+    "bench": "node bench/bench.js"
   },
   "keywords": [
     "phylogeny"
