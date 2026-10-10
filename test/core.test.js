@@ -538,7 +538,7 @@ describe("known bugs", () => {
     expect(tree.children[2].children.map(c => c.height)).toEqual([0, 0]);
   });
 
-  test.failing("excise increments the parent's representing count", () => {
+  test("excise increments the parent's representing count", () => {
     let t = patristic.parseNewick("((A:1,B:1)X:1,C:1);");
     expect(t.representing).toBe(1);
     t.children[0].excise();

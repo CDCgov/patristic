@@ -31,7 +31,7 @@ export function Branch(data, children) {
     parent: data.parent || null,
     children: children(data) || [],
     value: data.value || 1,
-    respresenting: 1
+    representing: 1
   });
 }
 
