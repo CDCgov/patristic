@@ -280,14 +280,14 @@
       child.parent = null;
       return child;
     }
+    let parent = this.parent;
     this.eachChild(child => {
       child.length += this.length;
-      child.parent = this.parent;
-      if (!this.isRoot()) this.parent.children.push(child);
+      child.parent = parent;
     });
-    this.parent.children.splice(this.parent.children.indexOf(this), 1);
-    this.parent.representing++;
-    return this.parent;
+    parent.children.splice(parent.children.indexOf(this), 1, ...this.children);
+    parent.representing++;
+    return parent;
   };
 
   /**

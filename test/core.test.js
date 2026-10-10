@@ -442,7 +442,7 @@ describe("restructuring", () => {
   test("simplify collapses single-child Branches", () => {
     let t = patristic.parseNewick("((A:1)P:1,B:1);");
     t.simplify();
-    expect(t.toNewick()).toBe("(B:1,P+A:2);");
+    expect(t.toNewick()).toBe("(P+A:2,B:1);");
   });
 });
 
@@ -556,7 +556,7 @@ describe("known bugs", () => {
     );
   });
 
-  test.failing("excise keeps the excised Branch's children in its place", () => {
+  test("excise keeps the excised Branch's children in its place", () => {
     let t = patristic.parseNewick("(A:1,(B:1,C:1)X:1,D:1);");
     t.children[1].excise();
     expect(ids(t.children)).toEqual(["A", "B", "C", "D"]);
@@ -568,7 +568,7 @@ describe("known bugs", () => {
     expect(t.toNewick()).toBe("((C:1)X+A+B:1,D:1);");
   });
 
-  test.failing("simplify collapses adjacent single-child siblings", () => {
+  test("simplify collapses adjacent single-child siblings", () => {
     let t = patristic.parseNewick("(((A:1)P:1,(B:1)Q:1)X:1,C:1);");
     t.simplify();
     expect(t.toNewick()).toBe("((P+A:2,Q+B:2)X:1,C:1);");
