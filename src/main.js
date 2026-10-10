@@ -697,9 +697,10 @@ Branch.prototype.path = function(target) {
  */
 Branch.prototype.remove = function(pruneAncestors) {
   let root = this.getRoot();
+  let parent = this.parent;
   this.isolate();
   if (pruneAncestors) {
-    this.parent?.removeIfNoChildren();
+    parent?.removeIfNoChildren();
   }
   return root;
 };
@@ -713,11 +714,12 @@ Branch.prototype.remove = function(pruneAncestors) {
  */
 Branch.prototype.removeIfNoChildren = function(nonrecursive) {
   let root = this.getRoot();
+  let parent = this.parent;
 
-  if (this.children.length === 0) {
+  if (this.children.length === 0 && parent) {
     this.remove();
     if (!nonrecursive) {
-      this.parent.removeIfNoChildren();
+      parent.removeIfNoChildren();
     }
   }
 

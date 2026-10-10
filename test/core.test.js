@@ -621,17 +621,23 @@ describe("known bugs", () => {
     );
   });
 
-  test.failing("remove(true) prunes ancestors left without children", () => {
+  test("remove(true) prunes ancestors left without children", () => {
     let t = patristic.parseNewick("(((A:1)X:1)Y:1,B:1);");
     t.getDescendant("A").remove(true);
     expect(t.toNewick()).toBe("(B:1);");
   });
 
-  test.failing("removeIfNoChildren removes empty ancestors", () => {
+  test("removeIfNoChildren removes empty ancestors", () => {
     let t = patristic.parseNewick("(((A:1)X:1)Y:1,B:1);");
     t.getDescendant("A").isolate();
     expect(t.getDescendant("X").removeIfNoChildren()).toBe(t);
     expect(t.toNewick()).toBe("(B:1);");
+    let u = patristic.parseNewick("(((A:1)X:1)Y:1,B:1);");
+    u.getDescendant("A").isolate();
+    u.getDescendant("X").removeIfNoChildren(true);
+    expect(u.toNewick()).toBe("(Y:1,B:1);");
+    let leaf = new patristic.Branch();
+    expect(leaf.removeIfNoChildren()).toBe(leaf);
   });
 });
 
