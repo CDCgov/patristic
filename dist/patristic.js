@@ -363,12 +363,12 @@
   /**
    * Given an `childID`, returns the child with that id (or `undefined` if no such
    * child is present).
-   * @param  {String} childID the ID of the child to return.
+   * @param  {(String|Number)} childID the ID of the child to return. (Trees
+   * built by [parseMatrix](#parseMatrix) without labels have numeric ids.)
    * @return {(Branch|undefined)} The desired child Branch, or `undefined` if the
    * child doesn't exist.
    */
   Branch.prototype.getChild = function(childID) {
-    if (!typeof childID == "string") throw Error("childID is not a String!");
     return this.children.find(c => c.id === childID);
   };
 
@@ -789,7 +789,7 @@
    * @return {Branch} The Branch on which this method was called.
    */
   Branch.prototype.setParent = function(parent) {
-    if (!parent instanceof Branch && parent !== null)
+    if (!(parent instanceof Branch) && parent !== null)
       throw Error("Cannot set parent to non-Branch object!");
     this.parent = parent;
     return this;

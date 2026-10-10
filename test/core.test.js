@@ -188,6 +188,9 @@ describe("queries", () => {
   test("getChild", () => {
     expect(tree.getChild("A")).toBe(tree.children[0]);
     expect(tree.getChild("nonexistent")).toBeUndefined();
+    let numeric = new patristic.Branch();
+    numeric.addChild({ id: 0 });
+    expect(numeric.getChild(0)).toBe(numeric.children[0]);
   });
 
   test("hasChild", () => {
@@ -612,8 +615,7 @@ describe("known bugs", () => {
     expect(t.children[2].value).toBe(3);
   });
 
-  test.failing("type guards reject bad arguments", () => {
-    expect(() => tree.getChild(123)).toThrow("childID is not a String!");
+  test("setParent rejects non-Branch parents", () => {
     expect(() => tree.setParent({})).toThrow(
       "Cannot set parent to non-Branch object!"
     );
