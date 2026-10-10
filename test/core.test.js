@@ -562,7 +562,7 @@ describe("known bugs", () => {
     expect(ids(t.children)).toEqual(["A", "B", "C", "D"]);
   });
 
-  test.failing("consolidate excises adjacent short siblings", () => {
+  test("consolidate excises adjacent short siblings", () => {
     let t = patristic.parseNewick("((A:0.0001,B:0.0001,C:1)X:1,D:1);");
     t.consolidate();
     expect(t.toNewick()).toBe("((C:1)X+A+B:1,D:1);");

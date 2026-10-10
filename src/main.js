@@ -109,7 +109,11 @@ Branch.prototype.clone = function() {
  * @return {Branch} The Branch on which this method was called.
  */
 Branch.prototype.consolidate = function() {
-  return this.eachAfter(branch => {
+  // Collect first: excising while traversing would shift the arrays being
+  // traversed and skip Branches.
+  let branches = [];
+  this.eachAfter(branch => branches.push(branch));
+  branches.forEach(branch => {
     if (branch.isRoot() || branch.length >= 0.0005) return;
     if(branch.parent.id == ""){
       branch.parent.id = branch.id;
@@ -117,7 +121,8 @@ Branch.prototype.consolidate = function() {
       branch.parent.id += '+'+branch.id;
     }
     branch.excise();
-  }).fixDistances();
+  });
+  return this.fixDistances();
 };
 
 /**
