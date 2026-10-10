@@ -23,14 +23,14 @@ export function Branch(data, children) {
   if (!children) children = d => d.children;
   Object.assign(this, {
     _guid: guid(),
-    id: data.id || "",
+    id: data.id ?? "",
     data: data,
-    depth: data.depth || 0,
-    height: data.height || 0,
-    length: data.length || 0,
-    parent: data.parent || null,
+    depth: data.depth ?? 0,
+    height: data.height ?? 0,
+    length: data.length ?? 0,
+    parent: data.parent ?? null,
     children: children(data) || [],
-    value: data.value || 1,
+    value: data.value ?? 1,
     representing: 1
   });
 }

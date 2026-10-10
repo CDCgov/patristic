@@ -482,7 +482,7 @@ describe("parseMatrix", () => {
     expect(t.getLeaves()).toHaveLength(3);
   });
 
-  test.failing("index labels survive as ids, including 0", () => {
+  test("index labels survive as ids, including 0", () => {
     let t = patristic.parseMatrix([
       [0, 1, 2],
       [1, 0, 3],
@@ -510,7 +510,7 @@ describe("parseMatrix", () => {
 });
 
 describe("known bugs", () => {
-  test.failing("Branch constructor keeps falsy-but-valid values", () => {
+  test("Branch constructor keeps falsy-but-valid values", () => {
     let b = new patristic.Branch({ id: 0, value: 0 });
     expect(b.id).toBe(0);
     expect(b.value).toBe(0);
