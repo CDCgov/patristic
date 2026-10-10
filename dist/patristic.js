@@ -288,15 +288,12 @@
    * @return {Branch} The Branch on which it is called.
    */
   Branch.prototype.fixDistances = function() {
-    let maxdepth = 0,
-      root = this.getRoot();
-    root.depth = 0;
+    this.getRoot().depth = 0;
     this.eachBefore(d => {
       if (d.isRoot()) return;
       d.depth = d.parent.depth + 1;
-      if (d.depth > maxdepth) maxdepth = d.depth;
     }).eachAfter(d => {
-      d.height = maxdepth - d.depth;
+      d.height = d.children.reduce((a, c) => Math.max(a, c.height + 1), 0);
       d.value = 1 + d.children.reduce((a, c) => a + c.value, 0);
     });
     return this;

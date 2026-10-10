@@ -532,7 +532,7 @@ describe("known bugs", () => {
     );
   });
 
-  test.failing("height is the distance to the deepest descendant leaf (d3-hierarchy)", () => {
+  test("height is the distance to the deepest descendant leaf (d3-hierarchy)", () => {
     expect(tree.height).toBe(2);
     expect(tree.children.map(c => c.height)).toEqual([0, 0, 1]);
     expect(tree.children[2].children.map(c => c.height)).toEqual([0, 0]);
