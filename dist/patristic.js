@@ -436,20 +436,17 @@
   /**
    * Traverses the tree upward until it finds the Most Recent Common Ancestor
    * (i.e. the first Branch for which both the Branch on which it was called and
-   * `cousin` are descendants).
+   * `cousin` are descendants). A Branch counts as its own descendant here, so
+   * the MRCA of a Branch and one of its ancestors is that ancestor.
    * @return {Branch} The Most Recent Common Ancestor of both the Branch on
    * which it was called and the `cousin`.
    */
   Branch.prototype.getMRCA = function(cousin) {
-    let mrca = this;
-    while (!mrca.hasDescendant(cousin)) {
-      if (mrca.isRoot())
-        throw Error(
-          "Branch and cousin do not appear to share a common ancestor!"
-        );
-      mrca = mrca.parent;
+    let ancestors = new Set(this.getAncestors(true));
+    for (let mrca = cousin; mrca; mrca = mrca.parent) {
+      if (ancestors.has(mrca)) return mrca;
     }
-    return mrca;
+    throw Error("Branch and cousin do not appear to share a common ancestor!");
   };
 
   /**

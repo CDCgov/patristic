@@ -516,13 +516,16 @@ describe("known bugs", () => {
     expect(b.value).toBe(0);
   });
 
-  test.failing("getMRCA with itself or an ancestor", () => {
+  test("getMRCA with itself or an ancestor", () => {
     let [c] = tree.children[2].children;
     expect(c.getMRCA(c)).toBe(c);
     expect(c.getMRCA(tree.children[2])).toBe(tree.children[2]);
     expect(tree.children[2].getMRCA(c)).toBe(tree.children[2]);
     expect(c.path(c)).toEqual([c]);
     expect(c.distanceTo(tree.children[2])).toBe(0.3);
+    expect(() => c.getMRCA(new patristic.Branch())).toThrow(
+      "do not appear to share a common ancestor"
+    );
   });
 
   test.failing("small numbers are written without float artifacts", () => {
