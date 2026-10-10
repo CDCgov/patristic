@@ -593,7 +593,7 @@ describe("known bugs", () => {
     expect(u.toNewick()).toBe("((A:1.0001,B:1.0001,C:1)P:1,D:1);");
   });
 
-  test.failing("parseJSON applies custom labels to descendants", () => {
+  test("parseJSON applies custom labels to descendants", () => {
     let t = patristic.parseJSON(
       { name: "r", len: 0, kids: [{ name: "a", len: 1 }, { name: "b", len: 2 }] },
       "name",

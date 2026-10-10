@@ -992,16 +992,17 @@ export function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
   if (!lengthLabel) lengthLabel = "length";
   if (!childrenLabel) childrenLabel = "children";
   if (typeof json === "string") json = JSON.parse(json);
-  let root = new Branch({
-    id: json[idLabel],
-    length: json[lengthLabel]
-  });
-  if (json[childrenLabel] instanceof Array) {
-    json[childrenLabel].forEach(child => {
-      root.addChild(parseJSON(child));
+  function build(node) {
+    let branch = new Branch({
+      id: node[idLabel],
+      length: node[lengthLabel]
     });
+    if (node[childrenLabel] instanceof Array) {
+      node[childrenLabel].forEach(child => branch.addChild(build(child)));
+    }
+    return branch;
   }
-  return root.fixDistances();
+  return build(json).fixDistances();
 }
 
 /**
