@@ -265,11 +265,20 @@
 
   /**
    * Excises the Branch on which it is called and updates its parent and children.
-   * @return {Branch} The parent of the excised Branch.
+   * Excising a root Branch with a single child makes that child the new root.
+   * @return {Branch} The parent of the excised Branch, or the new root if the
+   * excised Branch was the root.
    */
   Branch.prototype.excise = function() {
-    if (this.isRoot() && this.children.length > 1) {
-      throw new Error("Cannot excise a root Branch with multiple children.");
+    if (this.isRoot()) {
+      if (this.children.length > 1) {
+        throw new Error("Cannot excise a root Branch with multiple children.");
+      }
+      let child = this.children.pop();
+      if (!child) throw new Error("Cannot excise a root Branch with no children.");
+      child.length += this.length;
+      child.parent = null;
+      return child;
     }
     this.eachChild(child => {
       child.length += this.length;

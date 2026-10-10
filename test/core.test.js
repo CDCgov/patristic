@@ -545,12 +545,15 @@ describe("known bugs", () => {
     expect(t.representing).toBe(2);
   });
 
-  test.failing("excise a root with one child promotes the child", () => {
+  test("excise a root with one child promotes the child", () => {
     let t = patristic.parseNewick("((A:1,B:1)X:1);");
     let x = t.children[0];
     expect(t.excise()).toBe(x);
     expect(x.isRoot()).toBe(true);
     expect(x.length).toBe(1);
+    expect(() => new patristic.Branch().excise()).toThrow(
+      "Cannot excise a root Branch with no children."
+    );
   });
 
   test.failing("excise keeps the excised Branch's children in its place", () => {
