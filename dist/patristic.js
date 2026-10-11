@@ -29,15 +29,15 @@
     if (!children) children = d => d.children;
     Object.assign(this, {
       _guid: guid(),
-      id: data.id || "",
+      id: data.id ?? "",
       data: data,
-      depth: data.depth || 0,
-      height: data.height || 0,
-      length: data.length || 0,
-      parent: data.parent || null,
+      depth: data.depth ?? 0,
+      height: data.height ?? 0,
+      length: data.length ?? 0,
+      parent: data.parent ?? null,
       children: children(data) || [],
-      value: data.value || 1,
-      respresenting: 1
+      value: data.value ?? 1,
+      representing: 1
     });
   }
 
@@ -115,16 +115,24 @@
    * @return {Branch} The Branch on which this method was called.
    */
   Branch.prototype.consolidate = function() {
-    return this.eachAfter(branch => {
-      if (branch.isRoot() || branch.length >= 0.0005) return;
-      if(branch.parent.id == ""){
-        branch.parent.id = branch.id;
-      } else {
-        branch.parent.id += '+'+branch.id;
-      }
+    // Collect first: excising while traversing would shift the arrays being
+    // traversed and skip Branches.
+    let branches = [];
+    this.eachAfter(branch => branches.push(branch));
+    branches.forEach(branch => {
+      if (branch === this || branch.isRoot() || branch.length >= 0.0005) return;
+      branch.parent.id = joinIds(branch.parent.id, branch.id);
       branch.excise();
-    }).fixDistances();
+    });
+    return this.fixDistances();
   };
+
+  // Combines the ids of two merged Branches, ignoring empty ones.
+  function joinIds(a, b) {
+    if (a === "") return b;
+    if (b === "") return a;
+    return a + "+" + b;
+  }
 
   /**
    * Returns a clone of the Branch on which it is called. Note that this also
@@ -265,37 +273,45 @@
 
   /**
    * Excises the Branch on which it is called and updates its parent and children.
-   * @return {Branch} The parent of the excised Branch.
+   * Excising a root Branch with a single child makes that child the new root.
+   * @return {Branch} The parent of the excised Branch, or the new root if the
+   * excised Branch was the root.
    */
   Branch.prototype.excise = function() {
-    if (this.isRoot() && this.children.length > 1) {
-      throw new Error("Cannot excise a root Branch with multiple children.");
+    if (this.isRoot()) {
+      if (this.children.length > 1) {
+        throw new Error("Cannot excise a root Branch with multiple children.");
+      }
+      let child = this.children.pop();
+      if (!child) throw new Error("Cannot excise a root Branch with no children.");
+      child.length += this.length;
+      child.parent = null;
+      return child;
     }
+    let parent = this.parent;
     this.eachChild(child => {
       child.length += this.length;
-      child.parent = this.parent;
-      if (!this.isRoot()) this.parent.children.push(child);
+      child.parent = parent;
     });
-    this.parent.children.splice(this.parent.children.indexOf(this), 1);
-    this.parent.representing++;
-    return this.parent;
+    parent.children.splice(parent.children.indexOf(this), 1, ...this.children);
+    parent.representing++;
+    return parent;
   };
 
   /**
-   * Sets the distance values (height and depth) for each Branch
+   * Sets the distance values (height and depth) for each Branch, and sets each
+   * Branch's value to the number of Branches in its subtree (see
+   * [Branch.count](#count)).
    * @return {Branch} The Branch on which it is called.
    */
   Branch.prototype.fixDistances = function() {
-    let maxdepth = 0,
-      root = this.getRoot();
-    root.depth = 0;
+    this.getRoot().depth = 0;
     this.eachBefore(d => {
       if (d.isRoot()) return;
       d.depth = d.parent.depth + 1;
-      if (d.depth > maxdepth) maxdepth = d.depth;
     }).eachAfter(d => {
-      d.height = maxdepth - d.depth;
-      d.value = d.value + d.children.reduce((a, c) => a + c.value, 0);
+      d.height = d.children.reduce((a, c) => Math.max(a, c.height + 1), 0);
+      d.value = 1 + d.children.reduce((a, c) => a + c.value, 0);
     });
     return this;
   };
@@ -347,12 +363,12 @@
   /**
    * Given an `childID`, returns the child with that id (or `undefined` if no such
    * child is present).
-   * @param  {String} childID the ID of the child to return.
+   * @param  {(String|Number)} childID the ID of the child to return. (Trees
+   * built by [parseMatrix](#parseMatrix) without labels have numeric ids.)
    * @return {(Branch|undefined)} The desired child Branch, or `undefined` if the
    * child doesn't exist.
    */
   Branch.prototype.getChild = function(childID) {
-    if (!typeof childID == "string") throw Error("childID is not a String!");
     return this.children.find(c => c.id === childID);
   };
 
@@ -420,20 +436,17 @@
   /**
    * Traverses the tree upward until it finds the Most Recent Common Ancestor
    * (i.e. the first Branch for which both the Branch on which it was called and
-   * `cousin` are descendants).
+   * `cousin` are descendants). A Branch counts as its own descendant here, so
+   * the MRCA of a Branch and one of its ancestors is that ancestor.
    * @return {Branch} The Most Recent Common Ancestor of both the Branch on
    * which it was called and the `cousin`.
    */
   Branch.prototype.getMRCA = function(cousin) {
-    let mrca = this;
-    while (!mrca.hasDescendant(cousin)) {
-      if (mrca.isRoot())
-        throw Error(
-          "Branch and cousin do not appear to share a common ancestor!"
-        );
-      mrca = mrca.parent;
+    let ancestors = new Set(this.getAncestors(true));
+    for (let mrca = cousin; mrca; mrca = mrca.parent) {
+      if (ancestors.has(mrca)) return mrca;
     }
-    return mrca;
+    throw Error("Branch and cousin do not appear to share a common ancestor!");
   };
 
   /**
@@ -689,9 +702,10 @@
    */
   Branch.prototype.remove = function(pruneAncestors) {
     let root = this.getRoot();
+    let parent = this.parent;
     this.isolate();
     if (pruneAncestors) {
-      this.parent?.removeIfNoChildren();
+      parent?.removeIfNoChildren();
     }
     return root;
   };
@@ -705,11 +719,12 @@
    */
   Branch.prototype.removeIfNoChildren = function(nonrecursive) {
     let root = this.getRoot();
+    let parent = this.parent;
 
-    if (this.children.length === 0) {
+    if (this.children.length === 0 && parent) {
       this.remove();
       if (!nonrecursive) {
-        this.parent.removeIfNoChildren();
+        parent.removeIfNoChildren();
       }
     }
 
@@ -776,7 +791,7 @@
    * @return {Branch} The Branch on which this method was called.
    */
   Branch.prototype.setParent = function(parent) {
-    if (!parent instanceof Branch && parent !== null)
+    if (!(parent instanceof Branch) && parent !== null)
       throw Error("Cannot set parent to non-Branch object!");
     this.parent = parent;
     return this;
@@ -784,18 +799,16 @@
 
   /**
    * Collapses each descendant Branch with exactly one child into a single
-   * continuous branch.
+   * continuous branch. The Branch on which it is called is left in place.
    * @return {Branch} The Branch on which this method was called.
    */
   Branch.prototype.simplify = function() {
     this.eachAfter(branch => {
+      // Excising this Branch would detach it from the tree we return.
+      if (branch === this) return;
       if(branch.children.length == 1){
         let child = branch.children[0];
-        if(child.id == ''){
-          child.id = branch.id;
-        } else {
-          child.id = branch.id + "+" + child.id;
-        }
+        child.id = joinIds(branch.id, child.id);
         branch.excise();
       }
     });
@@ -905,30 +918,17 @@
     return out;
   };
 
-  //This function takes a number and returns a string representation that does
-  //not use Scientific Notation.
-  //It's adapted from [StackOverflow](https://stackoverflow.com/a/46545519/521121),
-  //Which makes it available under the [CC BY-SA 3.0 License](https://creativecommons.org/licenses/by-sa/3.0/)
+  // Returns a string representation of a number that doesn't use scientific
+  // notation. Works on the digits of JavaScript's own (shortest round-trip)
+  // representation, so it introduces no floating point artifacts.
   function numberToString(num) {
-    let numStr = String(num);
-    if (Math.abs(num) < 1.0) {
-      let e = parseInt(num.toString().split("e-")[1]);
-      if (e) {
-        let negative = num < 0;
-        if (negative) num *= -1;
-        num *= Math.pow(10, e - 1);
-        numStr = "0." + new Array(e).join("0") + num.toString().substring(2);
-        if (negative) numStr = "-" + numStr;
-      }
-    } else {
-      let e = parseInt(num.toString().split("+")[1]);
-      if (e > 20) {
-        e -= 20;
-        num /= Math.pow(10, e);
-        numStr = num.toString() + new Array(e + 1).join("0");
-      }
-    }
-    return numStr;
+    let str = String(num);
+    let match = str.match(/^(-?)(\d)(?:\.(\d+))?e([+-]\d+)$/);
+    if (!match) return str;
+    let [, sign, whole, fraction = "", exponent] = match;
+    let e = Number(exponent);
+    if (e < 0) return sign + "0." + "0".repeat(-e - 1) + whole + fraction;
+    return sign + whole + fraction + "0".repeat(e - fraction.length);
   }
 
   /**
@@ -983,16 +983,17 @@
     if (!lengthLabel) lengthLabel = "length";
     if (!childrenLabel) childrenLabel = "children";
     if (typeof json === "string") json = JSON.parse(json);
-    let root = new Branch({
-      id: json[idLabel],
-      length: json[lengthLabel]
-    });
-    if (json[childrenLabel] instanceof Array) {
-      json[childrenLabel].forEach(child => {
-        root.addChild(parseJSON(child));
+    function build(node) {
+      let branch = new Branch({
+        id: node[idLabel],
+        length: node[lengthLabel]
       });
+      if (node[childrenLabel] instanceof Array) {
+        node[childrenLabel].forEach(child => branch.addChild(build(child)));
+      }
+      return branch;
     }
-    return root.fixDistances();
+    return build(json).fixDistances();
   }
 
   /**
@@ -1010,7 +1011,8 @@
     let N = (that.N = matrix.length);
     if (!labels) labels = [...Array(N).keys()];
     that.cN = that.N;
-    that.D = matrix;
+    // Copy the matrix: neighbor joining overwrites it as it goes.
+    that.D = Array.from(matrix, row => Array.from(row));
     that.labels = labels;
     that.labelToTaxon = {};
     that.currIndexToLabel = new Array(N);
