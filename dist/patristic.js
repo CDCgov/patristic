@@ -1204,182 +1204,271 @@
      * inferred by neighbor joining on `matrix`.
      */
     function parseMatrix(matrix, labels) {
-        let that = {};
-        let N = (that.N = matrix.length);
+        let N = matrix.length;
         if (!labels)
             labels = [...Array(N).keys()];
-        that.cN = that.N;
-        // Copy the matrix: neighbor joining overwrites it as it goes. Distances
-        // given as strings (e.g. read from a CSV file) become numbers.
-        that.D = Array.from(matrix, row => Array.from(row, Number));
-        that.labels = labels;
-        that.currIndexToLabel = new Array(N);
-        that.rowChange = new Array(N);
-        that.newRow = new Array(N);
-        that.labelToNode = new Array(2 * N);
-        that.nextIndex = N;
-        that.I = new Array(that.N);
-        that.S = new Array(that.N);
-        for (let i = 0; i < that.N; i++) {
-            let sortedRow = sortWithIndices(that.D[i], i);
-            that.S[i] = sortedRow;
-            that.I[i] = sortedRow.sortIndices;
-        }
-        that.removedIndices = new Set();
-        that.indicesLeft = new Set();
-        for (let i = 0; i < N; i++) {
-            that.currIndexToLabel[i] = i;
-            that.indicesLeft.add(i);
-        }
-        that.rowSumMax = 0;
-        let minI, minJ, d1, d2, l1, l2, node1, node2, node3;
+        let nj = new NeighborJoining(matrix);
+        // currIndexToLabel maps each row to the label of the taxon or joined node
+        // it holds; labels from N up are joined nodes, in the order they were made.
+        let currIndexToLabel = new Int32Array(N);
+        for (let i = 0; i < N; i++)
+            currIndexToLabel[i] = i;
+        let labelToNode = new Array(2 * N);
+        let nextIndex = N;
         function setUpNode(labelIndex, distance) {
             let node;
-            if (labelIndex < that.N) {
-                node = new Branch({ id: that.labels[labelIndex], length: distance });
-                that.labelToNode[labelIndex] = node;
+            if (labelIndex < N) {
+                node = new Branch({ id: labels[labelIndex], length: distance });
+                labelToNode[labelIndex] = node;
             }
             else {
-                node = that.labelToNode[labelIndex];
+                node = labelToNode[labelIndex];
                 node.setLength(distance);
             }
             return node;
         }
-        that.rowSums = sumRows(that.D);
-        for (let i = 0; i < that.cN; i++) {
-            if (that.rowSums[i] > that.rowSumMax)
-                that.rowSumMax = that.rowSums[i];
-        }
-        while (that.cN > 2) {
-            //if (that.cN % 100 == 0 ) console.log(that.cN);
-            ({ minI, minJ } = search(that));
+        let minI, minJ, d1, d2;
+        while (nj.cN > 2) {
+            [minI, minJ] = nj.search();
+            let dIJ = nj.distance(minI, minJ);
             d1 =
-                0.5 * that.D[minI][minJ] +
-                    (that.rowSums[minI] - that.rowSums[minJ]) / (2 * that.cN - 4);
-            d2 = that.D[minI][minJ] - d1;
-            l1 = that.currIndexToLabel[minI];
-            l2 = that.currIndexToLabel[minJ];
-            node1 = setUpNode(l1, d1);
-            node2 = setUpNode(l2, d2);
-            node3 = new Branch({ children: [node1, node2] });
-            recalculateDistanceMatrix(that, minI, minJ);
-            let sorted = sortWithIndices(that.D[minJ], minJ);
-            that.S[minJ] = sorted;
-            that.I[minJ] = sorted.sortIndices;
-            that.S[minI] = that.I[minI] = [];
-            that.cN--;
-            that.labelToNode[that.nextIndex] = node3;
-            that.currIndexToLabel[minI] = -1;
-            that.currIndexToLabel[minJ] = that.nextIndex++;
+                0.5 * dIJ +
+                    (nj.rowSums[minI] - nj.rowSums[minJ]) / (2 * nj.cN - 4);
+            d2 = dIJ - d1;
+            let node1 = setUpNode(currIndexToLabel[minI], d1);
+            let node2 = setUpNode(currIndexToLabel[minJ], d2);
+            nj.join(minI, minJ);
+            labelToNode[nextIndex] = new Branch({ children: [node1, node2] });
+            currIndexToLabel[minI] = -1;
+            currIndexToLabel[minJ] = nextIndex++;
         }
-        let left = that.indicesLeft.values();
-        minI = left.next().value;
-        minJ = left.next().value;
-        l1 = that.currIndexToLabel[minI];
-        l2 = that.currIndexToLabel[minJ];
-        d1 = d2 = that.D[minI][minJ] / 2;
-        node1 = setUpNode(l1, d1);
-        node2 = setUpNode(l2, d2);
+        // Join the last two rows (in index order) at the root.
+        [minI, minJ] = nj.remaining();
+        d1 = d2 = nj.distance(minI, minJ) / 2;
+        let node1 = setUpNode(currIndexToLabel[minI], d1);
+        let node2 = setUpNode(currIndexToLabel[minJ], d2);
         let tree = new Branch({ children: [node1, node2] });
         tree.fixParenthood();
         return tree.fixDistances();
     }
-    function search(t) {
-        let qMin = Infinity, D = t.D, cN = t.cN, n2 = cN - 2, S = t.S, I = t.I, rowSums = t.rowSums, removedColumns = t.removedIndices, uMax = t.rowSumMax, q, minI = -1, minJ = -1, c2;
-        // initial guess for qMin
-        for (let r = 0; r < t.N; r++) {
-            if (removedColumns.has(r))
-                continue;
-            c2 = I[r][0];
-            if (removedColumns.has(c2))
-                continue;
-            q = D[r][c2] * n2 - rowSums[r] - rowSums[c2];
-            if (q < qMin) {
-                qMin = q;
-                minI = r;
-                minJ = c2;
+    /**
+     * The distance matrix and search structures of a neighbor-joining run, after
+     * RapidNJ (Simonsen, Mailund & Pedersen, 2008): each row keeps its distances
+     * sorted, so the search for the pair to join can stop scanning a row once
+     * no later entry can beat the best pair found so far.
+     *
+     * When two rows are joined, the first is removed and the second is reused for
+     * the new node. Sorted rows aren't updated for the new node's column (only its
+     * own row is re-sorted), so other rows hold stale values for it; every pair
+     * is still found with its current distance in the row of whichever of its two
+     * nodes was made last.
+     */
+    class NeighborJoining {
+        constructor(matrix) {
+            this.rowSumMax = 0;
+            let N = (this.N = this.cN = matrix.length);
+            this.rowStart = new Float64Array(N);
+            for (let i = 0; i < N; i++)
+                this.rowStart[i] = (i * (i - 1)) / 2;
+            // Distances given as strings (e.g. read from a CSV file) become numbers.
+            let D = (this.D = new Float64Array((N * (N - 1)) / 2));
+            for (let i = 0; i < N; i++) {
+                let row = matrix[i], start = this.rowStart[i];
+                for (let j = 0; j < i; j++)
+                    D[start + j] = Number(row[j]);
+            }
+            this.removed = new Uint8Array(N);
+            this.newRow = new Float64Array(N);
+            this.rowChange = new Float64Array(N);
+            this.sorter = new ArgSorter(N);
+            this.sortedValues = new Array(N);
+            this.sortedColumns = new Array(N);
+            this.sortedLength = new Int32Array(N);
+            for (let i = 0; i < N; i++) {
+                this.sortedValues[i] = new Float64Array(N - 1);
+                this.sortedColumns[i] = new Int32Array(N - 1);
+                this.sortRow(i);
+            }
+            this.rowSums = new Float64Array(N);
+            for (let i = 0; i < N; i++) {
+                let sum = 0;
+                for (let j = 0; j < N; j++)
+                    if (j !== i)
+                        sum += this.distance(i, j);
+                this.rowSums[i] = sum;
+                if (sum > this.rowSumMax)
+                    this.rowSumMax = sum;
             }
         }
-        for (let r = 0; r < t.N; r++) {
-            if (removedColumns.has(r))
-                continue;
-            for (let c = 0; c < S[r].length; c++) {
-                c2 = I[r][c];
-                if (removedColumns.has(c2))
+        /** The distance between rows i and j. */
+        distance(i, j) {
+            if (i > j)
+                return this.D[this.rowStart[i] + j];
+            if (j > i)
+                return this.D[this.rowStart[j] + i];
+            return 0;
+        }
+        /** The first two rows (in index order) that haven't been joined. */
+        remaining() {
+            let found = [];
+            for (let i = 0; found.length < 2; i++)
+                if (!this.removed[i])
+                    found.push(i);
+            return [found[0], found[1]];
+        }
+        /** Sorts row r's distances to the other rows not yet joined. */
+        sortRow(r) {
+            let { removed, sorter } = this, keys = sorter.keys, columns = sorter.items, m = 0;
+            for (let k = 0; k < this.N; k++) {
+                if (removed[k] || k === r)
                     continue;
-                if (S[r][c] * n2 - rowSums[r] - uMax > qMin)
-                    break;
-                q = D[r][c2] * n2 - rowSums[r] - rowSums[c2];
+                columns[m] = k;
+                keys[m++] = this.distance(r, k);
+            }
+            sorter.sort(m);
+            this.sortedValues[r].set(keys.subarray(0, m));
+            this.sortedColumns[r].set(columns.subarray(0, m));
+            this.sortedLength[r] = m;
+        }
+        /** Finds the pair of rows that minimizes the neighbor-joining criterion. */
+        search() {
+            let qMin = Infinity, n2 = this.cN - 2, { removed, rowSums, sortedValues, sortedColumns, sortedLength } = this, uMax = this.rowSumMax, q, minI = -1, minJ = -1, c2;
+            // Initial guess for qMin: each row's nearest neighbor.
+            for (let r = 0; r < this.N; r++) {
+                if (removed[r] || sortedLength[r] === 0)
+                    continue;
+                c2 = sortedColumns[r][0];
+                if (removed[c2])
+                    continue;
+                q = this.distance(r, c2) * n2 - rowSums[r] - rowSums[c2];
                 if (q < qMin) {
                     qMin = q;
                     minI = r;
                     minJ = c2;
                 }
             }
+            for (let r = 0; r < this.N; r++) {
+                if (removed[r])
+                    continue;
+                let values = sortedValues[r], columns = sortedColumns[r], length = sortedLength[r], rowSum = rowSums[r];
+                for (let c = 0; c < length; c++) {
+                    c2 = columns[c];
+                    if (removed[c2])
+                        continue;
+                    if (values[c] * n2 - rowSum - uMax > qMin)
+                        break;
+                    q = this.distance(r, c2) * n2 - rowSum - rowSums[c2];
+                    if (q < qMin) {
+                        qMin = q;
+                        minI = r;
+                        minJ = c2;
+                    }
+                }
+            }
+            return [minI, minJ];
         }
-        return { minI, minJ };
+        /** Joins rows i and j: removes row i and reuses row j for the new node. */
+        join(joinedIndex1, joinedIndex2) {
+            let { D, rowStart, removed, rowSums, newRow, rowChange } = this, n = this.N, sum = 0, aux, newMax = 0;
+            let aux2 = this.distance(joinedIndex1, joinedIndex2);
+            removed[joinedIndex1] = 1;
+            for (let i = 0; i < n; i++) {
+                if (removed[i])
+                    continue;
+                aux = this.distance(joinedIndex1, i) + this.distance(joinedIndex2, i);
+                newRow[i] = 0.5 * (aux - aux2);
+                sum += newRow[i];
+                rowChange[i] = -0.5 * (aux + aux2);
+            }
+            for (let i = 0; i < n; i++) {
+                if (removed[i])
+                    continue;
+                if (i !== joinedIndex2) {
+                    if (i > joinedIndex2)
+                        D[rowStart[i] + joinedIndex2] = newRow[i];
+                    else
+                        D[rowStart[joinedIndex2] + i] = newRow[i];
+                }
+                // This includes row joinedIndex2 itself, whose sum is replaced below;
+                // the original implementation counted this interim value towards the
+                // maximum, and the search's results depend on that bound.
+                rowSums[i] += rowChange[i];
+                if (rowSums[i] > newMax)
+                    newMax = rowSums[i];
+            }
+            rowSums[joinedIndex1] = 0;
+            rowSums[joinedIndex2] = sum;
+            if (sum > newMax)
+                newMax = sum;
+            this.rowSumMax = newMax;
+            this.sortRow(joinedIndex2);
+            this.sortedLength[joinedIndex1] = 0;
+            this.cN--;
+        }
     }
-    function recalculateDistanceMatrix(t, joinedIndex1, joinedIndex2) {
-        let D = t.D, n = D.length, sum = 0, aux, aux2, removedIndices = t.removedIndices, rowSums = t.rowSums, newRow = t.newRow, rowChange = t.rowChange, newMax = 0;
-        removedIndices.add(joinedIndex1);
-        for (let i = 0; i < n; i++) {
-            if (removedIndices.has(i))
-                continue;
-            aux = D[joinedIndex1][i] + D[joinedIndex2][i];
-            aux2 = D[joinedIndex1][joinedIndex2];
-            newRow[i] = 0.5 * (aux - aux2);
-            sum += newRow[i];
-            rowChange[i] = -0.5 * (aux + aux2);
+    /**
+     * Sorts items (column indices) by their keys (distances), stably: items with
+     * equal keys stay in the order given. A bottom-up merge sort on typed arrays,
+     * which avoids Array.prototype.sort's comparator calls.
+     */
+    class ArgSorter {
+        constructor(capacity) {
+            this.keys = new Float64Array(capacity);
+            this.items = new Int32Array(capacity);
+            this.keyBuffer = new Float64Array(capacity);
+            this.itemBuffer = new Int32Array(capacity);
         }
-        for (let i = 0; i < n; i++) {
-            D[joinedIndex1][i] = -1;
-            D[i][joinedIndex1] = -1;
-            if (removedIndices.has(i))
-                continue;
-            D[joinedIndex2][i] = newRow[i];
-            D[i][joinedIndex2] = newRow[i];
-            rowSums[i] += rowChange[i];
-            if (rowSums[i] > newMax)
-                newMax = rowSums[i];
+        /** Sorts the first n keys and items in place. */
+        sort(n) {
+            let keys = this.keys, items = this.items;
+            // Insertion sort runs of 16.
+            const RUN = 16;
+            for (let start = 0; start < n; start += RUN) {
+                let end = Math.min(start + RUN, n);
+                for (let i = start + 1; i < end; i++) {
+                    let key = keys[i], item = items[i], j = i - 1;
+                    while (j >= start && keys[j] > key) {
+                        keys[j + 1] = keys[j];
+                        items[j + 1] = items[j];
+                        j--;
+                    }
+                    keys[j + 1] = key;
+                    items[j + 1] = item;
+                }
+            }
+            // Merge runs, alternating between the arrays and the buffers.
+            let fromKeys = keys, fromItems = items, toKeys = this.keyBuffer, toItems = this.itemBuffer;
+            for (let width = RUN; width < n; width *= 2) {
+                for (let left = 0; left < n; left += 2 * width) {
+                    let middle = Math.min(left + width, n), right = Math.min(left + 2 * width, n), i = left, j = middle, k = left;
+                    while (i < middle && j < right) {
+                        // Take from the right only when strictly smaller, for stability.
+                        if (fromKeys[j] < fromKeys[i]) {
+                            toKeys[k] = fromKeys[j];
+                            toItems[k++] = fromItems[j++];
+                        }
+                        else {
+                            toKeys[k] = fromKeys[i];
+                            toItems[k++] = fromItems[i++];
+                        }
+                    }
+                    while (i < middle) {
+                        toKeys[k] = fromKeys[i];
+                        toItems[k++] = fromItems[i++];
+                    }
+                    while (j < right) {
+                        toKeys[k] = fromKeys[j];
+                        toItems[k++] = fromItems[j++];
+                    }
+                }
+                [fromKeys, toKeys] = [toKeys, fromKeys];
+                [fromItems, toItems] = [toItems, fromItems];
+            }
+            if (fromKeys !== keys) {
+                keys.set(fromKeys.subarray(0, n));
+                items.set(fromItems.subarray(0, n));
+            }
         }
-        rowSums[joinedIndex1] = 0;
-        rowSums[joinedIndex2] = sum;
-        if (sum > newMax)
-            newMax = sum;
-        t.rowSumMax = newMax;
-        t.indicesLeft.delete(joinedIndex1);
-    }
-    function sumRows(a) {
-        let n = a.length, sums = new Array(n);
-        for (let i = 0; i < n; i++) {
-            let row = a[i], sum = 0;
-            for (let j = 0; j < n; j++)
-                sum += row[j];
-            sums[i] = sum;
-        }
-        return sums;
-    }
-    function sortWithIndices(toSort, skip) {
-        if (typeof skip === "undefined")
-            skip = -1;
-        let n = toSort.length;
-        let indexCopy = new Array(n);
-        let valueCopy = new Array(n);
-        let i2 = 0;
-        for (let i = 0; i < n; i++) {
-            if (toSort[i] === -1 || i === skip)
-                continue;
-            indexCopy[i2] = i;
-            valueCopy[i2++] = toSort[i];
-        }
-        indexCopy.length = i2;
-        valueCopy.length = i2;
-        indexCopy.sort((a, b) => toSort[a] - toSort[b]);
-        valueCopy.sortIndices = indexCopy;
-        for (let j = 0; j < i2; j++) {
-            valueCopy[j] = toSort[indexCopy[j]];
-        }
-        return valueCopy;
     }
     /**
      * Parses a Newick String and returns a Branch object representing the root
