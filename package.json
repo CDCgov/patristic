@@ -5,11 +5,20 @@
   "homepage": "https://cdcgov.github.io/patristic/",
   "bugs": "https://github.com/CDCgov/patristic/issues",
   "main": "dist/patristic.js",
+  "module": "dist/patristic.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/patristic.mjs",
+      "require": "./dist/patristic.js"
+    },
+    "./package.json": "./package.json",
+    "./*": "./*"
+  },
   "scripts": {
     "build": "tsc && rollup -c",
     "coverage": "jest --coverage",
     "demo": "npx http-server",
-    "doc": "npx documentation build src/main.ts --parse-extension ts -f md -o docs/README.md",
+    "doc": "npx documentation build src/patristic.ts --parse-extension ts -f md -o docs/README.md",
     "minify": "npx terser dist/patristic.js --compress > dist/patristic.min.js",
     "test": "jest",
     "bench": "node bench/bench.js",
