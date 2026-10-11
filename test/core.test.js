@@ -91,6 +91,8 @@ describe("Branch constructor", () => {
       expect(b.children).toEqual([]);
       expect(b._guid).toBeDefined();
     }
+    let guids = tree.descendants().map(d => d._guid);
+    expect(new Set(guids).size).toBe(guids.length);
   });
 
   test("accepts a children accessor", () => {
@@ -111,6 +113,19 @@ describe("tree construction", () => {
     expect(child.parent).toBe(tree.children[2]);
     expect(child.length).toBe(0.6);
     expect(tree.children[2].children).toContain(child);
+  });
+
+  test("addChild keeps the caller's data object as is", () => {
+    let data = { id: "E", length: 0.6 };
+    let child = tree.addChild(data);
+    expect(data).toEqual({ id: "E", length: 0.6 });
+    expect(child.data).toBe(data);
+  });
+
+  test("Branches don't keep their parent in their data", () => {
+    let x = tree.children[2];
+    x.isolate();
+    expect(Object.values(x.data)).not.toContain(tree);
   });
 
   test("addChild with a Branch returns that Branch", () => {
@@ -204,6 +219,9 @@ describe("queries", () => {
     expect(tree.hasDescendant("D")).toBe(true);
     expect(tree.hasDescendant("nonexistent")).toBe(false);
     expect(tree.hasDescendant(tree)).toBe(false);
+    expect(tree.children[2].hasDescendant(tree.children[0])).toBe(false);
+    expect(tree.children[2].hasDescendant("A")).toBe(false);
+    expect(tree.hasDescendant(new patristic.Branch({ id: "D" }))).toBe(false);
   });
 
   test("hasLeaf", () => {
@@ -211,6 +229,12 @@ describe("queries", () => {
     expect(tree.hasLeaf("A")).toBe(true);
     expect(tree.hasLeaf("nonexistent")).toBe(false);
     expect(tree.hasLeaf(tree)).toBe(false);
+    expect(tree.hasLeaf(tree.children[2])).toBe(false);
+    expect(tree.hasLeaf("")).toBe(false);
+    expect(tree.children[2].hasLeaf("A")).toBe(false);
+    let a = tree.children[0];
+    expect(a.hasLeaf(a)).toBe(true);
+    expect(a.hasLeaf("A")).toBe(true);
   });
 
   test("isChildOf / isDescendantOf", () => {
@@ -241,6 +265,9 @@ describe("queries", () => {
     let a = tree.children[0],
       d = tree.children[2].children[1];
     expect(a.path(d)).toEqual([a, tree, tree.children[2], d]);
+    expect(d.path(a)).toEqual([d, tree.children[2], tree, a]);
+    expect(d.path(tree)).toEqual([d, tree.children[2], tree]);
+    expect(tree.path(d)).toEqual([tree, tree.children[2], d]);
   });
 
   test("links", () => {
@@ -253,6 +280,13 @@ describe("queries", () => {
     expect(tree.isConsistent()).toBe(true);
     tree.children[0].parent = null;
     expect(tree.isConsistent()).toBe(false);
+  });
+
+  test("isConsistent detects cycles", () => {
+    let x = tree.children[2];
+    x.children.push(tree);
+    tree.parent = x;
+    expect(x.isConsistent()).toBe(false);
   });
 });
 
@@ -275,6 +309,8 @@ describe("distances", () => {
       d = tree.children[2].children[1];
     expect(a.sources(d)).toBe(true);
     expect(a.targets(d)).toBe(false);
+    expect(d.sources(a)).toBe(false);
+    expect(tree.children[2].sources(d)).toBe(true);
   });
 
   test("toMatrix", () => {
@@ -289,6 +325,33 @@ describe("distances", () => {
     for (let i = 0; i < 4; i++)
       for (let j = 0; j < 4; j++)
         expect(matrix[i][j]).toBeCloseTo(expected[i][j], 12);
+  });
+
+  test("toMatrix matches distanceTo exactly", () => {
+    let points = Array.from({ length: 40 }, (_, i) => [
+      Math.sin(i * 12.9898) % 1,
+      Math.sin(i * 78.233) % 1
+    ]);
+    let t = patristic.parseMatrix(
+      points.map(a => points.map(b => Math.hypot(a[0] - b[0], a[1] - b[1])))
+    );
+    // Include a polytomy, and an internal Branch's subtree.
+    let internal = t.descendants().filter(d => !d.isRoot() && !d.isLeaf());
+    internal[3].excise();
+    expect(Math.max(...t.descendants().map(d => d.children.length))).toBe(3);
+    let subtree = internal.find(d => d !== internal[3] && d.value > 15);
+    for (let root of [t, subtree]) {
+      let leaves = root.getLeaves();
+      let { matrix, ids: labels } = root.toMatrix();
+      expect(labels).toEqual(ids(leaves));
+      for (let i = 0; i < leaves.length; i++)
+        for (let j = 0; j < leaves.length; j++)
+          expect(matrix[i][j]).toBe(leaves[i].distanceTo(leaves[j]));
+    }
+  });
+
+  test("toMatrix of a leaf", () => {
+    expect(tree.children[0].toMatrix()).toEqual({ matrix: [[0]], ids: ["A"] });
   });
 });
 
@@ -376,6 +439,18 @@ describe("restructuring", () => {
     let copy = tree.children[2].copy();
     expect(copy.parent).toBeNull();
     expect(copy.toNewick()).toBe("(C:0.3,D:0.4):0.5;");
+  });
+
+  test("copy and clone recompute depth, height and value", () => {
+    tree.children[2].sum(d => d.length);
+    for (let t of [tree.children[2].copy(), tree.children[2].clone()]) {
+      expect(t.isConsistent()).toBe(true);
+      expect(t.descendants().map(d => [d.depth, d.height, d.value])).toEqual([
+        [0, 1, 3],
+        [1, 0, 1],
+        [1, 0, 1]
+      ]);
+    }
   });
 
   test("isolate", () => {
@@ -492,6 +567,13 @@ describe("parseMatrix", () => {
       [2, 3, 0]
     ]);
     expect(ids(t.getLeaves()).sort()).toEqual([0, 1, 2]);
+  });
+
+  test("accepts distances given as numeric strings", () => {
+    let strings = additive.map(row => row.map(String));
+    expect(patristic.parseMatrix(strings, labels).toNewick()).toBe(
+      patristic.parseMatrix(copy(additive), labels).toNewick()
+    );
   });
 
   test("recovers an additive matrix exactly", () => {
@@ -638,6 +720,68 @@ describe("known bugs", () => {
     expect(u.toNewick()).toBe("(Y:1,B:1);");
     let leaf = new patristic.Branch();
     expect(leaf.removeIfNoChildren()).toBe(leaf);
+  });
+});
+
+describe("addParent and replace keep the tree consistent", () => {
+  test("addParent inserts the new parent where this Branch was", () => {
+    let a = tree.children[0];
+    let p = new patristic.Branch({ id: "P" });
+    expect(a.addParent(p)).toBe(a);
+    expect(ids(tree.children)).toEqual(["P", "B", ""]);
+    expect(p.parent).toBe(tree);
+    expect(p.children).toEqual([a]);
+    expect(a.parent).toBe(p);
+    expect(tree.isConsistent()).toBe(true);
+    expect(tree.toNewick()).toBe("((A:0.1)P,B:0.2,(C:0.3,D:0.4):0.5);");
+  });
+
+  test("addParent detaches the given siblings from where they were", () => {
+    let [a, b] = tree.children;
+    let d = tree.children[2].children[1];
+    a.addParent({ id: "P" }, [b, d]);
+    expect(tree.isConsistent()).toBe(true);
+    expect(tree.toNewick()).toBe("((A:0.1,B:0.2,D:0.4)P,(C:0.3):0.5);");
+  });
+
+  test("addParent on a root makes the new parent the root", () => {
+    let p = new patristic.Branch({ id: "P" });
+    tree.addParent(p);
+    expect(p.isRoot()).toBe(true);
+    expect(p.children).toEqual([tree]);
+    expect(p.isConsistent()).toBe(true);
+  });
+
+  test("addParent keeps the new parent's existing children", () => {
+    let p = new patristic.Branch({ id: "P" });
+    let e = p.addChild({ id: "E" });
+    let a = tree.children[0];
+    a.addParent(p);
+    expect(p.children).toEqual([e, a]);
+    expect(tree.isConsistent()).toBe(true);
+  });
+
+  test("replace links the replacement and detaches the replaced Branch", () => {
+    let old = tree.children[2];
+    let e = new patristic.Branch({ id: "E", length: 0.5 });
+    expect(old.replace(e)).toBe(tree);
+    expect(e.parent).toBe(tree);
+    expect(old.parent).toBeNull();
+    expect(tree.isConsistent()).toBe(true);
+  });
+
+  test("replace detaches the replacement from its old parent", () => {
+    let [a, , x] = tree.children;
+    let c = x.children[0];
+    a.replace(c);
+    expect(tree.toNewick()).toBe("(C:0.3,B:0.2,(D:0.4):0.5);");
+    expect(tree.isConsistent()).toBe(true);
+  });
+
+  test("replace on a root throws a clear error", () => {
+    expect(() => tree.replace(new patristic.Branch())).toThrow(
+      "Cannot replace a root Branch."
+    );
   });
 });
 

@@ -6,12 +6,12 @@
   "bugs": "https://github.com/CDCgov/patristic/issues",
   "main": "dist/patristic.js",
   "scripts": {
-    "build": "npx rollup -c",
-    "coverage": "npx jest --coverage",
+    "build": "rollup -c",
+    "coverage": "jest --coverage",
     "demo": "npx http-server",
     "doc": "npx documentation build src/main.js -f md -o docs/README.md",
     "minify": "npx terser dist/patristic.js --compress > dist/patristic.min.js",
-    "test": "npx jest",
+    "test": "jest",
     "bench": "node bench/bench.js"
   },
   "keywords": [
@@ -24,5 +24,9 @@
   "contributors": [
     "Tony Boyles <tony@ephemer.ai>"
   ],
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "jest": "30.5.2",
+    "rollup": "4.63.5"
+  }
 }
