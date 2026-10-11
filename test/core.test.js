@@ -113,6 +113,19 @@ describe("tree construction", () => {
     expect(tree.children[2].children).toContain(child);
   });
 
+  test("addChild keeps the caller's data object as is", () => {
+    let data = { id: "E", length: 0.6 };
+    let child = tree.addChild(data);
+    expect(data).toEqual({ id: "E", length: 0.6 });
+    expect(child.data).toBe(data);
+  });
+
+  test("Branches don't keep their parent in their data", () => {
+    let x = tree.children[2];
+    x.isolate();
+    expect(Object.values(x.data)).not.toContain(tree);
+  });
+
   test("addChild with a Branch returns that Branch", () => {
     let e = new patristic.Branch({ id: "E", length: 0.6 });
     expect(tree.addChild(e)).toBe(e);

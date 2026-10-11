@@ -58,12 +58,8 @@
       c = data;
       c.parent = this;
     } else {
-      if (!data) data = {};
-      c = new Branch(
-        Object.assign(data, {
-          parent: this
-        })
-      );
+      c = new Branch(data);
+      c.parent = this;
     }
     this.children.push(c);
     return c;
