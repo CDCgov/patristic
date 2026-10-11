@@ -227,18 +227,30 @@ Branch.prototype.distanceBetween = function(descendantA, descendantB) {
 // single climb from each side. Returns [mrca, distanceFromA, distanceFromB].
 // Lengths are summed from each Branch upward, as depthOf sums them.
 function distancesToMRCA(a, b) {
-  let fromA = new Map();
-  let distance = 0;
-  for (let branch = a; branch; branch = branch.parent) {
-    fromA.set(branch, distance);
-    distance += branch.length;
+  let [mrca, i, j, fromA, fromB] = climbToMRCA(a, b);
+  let distanceA = 0,
+    distanceB = 0;
+  for (let k = 0; k < i; k++) distanceA += fromA[k].length;
+  for (let k = 0; k < j; k++) distanceB += fromB[k].length;
+  return [mrca, distanceA, distanceB];
+}
+
+// Lists the ancestors of two Branches (each including itself) and matches
+// them up from the root down; the last match is the MRCA. Returns
+// [mrca, i, j, fromA, fromB], where fromA[i] and fromB[j] are the MRCA.
+function climbToMRCA(a, b) {
+  let fromA = a.getAncestors(true),
+    fromB = b.getAncestors(true);
+  let i = fromA.length - 1,
+    j = fromB.length - 1;
+  if (fromA[i] !== fromB[j]) {
+    throw Error("Branch and cousin do not appear to share a common ancestor!");
   }
-  distance = 0;
-  for (let branch = b; branch; branch = branch.parent) {
-    if (fromA.has(branch)) return [branch, fromA.get(branch), distance];
-    distance += branch.length;
+  while (i > 0 && j > 0 && fromA[i - 1] === fromB[j - 1]) {
+    i--;
+    j--;
   }
-  throw Error("Branch and cousin do not appear to share a common ancestor!");
+  return [fromA[i], i, j, fromA, fromB];
 }
 
 /**
@@ -533,11 +545,7 @@ Branch.prototype.getLeaves = function() {
  * which it was called and the `cousin`.
  */
 Branch.prototype.getMRCA = function(cousin) {
-  let ancestors = new Set(this.getAncestors(true));
-  for (let mrca = cousin; mrca; mrca = mrca.parent) {
-    if (ancestors.has(mrca)) return mrca;
-  }
-  throw Error("Branch and cousin do not appear to share a common ancestor!");
+  return climbToMRCA(this, cousin)[0];
 };
 
 /**
