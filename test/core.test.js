@@ -385,6 +385,18 @@ describe("restructuring", () => {
     expect(copy.toNewick()).toBe("(C:0.3,D:0.4):0.5;");
   });
 
+  test("copy and clone recompute depth, height and value", () => {
+    tree.children[2].sum(d => d.length);
+    for (let t of [tree.children[2].copy(), tree.children[2].clone()]) {
+      expect(t.isConsistent()).toBe(true);
+      expect(t.descendants().map(d => [d.depth, d.height, d.value])).toEqual([
+        [0, 1, 3],
+        [1, 0, 1],
+        [1, 0, 1]
+      ]);
+    }
+  });
+
   test("isolate", () => {
     let inner = tree.children[2];
     expect(inner.isolate()).toBe(inner);

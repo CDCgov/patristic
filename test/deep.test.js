@@ -60,4 +60,11 @@ describe(`a ${N}-tip caterpillar`, () => {
     expect(t.height).toBe(N - 1);
     expect(t.toNewick()).toBe(newick);
   });
+
+  test("copies and clones", () => {
+    for (let t of [tree.copy(), tree.clone()]) {
+      expect(t.height).toBe(N - 1);
+      expect(t.toNewick()).toBe(newick);
+    }
+  });
 });

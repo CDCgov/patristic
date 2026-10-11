@@ -123,8 +123,26 @@ Branch.prototype.ancestors = function() {
  * @return {Branch} A clone of the Branch on which it is called.
  */
 Branch.prototype.clone = function() {
-  return parseJSON(this.toObject());
+  return copyTree(this);
 };
+
+// Copies the ids, lengths and structure of a subtree into new Branches, and
+// returns the new root with depth, height and value computed afresh.
+function copyTree(root) {
+  let newRoot = new Branch({ id: root.id, length: root.length });
+  let stack = [root, newRoot];
+  while (stack.length) {
+    let copy = stack.pop(),
+      original = stack.pop();
+    original.children.forEach(child => {
+      let childCopy = new Branch({ id: child.id, length: child.length });
+      childCopy.parent = copy;
+      copy.children.push(childCopy);
+      stack.push(child, childCopy);
+    });
+  }
+  return newRoot.fixDistances();
+}
 
 /**
  * All descendant Branches with near-zero length are excised
@@ -160,9 +178,7 @@ function joinIds(a, b) {
  * @return {Branch} A clone of the Branch on which it is called.
  */
 Branch.prototype.copy = function() {
-  let newThis = parseJSON(JSON.stringify(this));
-  newThis.parent = null;
-  return newThis.fixDistances();
+  return copyTree(this);
 };
 
 /**
