@@ -204,6 +204,9 @@ describe("queries", () => {
     expect(tree.hasDescendant("D")).toBe(true);
     expect(tree.hasDescendant("nonexistent")).toBe(false);
     expect(tree.hasDescendant(tree)).toBe(false);
+    expect(tree.children[2].hasDescendant(tree.children[0])).toBe(false);
+    expect(tree.children[2].hasDescendant("A")).toBe(false);
+    expect(tree.hasDescendant(new patristic.Branch({ id: "D" }))).toBe(false);
   });
 
   test("hasLeaf", () => {
@@ -211,6 +214,12 @@ describe("queries", () => {
     expect(tree.hasLeaf("A")).toBe(true);
     expect(tree.hasLeaf("nonexistent")).toBe(false);
     expect(tree.hasLeaf(tree)).toBe(false);
+    expect(tree.hasLeaf(tree.children[2])).toBe(false);
+    expect(tree.hasLeaf("")).toBe(false);
+    expect(tree.children[2].hasLeaf("A")).toBe(false);
+    let a = tree.children[0];
+    expect(a.hasLeaf(a)).toBe(true);
+    expect(a.hasLeaf("A")).toBe(true);
   });
 
   test("isChildOf / isDescendantOf", () => {
@@ -241,6 +250,9 @@ describe("queries", () => {
     let a = tree.children[0],
       d = tree.children[2].children[1];
     expect(a.path(d)).toEqual([a, tree, tree.children[2], d]);
+    expect(d.path(a)).toEqual([d, tree.children[2], tree, a]);
+    expect(d.path(tree)).toEqual([d, tree.children[2], tree]);
+    expect(tree.path(d)).toEqual([tree, tree.children[2], d]);
   });
 
   test("links", () => {
@@ -282,6 +294,8 @@ describe("distances", () => {
       d = tree.children[2].children[1];
     expect(a.sources(d)).toBe(true);
     expect(a.targets(d)).toBe(false);
+    expect(d.sources(a)).toBe(false);
+    expect(tree.children[2].sources(d)).toBe(true);
   });
 
   test("toMatrix", () => {
@@ -296,6 +310,33 @@ describe("distances", () => {
     for (let i = 0; i < 4; i++)
       for (let j = 0; j < 4; j++)
         expect(matrix[i][j]).toBeCloseTo(expected[i][j], 12);
+  });
+
+  test("toMatrix matches distanceTo exactly", () => {
+    let points = Array.from({ length: 40 }, (_, i) => [
+      Math.sin(i * 12.9898) % 1,
+      Math.sin(i * 78.233) % 1
+    ]);
+    let t = patristic.parseMatrix(
+      points.map(a => points.map(b => Math.hypot(a[0] - b[0], a[1] - b[1])))
+    );
+    // Include a polytomy, and an internal Branch's subtree.
+    let internal = t.descendants().filter(d => !d.isRoot() && !d.isLeaf());
+    internal[3].excise();
+    expect(Math.max(...t.descendants().map(d => d.children.length))).toBe(3);
+    let subtree = internal.find(d => d !== internal[3] && d.value > 15);
+    for (let root of [t, subtree]) {
+      let leaves = root.getLeaves();
+      let { matrix, ids: labels } = root.toMatrix();
+      expect(labels).toEqual(ids(leaves));
+      for (let i = 0; i < leaves.length; i++)
+        for (let j = 0; j < leaves.length; j++)
+          expect(matrix[i][j]).toBe(leaves[i].distanceTo(leaves[j]));
+    }
+  });
+
+  test("toMatrix of a leaf", () => {
+    expect(tree.children[0].toMatrix()).toEqual({ matrix: [[0]], ids: ["A"] });
   });
 });
 
