@@ -7,6 +7,49 @@
  */
 export const version = "0.6.0";
 
+/** A Branch's identifier. Trees built by parseMatrix without labels use numbers. */
+export type Id = string | number;
+
+/**
+ * Data a Branch is built from. Its known attributes initialize the Branch's;
+ * the whole object is kept as the Branch's `data`.
+ */
+export interface BranchData {
+  id?: Id;
+  length?: number;
+  depth?: number;
+  height?: number;
+  parent?: Branch | null;
+  children?: Branch[];
+  value?: number;
+  [key: string]: unknown;
+}
+
+/** A serializable representation of a Branch and its descendants. */
+export interface BranchObject {
+  id: Id;
+  length: number;
+  children?: BranchObject[];
+}
+
+/** Patristic distances between leaves, and the ids of the leaves in order. */
+export interface DistanceMatrix {
+  matrix: number[][];
+  ids: Id[];
+}
+
+/** A link from a parent Branch to one of its children. */
+export interface Link {
+  source: Branch;
+  target: Branch;
+}
+
+/** The second argument to JSON.stringify. */
+type Replacer =
+  | ((this: unknown, key: string, value: unknown) => unknown)
+  | (string | number)[]
+  | null;
+
 /**
  * A class for representing Branches in trees.
  * It's written predominantly for phylogenetic trees (hence the
@@ -19,7 +62,22 @@ export const version = "0.6.0";
  * @constructor
  */
 export class Branch {
-  constructor(data, children) {
+  /** A number unique to this Branch within the loaded library. */
+  _guid: number;
+  id: Id;
+  data: BranchData;
+  depth: number;
+  height: number;
+  length: number;
+  parent: Branch | null;
+  children: Branch[];
+  value: number;
+  representing: number;
+
+  constructor(
+    data?: BranchData | null,
+    children?: (data: BranchData) => Branch[] | null | undefined
+  ) {
     if (!data) data = {};
     this._guid = ++lastGuid;
     this.id = data.id ?? "";
@@ -38,7 +96,7 @@ export class Branch {
    * @param  {(Branch|Object)} [data={}] The new Branch, or data to attach to it.
    * @return {Branch} The (possibly new) child Branch
    */
-  addChild(data) {
+  addChild(data?: Branch | BranchData | null): Branch {
     let c;
     if (data instanceof Branch) {
       c = data;
@@ -61,7 +119,7 @@ export class Branch {
    * wherever they were in the tree.
    * @return {Branch} The Branch on which this was called
    */
-  addParent(data, siblings) {
+  addParent(data?: Branch | BranchData | null, siblings?: Branch[]): this {
     if (!siblings) siblings = [];
     let c;
     if (data instanceof Branch) {
@@ -91,7 +149,7 @@ export class Branch {
    * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_ancestors)
    * @type {Array} An array of Branches
    */
-  ancestors() {
+  ancestors(): Branch[] {
     return this.getAncestors(true);
   }
 
@@ -101,7 +159,7 @@ export class Branch {
    * descendant Branches.
    * @return {Branch} A clone of the Branch on which it is called.
    */
-  clone() {
+  clone(): Branch {
     return copyTree(this);
   }
 
@@ -109,14 +167,14 @@ export class Branch {
    * All descendant Branches with near-zero length are excised
    * @return {Branch} The Branch on which this method was called.
    */
-  consolidate() {
+  consolidate(): this {
     // Collect first: excising while traversing would shift the arrays being
     // traversed and skip Branches.
-    let branches = [];
+    let branches: Branch[] = [];
     this.eachAfter(branch => branches.push(branch));
     branches.forEach(branch => {
       if (branch === this || branch.isRoot() || branch.length >= 0.0005) return;
-      branch.parent.id = joinIds(branch.parent.id, branch.id);
+      branch.parent!.id = joinIds(branch.parent!.id, branch.id);
       branch.excise();
     });
     return this.fixDistances();
@@ -131,7 +189,7 @@ export class Branch {
    * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_copy)
    * @return {Branch} A clone of the Branch on which it is called.
    */
-  copy() {
+  copy(): Branch {
     return copyTree(this);
   }
 
@@ -139,7 +197,7 @@ export class Branch {
    * Sets the values of all nodes to be equal to the number of their descendants.
    * @return {Branch} The Branch on which it was called
    */
-  count() {
+  count(): this {
     return this.sum(() => 1);
   }
 
@@ -148,7 +206,7 @@ export class Branch {
    * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_descendants)
    * @type {Array} An Array of Branches, starting with this one.
    */
-  descendants() {
+  descendants(): Branch[] {
     return this.getDescendants(true);
   }
 
@@ -161,16 +219,18 @@ export class Branch {
    * which it is called and `descendant`. Throws an error if `descendant` is not a
    * descendant of this Branch.
    */
-  depthOf(descendant) {
+  depthOf(descendant: Branch | string): number {
     let distance = 0;
-    if (typeof descendant == "string")
-      descendant = this.getDescendant(descendant);
-    if (typeof descendant == "undefined")
+    let target =
+      typeof descendant == "string"
+        ? this.getDescendant(descendant)
+        : descendant;
+    if (typeof target == "undefined")
       throw Error("Cannot compute depth of undefined descendant!");
-    let current = descendant;
+    let current = target;
     while (current != this) {
       distance += current.length;
-      current = current.parent;
+      current = current.parent!;
     }
     return distance;
   }
@@ -182,7 +242,7 @@ export class Branch {
    * @param  {Branch} descendantB The Branch to which you wish to compute distance
    * @return {number} The patristic distance between the given descendants.
    */
-  distanceBetween(descendantA, descendantB) {
+  distanceBetween(descendantA: Branch, descendantB: Branch): number {
     let [, a, b] = distancesToMRCA(descendantA, descendantB);
     return a + b;
   }
@@ -194,7 +254,7 @@ export class Branch {
    * @return {number} The patristic distance between `cousin` and the Branch on
    * this method is called.
    */
-  distanceTo(cousin) {
+  distanceTo(cousin: Branch): number {
     let [, a, b] = distancesToMRCA(this, cousin);
     return a + b;
   }
@@ -206,10 +266,10 @@ export class Branch {
    * @param  {Function} callback The function to be run on each Branch
    * @return {Branch} The Branch on which it was called.
    */
-  each(callback) {
-    let branch = this,
-      next = [branch],
-      current;
+  each(callback: (branch: Branch) => void): this {
+    let branch: Branch | undefined = this,
+      next: Branch[] = [branch],
+      current: Branch[];
     while (next.length) {
       current = next.reverse();
       next = [];
@@ -228,7 +288,7 @@ export class Branch {
    * @param  {Function} callback Function to run on each Branch
    * @return {Branch} The Branch on which it was called
    */
-  eachAfter(callback) {
+  eachAfter(callback: (branch: Branch) => void): this {
     walk(this, null, callback);
     return this;
   }
@@ -240,7 +300,7 @@ export class Branch {
    * @param  {Function} callback [description]
    * @return {[type]}            [description]
    */
-  eachBefore(callback) {
+  eachBefore(callback: (branch: Branch) => void): this {
     walk(this, callback, null);
     return this;
   }
@@ -250,7 +310,9 @@ export class Branch {
    * @param  {Function} callback The function to run on each child.
    * @return {Branch} The Branch on which it was called.
    */
-  eachChild(callback) {
+  eachChild(
+    callback: (child: Branch, index: number, children: Branch[]) => void
+  ): this {
     this.children.forEach(callback);
     return this;
   }
@@ -261,7 +323,7 @@ export class Branch {
    * @return {Branch} The parent of the excised Branch, or the new root if the
    * excised Branch was the root.
    */
-  excise() {
+  excise(): Branch {
     if (this.isRoot()) {
       if (this.children.length > 1) {
         throw new Error("Cannot excise a root Branch with multiple children.");
@@ -272,7 +334,7 @@ export class Branch {
       child.parent = null;
       return child;
     }
-    let parent = this.parent;
+    let parent = this.parent!;
     this.eachChild(child => {
       child.length += this.length;
       child.parent = parent;
@@ -299,11 +361,11 @@ export class Branch {
    * [Branch.count](#count)).
    * @return {Branch} The Branch on which it is called.
    */
-  fixDistances() {
+  fixDistances(): this {
     this.getRoot().depth = 0;
     this.eachBefore(d => {
       if (d.isRoot()) return;
-      d.depth = d.parent.depth + 1;
+      d.depth = d.parent!.depth + 1;
     }).eachAfter(d => {
       d.height = d.children.reduce((a, c) => Math.max(a, c.height + 1), 0);
       d.value = 1 + d.children.reduce((a, c) => a + c.value, 0);
@@ -321,10 +383,10 @@ export class Branch {
    * Branch on which it is called, or all descendants?
    * @return {Branch} The Branch on which it was called.
    */
-  fixParenthood(nonrecursive) {
-    let stack = [this];
+  fixParenthood(nonrecursive?: boolean): this {
+    let stack: Branch[] = [this];
     while (stack.length) {
-      let branch = stack.pop();
+      let branch = stack.pop()!;
       branch.children.forEach(child => {
         child.parent = branch;
         if (!nonrecursive) stack.push(child);
@@ -337,7 +399,7 @@ export class Branch {
    * Reverses the order of (all of) the descendants of the Branch.
    * @return {Branch} The Branch on which this was called.
    */
-  flip() {
+  flip(): this {
     return this.each(c => c.rotate());
   }
 
@@ -349,10 +411,11 @@ export class Branch {
    * included in the results?
    * @return {Array} Every Ancestor of the Branch on which it was called.
    */
-  getAncestors(includeSelf) {
-    let ancestors = includeSelf ? [this] : [];
-    let current = this;
-    while ((current = current.parent)) ancestors.push(current);
+  getAncestors(includeSelf?: boolean): Branch[] {
+    let ancestors: Branch[] = includeSelf ? [this] : [];
+    for (let current = this.parent; current; current = current.parent) {
+      ancestors.push(current);
+    }
     return ancestors;
   }
 
@@ -364,7 +427,7 @@ export class Branch {
    * @return {(Branch|undefined)} The desired child Branch, or `undefined` if the
    * child doesn't exist.
    */
-  getChild(childID) {
+  getChild(childID: Id): Branch | undefined {
     return this.children.find(c => c.id === childID);
   }
 
@@ -375,13 +438,14 @@ export class Branch {
    * @return {(Branch|undefined)} The descendant Branch, or `undefined` if it
    * doesn't exist
    */
-  getDescendant(id) {
-    let stack = [this];
+  getDescendant(id: Id): Branch | undefined {
+    let stack: Branch[] = [this];
     while (stack.length) {
-      let branch = stack.pop();
+      let branch = stack.pop()!;
       if (branch.id === id) return branch;
       pushChildren(stack, branch);
     }
+    return undefined;
   }
 
   /**
@@ -390,12 +454,12 @@ export class Branch {
    * called the function? This is used internally and should be ignored.
    * @return {Array} An array of all Branches descended from this Branch
    */
-  getDescendants(includeSelf) {
-    let descendants = includeSelf ? [this] : [];
-    let stack = [];
+  getDescendants(includeSelf?: boolean): Branch[] {
+    let descendants: Branch[] = includeSelf ? [this] : [];
+    let stack: Branch[] = [];
     pushChildren(stack, this);
     while (stack.length) {
-      let branch = stack.pop();
+      let branch = stack.pop()!;
       descendants.push(branch);
       pushChildren(stack, branch);
     }
@@ -407,7 +471,7 @@ export class Branch {
    * Alias of [getLeaves](#getLeaves) for people whose strong suit isn't spelling.
    * @return {Array} An array of all leaves descended from this Branch
    */
-  getLeafs() {
+  getLeafs(): Branch[] {
     return this.getLeaves();
   }
 
@@ -416,11 +480,11 @@ export class Branch {
    * See also: [getLeafs](#getLeafs)
    * @return {Array} An array of all leaves descended from this Branch
    */
-  getLeaves() {
-    let leaves = [];
-    let stack = [this];
+  getLeaves(): Branch[] {
+    let leaves: Branch[] = [];
+    let stack: Branch[] = [this];
     while (stack.length) {
-      let branch = stack.pop();
+      let branch = stack.pop()!;
       if (branch.isLeaf()) leaves.push(branch);
       else pushChildren(stack, branch);
     }
@@ -435,7 +499,7 @@ export class Branch {
    * @return {Branch} The Most Recent Common Ancestor of both the Branch on
    * which it was called and the `cousin`.
    */
-  getMRCA(cousin) {
+  getMRCA(cousin: Branch): Branch {
     return climbToMRCA(this, cousin)[0];
   }
 
@@ -444,9 +508,9 @@ export class Branch {
    * root.
    * @return {Branch} The root Branch of the tree
    */
-  getRoot() {
-    let branch = this;
-    while (!branch.isRoot()) branch = branch.parent;
+  getRoot(): Branch {
+    let branch: Branch = this;
+    while (!branch.isRoot()) branch = branch.parent!;
     return branch;
   }
 
@@ -455,7 +519,7 @@ export class Branch {
    * @param  {(Branch|String)} child The Branch (or the id thereof) to check for
    * @return {Boolean}
    */
-  hasChild(child) {
+  hasChild(child: Branch | string): boolean {
     if (child instanceof Branch) {
       return this.children.includes(child);
     } else if (typeof child === "string") {
@@ -474,7 +538,7 @@ export class Branch {
    * @return {Boolean} True if `descendant` is descended from the Branch from
    * which this is called, otherwise false.
    */
-  hasDescendant(descendant) {
+  hasDescendant(descendant: Branch | string): boolean {
     if (descendant instanceof Branch) {
       return descendant.isDescendantOf(this);
     } else if (typeof descendant === "string") {
@@ -488,7 +552,7 @@ export class Branch {
    * @return {Boolean} True if leaf is both a leaf and a descendant of the
    * Branch on which this method is called, False otherwise.
    */
-  hasLeaf(leaf) {
+  hasLeaf(leaf: Branch | string): boolean {
     if (leaf instanceof Branch) {
       // A leaf's only leaf is itself.
       return leaf.isLeaf() && (leaf === this || leaf.isDescendantOf(this));
@@ -504,11 +568,11 @@ export class Branch {
    * probably only useful as an internal component of [Branch.reroot](#reroot).
    * @return {Branch} The Branch object on which it was called.
    */
-  invert() {
+  invert(): this {
     let oldParent = this.parent;
     if (oldParent) {
-      let temp = this.parent.length;
-      this.parent.length = this.length;
+      let temp = oldParent.length;
+      oldParent.length = this.length;
       this.length = temp;
       this.parent = oldParent.parent;
       this.children.push(oldParent);
@@ -528,9 +592,9 @@ export class Branch {
    * @return {Boolean} True is `parent` is the parent of this Branch, false
    * otherwise.
    */
-  isChildOf(parent) {
+  isChildOf(parent: Branch | string): boolean {
     if (parent instanceof Branch) return this.parent === parent;
-    if (typeof parent === "string") return this.parent.id === parent;
+    if (typeof parent === "string") return this.parent!.id === parent;
     throw Error("Unknown parent type passed to Branch.isChildOf");
   }
 
@@ -539,18 +603,18 @@ export class Branch {
    * its parent and its children.
    * @return {Boolean} True if consistent, otherwise false
    */
-  isConsistent() {
+  isConsistent(): boolean {
     if (!this.isRoot()) {
-      if (!this.parent.children.includes(this)) return false;
+      if (!this.parent!.children.includes(this)) return false;
     }
     // Below this Branch, a child whose parent points back at the Branch whose
     // children it's in is consistent from both sides. A Branch seen twice means
     // the tree has a cycle (or a Branch listed twice), which would otherwise
     // loop forever.
-    let seen = new Set([this]);
-    let stack = [this];
+    let seen = new Set<Branch>([this]);
+    let stack: Branch[] = [this];
     while (stack.length) {
-      let branch = stack.pop();
+      let branch = stack.pop()!;
       let children = branch.children;
       for (let i = 0; i < children.length; i++) {
         let child = children[i];
@@ -568,7 +632,7 @@ export class Branch {
    * @param  {Branch} ancestor The Branch to check for ancestorhood
    * @return {Boolean} If this Branch is descended from `ancestor`
    */
-  isDescendantOf(ancestor) {
+  isDescendantOf(ancestor: Branch | string): boolean {
     if (!ancestor) return false;
     for (let current = this.parent; current; current = current.parent) {
       if (current === ancestor || current.id === ancestor) return true;
@@ -581,7 +645,7 @@ export class Branch {
    * children).
    * @return {Boolean} True is this Branch is a leaf, otherwise false.
    */
-  isLeaf() {
+  isLeaf(): boolean {
     return this.children.length === 0;
   }
 
@@ -595,9 +659,9 @@ export class Branch {
    * the Branch on which it is called.
    * @return {Branch} The Branch object on which it was called.
    */
-  isolate() {
-    let index = this.parent.children.indexOf(this);
-    this.parent.children.splice(index, 1);
+  isolate(): this {
+    let index = this.parent!.children.indexOf(this);
+    this.parent!.children.splice(index, 1);
     this.setParent(null);
     return this;
   }
@@ -607,7 +671,7 @@ export class Branch {
    * no parents).
    * @return {Boolean} True if this Branch is the root, otherwise false.
    */
-  isRoot() {
+  isRoot(): boolean {
     return this.parent === null;
   }
 
@@ -617,7 +681,7 @@ export class Branch {
    * @type {Array} An Array of Branches which are descended from this Branch and
    * have no children.
    */
-  leafs() {
+  leafs(): Branch[] {
     return this.getLeaves();
   }
 
@@ -628,7 +692,7 @@ export class Branch {
    * @type {Array} An Array of Branches which are descended from this Branch and
    * have no children.
    */
-  leaves() {
+  leaves(): Branch[] {
     return this.getLeaves();
   }
 
@@ -639,12 +703,12 @@ export class Branch {
    * [d3-hierarchy compatibility method](https://github.com/d3/d3-hierarchy#node_links)
    * @return {Array} An array of plain Javascript objects
    */
-  links() {
-    let links = [];
+  links(): Link[] {
+    let links: Link[] = [];
     this.each(d => {
       if (d.isRoot()) return;
       links.push({
-        source: d.parent,
+        source: d.parent!,
         target: d
       });
     });
@@ -660,7 +724,7 @@ export class Branch {
    * @param  {Number} newmax The desired maximum value.
    * @return {Branch} The Branch on which it was called.
    */
-  normalize(newmin, newmax) {
+  normalize(newmin?: number, newmax?: number): this {
     if (typeof newmax !== "number") newmax = 1;
     if (typeof newmin !== "number") newmin = 0;
     let min = Infinity,
@@ -680,15 +744,15 @@ export class Branch {
    * @return {Array} An ordered Array of Branches following the path between this
    * Branch and `target`
    */
-  path(target) {
+  path(target: Branch): Branch[] {
     let mrca = this.getMRCA(target);
-    let branches = [];
-    for (let current = this; current !== mrca; current = current.parent) {
+    let branches: Branch[] = [];
+    for (let current: Branch = this; current !== mrca; current = current.parent!) {
       branches.push(current);
     }
     branches.push(mrca);
-    let down = [];
-    for (let current = target; current !== mrca; current = current.parent) {
+    let down: Branch[] = [];
+    for (let current = target; current !== mrca; current = current.parent!) {
       down.push(current);
     }
     for (let i = down.length - 1; i >= 0; i--) branches.push(down[i]);
@@ -702,7 +766,7 @@ export class Branch {
    * @param {Boolean} pruneAncestors - If true, removes ancestors with no remaining children as well
    * @return {Branch} The root of the remaining tree.
    */
-  remove(pruneAncestors) {
+  remove(pruneAncestors?: boolean): Branch {
     let root = this.getRoot();
     let parent = this.parent;
     this.isolate();
@@ -719,7 +783,7 @@ export class Branch {
    * @param {Boolean} nonrecursive - If true, does not remove ancestors with no children
    * @return {Branch} The root of the modified tree.
    */
-  removeIfNoChildren(nonrecursive) {
+  removeIfNoChildren(nonrecursive?: boolean): Branch {
     let root = this.getRoot();
     let parent = this.parent;
 
@@ -741,7 +805,7 @@ export class Branch {
    * method is called.
    * @return {Branch} The root of the modified tree.
    */
-  replace(replacement) {
+  replace(replacement: Branch): Branch {
     let parent = this.parent;
     if (!parent) throw new Error("Cannot replace a root Branch.");
     let root = this.getRoot();
@@ -761,12 +825,12 @@ export class Branch {
    * @return {Branch} The new root Branch, which is the Branch on which this was
    * called
    */
-  reroot() {
-    let current = this;
-    let toInvert = [];
+  reroot(): this {
+    let current: Branch = this;
+    let toInvert: Branch[] = [];
     while (!current.isRoot()) {
       toInvert.push(current);
-      current = current.parent;
+      current = current.parent!;
     }
     toInvert.reverse().forEach(c => c.invert());
     return this.fixDistances();
@@ -776,7 +840,7 @@ export class Branch {
    * Reverses the order of the children of the branch on which it is called.
    * @return {Branch} The Branch on which this was called.
    */
-  rotate(recursive) {
+  rotate(recursive?: boolean): this {
     if (!this.children) return this;
     this.children.reverse();
     return this;
@@ -787,7 +851,7 @@ export class Branch {
    * @param  {number} length The new length to assign to the Branch
    * @return {Branch} The Branch object on which this was called
    */
-  setLength(length) {
+  setLength(length: number): this {
     this.length = length;
     return this;
   }
@@ -797,7 +861,7 @@ export class Branch {
    * @param  {Branch} parent The Branch to set as parent
    * @return {Branch} The Branch on which this method was called.
    */
-  setParent(parent) {
+  setParent(parent: Branch | null): this {
     if (!(parent instanceof Branch) && parent !== null)
       throw Error("Cannot set parent to non-Branch object!");
     this.parent = parent;
@@ -809,7 +873,7 @@ export class Branch {
    * continuous branch. The Branch on which it is called is left in place.
    * @return {Branch} The Branch on which this method was called.
    */
-  simplify() {
+  simplify(): this {
     this.eachAfter(branch => {
       // Excising this Branch would detach it from the tree we return.
       if (branch === this) return;
@@ -828,7 +892,7 @@ export class Branch {
    * a numberic value. For details, see [MDN Array.sort](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#Description)
    * @return {Branch} The Branch on which it was called
    */
-  sort(comparator) {
+  sort(comparator?: (a: Branch, b: Branch) => number): this {
     if (!comparator) comparator = (a, b) => a.value - b.value;
     return this.eachBefore(d => d.children.sort(comparator));
   }
@@ -840,7 +904,7 @@ export class Branch {
    * @return {Boolean} True if this might be the source of cousin, otherwise
    * false.
    */
-  sources(cousin) {
+  sources(cousin: Branch): boolean {
     let [, a, b] = distancesToMRCA(this, cousin);
     return a < b;
   }
@@ -851,7 +915,7 @@ export class Branch {
    * (numeric?) value.
    * @return {Branch} The Branch on which it was called.
    */
-  sum(value) {
+  sum(value?: (branch: Branch) => number): this {
     if (!value) value = d => d.value;
     return this.eachAfter(
       d => (d.value = value(d) + d.children.reduce((a, c) => a + c.value, 0))
@@ -865,7 +929,7 @@ export class Branch {
    * @return {Boolean} True if this might be the target of cousin, otherwise
    * false.
    */
-  targets(cousin) {
+  targets(cousin: Branch): boolean {
     return cousin.sources(this);
   }
 
@@ -875,7 +939,7 @@ export class Branch {
    * @type {Function}
    * @returns {Object} A serializable Object
    */
-  toJSON() {
+  toJSON(): BranchObject {
     return this.toObject();
   }
 
@@ -885,7 +949,7 @@ export class Branch {
    * @return {Object} An Object containing a matrix (an Array of Arrays) and
    * Array of `id`s corresponding to the rows (and columns) of the matrix.
    */
-  toMatrix() {
+  toMatrix(): DistanceMatrix {
     let leafs = this.getLeaves();
     let n = leafs.length;
     let matrix = new Array(n);
@@ -895,8 +959,8 @@ export class Branch {
     // stack. A list holds the indices of a subtree's leaves and their distances
     // to the subtree's root. Each pair of leaves is visited once, at its MRCA,
     // so this is O(n^2) in the number of leaves.
-    let indexStack = [],
-      distanceStack = [];
+    let indexStack: number[][] = [],
+      distanceStack: number[][] = [];
     this.eachAfter(branch => {
       if (branch.isLeaf()) {
         // Leaves come in the same order as getLeaves lists them.
@@ -906,7 +970,8 @@ export class Branch {
       }
       let k = branch.children.length;
       let first = indexStack.length - k;
-      let indices, distances;
+      // Every internal Branch has a first child, which sets these.
+    let indices!: number[], distances!: number[];
       for (let c = 0; c < k; c++) {
         let length = branch.children[c].length;
         let childIndices = indexStack[first + c],
@@ -956,12 +1021,12 @@ export class Branch {
    * @return {String} The [Newick](https://en.wikipedia.org/wiki/Newick_format)
    * representation of the Branch.
    */
-  toNewick(nonterminus) {
-    let parts = [];
+  toNewick(nonterminus?: boolean): string {
+    let parts: string[] = [];
     // The stack holds Branches still to write, and strings to write as they are.
-    let stack = [this];
+    let stack: (Branch | string)[] = [this];
     while (stack.length) {
-      let item = stack.pop();
+      let item = stack.pop()!;
       if (typeof item === "string") {
         parts.push(item);
       } else if (item.isLeaf()) {
@@ -989,13 +1054,13 @@ export class Branch {
    * @return {Object} A serializable bare Javascript Object representing this
    * Branch and its descendants.
    */
-  toObject() {
-    let output;
+  toObject(): BranchObject {
+    let output: BranchObject | undefined;
     // Pairs of a Branch and the children array its object belongs in.
-    let stack = [[this, null]];
+    let stack: [Branch, BranchObject[] | null][] = [[this, null]];
     while (stack.length) {
-      let [branch, siblings] = stack.pop();
-      let object = {
+      let [branch, siblings] = stack.pop()!;
+      let object: BranchObject = {
         id: branch.id,
         length: branch.length
       };
@@ -1003,13 +1068,13 @@ export class Branch {
       else output = object;
       let children = branch.children;
       if (children.length > 0) {
-        object.children = [];
+        let objects: BranchObject[] = (object.children = []);
         for (let i = children.length - 1; i >= 0; i--) {
-          stack.push([children[i], object.children]);
+          stack.push([children[i], objects]);
         }
       }
     }
-    return output;
+    return output!;
   }
 
   /**
@@ -1021,10 +1086,11 @@ export class Branch {
    * @return {Object} A valid JSON string representing this Branch and its
    * descendants.
    */
-  toString(replacer, width) {
+  toString(replacer?: Replacer, width?: string | number): string {
     if (!replacer) replacer = null;
     if (!width) width = 0;
-    return JSON.stringify(this, replacer, width);
+    // JSON.stringify's overloads take each kind of replacer separately.
+    return JSON.stringify(this, replacer as (string | number)[] | null, width);
   }
 }
 
@@ -1032,7 +1098,7 @@ export class Branch {
 let lastGuid = 0;
 
 // Removes a Branch from its parent's children, if it has a parent.
-function detach(branch) {
+function detach(branch: Branch): void {
   let parent = branch.parent;
   if (!parent) return;
   let index = parent.children.indexOf(branch);
@@ -1042,12 +1108,12 @@ function detach(branch) {
 
 // Copies the ids, lengths and structure of a subtree into new Branches, and
 // returns the new root with depth, height and value computed afresh.
-function copyTree(root) {
+function copyTree(root: Branch): Branch {
   let newRoot = new Branch({ id: root.id, length: root.length });
-  let stack = [root, newRoot];
+  let stack: Branch[] = [root, newRoot];
   while (stack.length) {
-    let copy = stack.pop(),
-      original = stack.pop();
+    let copy = stack.pop()!,
+      original = stack.pop()!;
     original.children.forEach(child => {
       let childCopy = new Branch({ id: child.id, length: child.length });
       childCopy.parent = copy;
@@ -1059,7 +1125,7 @@ function copyTree(root) {
 }
 
 // Combines the ids of two merged Branches, ignoring empty ones.
-function joinIds(a, b) {
+function joinIds(a: Id, b: Id): Id {
   if (a === "") return b;
   if (b === "") return a;
   return a + "+" + b;
@@ -1068,7 +1134,7 @@ function joinIds(a, b) {
 // Finds the MRCA of two Branches along with each one's distance to it, in a
 // single climb from each side. Returns [mrca, distanceFromA, distanceFromB].
 // Lengths are summed from each Branch upward, as depthOf sums them.
-function distancesToMRCA(a, b) {
+function distancesToMRCA(a: Branch, b: Branch): [Branch, number, number] {
   let [mrca, i, j, fromA, fromB] = climbToMRCA(a, b);
   let distanceA = 0,
     distanceB = 0;
@@ -1080,7 +1146,10 @@ function distancesToMRCA(a, b) {
 // Lists the ancestors of two Branches (each including itself) and matches
 // them up from the root down; the last match is the MRCA. Returns
 // [mrca, i, j, fromA, fromB], where fromA[i] and fromB[j] are the MRCA.
-function climbToMRCA(a, b) {
+function climbToMRCA(
+  a: Branch,
+  b: Branch
+): [Branch, number, number, Branch[], Branch[]] {
   let fromA = a.getAncestors(true),
     fromB = b.getAncestors(true);
   let i = fromA.length - 1,
@@ -1100,11 +1169,15 @@ function climbToMRCA(a, b) {
 // on leaving it. Children are read the way Array.prototype.forEach reads them
 // in a recursive traversal (after `before`, with the length fixed on entry),
 // so callbacks that edit the tree behave as they did with recursion.
-function walk(root, before, after) {
-  let nodes = [root],
-    arrays = [],
-    lengths = [],
-    indices = [];
+function walk(
+  root: Branch,
+  before: ((branch: Branch) => void) | null,
+  after: ((branch: Branch) => void) | null
+): void {
+  let nodes: Branch[] = [root],
+    arrays: Branch[][] = [],
+    lengths: number[] = [],
+    indices: number[] = [];
   if (before) before(root);
   arrays.push(root.children);
   lengths.push(root.children.length);
@@ -1123,7 +1196,7 @@ function walk(root, before, after) {
       lengths.push(child.children.length);
       indices.push(0);
     } else {
-      let node = nodes.pop();
+      let node = nodes.pop()!;
       arrays.pop();
       lengths.pop();
       indices.pop();
@@ -1133,25 +1206,29 @@ function walk(root, before, after) {
 }
 
 // Pushes a Branch's children onto a stack so that they pop in order.
-function pushChildren(stack, branch) {
+function pushChildren(stack: Branch[], branch: Branch): void {
   let children = branch.children;
   for (let i = children.length - 1; i >= 0; i--) stack.push(children[i]);
 }
 
 // Returns the first descendant of `branch` (in pre-order, excluding `branch`
 // itself) for which `test` returns true, or undefined if there is none.
-function findBelow(branch, test) {
-  let stack = [];
+function findBelow(
+  branch: Branch,
+  test: (branch: Branch) => boolean
+): Branch | undefined {
+  let stack: Branch[] = [];
   pushChildren(stack, branch);
   while (stack.length) {
-    let d = stack.pop();
+    let d = stack.pop()!;
     if (test(d)) return d;
     pushChildren(stack, d);
   }
+  return undefined;
 }
 
 // A Branch's id and (if it has one) length, as written in Newick.
-function newickLabel(branch) {
+function newickLabel(branch: Branch): string {
   let label = "" + branch.id;
   if (branch.length) label += ":" + numberToString(branch.length);
   return label;
@@ -1160,7 +1237,7 @@ function newickLabel(branch) {
 // Returns a string representation of a number that doesn't use scientific
 // notation. Works on the digits of JavaScript's own (shortest round-trip)
 // representation, so it introduces no floating point artifacts.
-function numberToString(num) {
+function numberToString(num: number): string {
   let str = String(num);
   let match = str.match(/^(-?)(\d)(?:\.(\d+))?e([+-]\d+)$/);
   if (!match) return str;
@@ -1183,19 +1260,25 @@ function numberToString(num) {
  * @return {Branch} The Branch representing the root of the hierarchy
  * represented by `json`.
  */
-export function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
+export function parseJSON(
+  json: string | object,
+  idLabel?: string,
+  lengthLabel?: string,
+  childrenLabel?: string
+): Branch {
   if (!idLabel) idLabel = "id";
   if (!lengthLabel) lengthLabel = "length";
   if (!childrenLabel) childrenLabel = "children";
   if (typeof json === "string") json = JSON.parse(json);
-  let root;
+  let root: Branch | undefined;
   // Pairs of an input object and the Branch to add its Branch to.
-  let stack = [[json, null]];
+  type Node = Record<string, unknown>;
+  let stack: [Node, Branch | null][] = [[json as Node, null]];
   while (stack.length) {
-    let [node, parent] = stack.pop();
+    let [node, parent] = stack.pop()!;
     let branch = new Branch({
-      id: node[idLabel],
-      length: node[lengthLabel]
+      id: node[idLabel] as Id | undefined,
+      length: node[lengthLabel] as number | undefined
     });
     if (parent) parent.addChild(branch);
     else root = branch;
@@ -1206,7 +1289,7 @@ export function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
       }
     }
   }
-  return root.fixDistances();
+  return root!.fixDistances();
 }
 
 /**
@@ -1219,8 +1302,11 @@ export function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
  * @return {Branch} A Branch object representing the root Branch of the tree
  * inferred by neighbor joining on `matrix`.
  */
-export function parseMatrix(matrix, labels) {
-  let that = {};
+export function parseMatrix(
+  matrix: ArrayLike<ArrayLike<number | string>>,
+  labels?: Id[]
+): Branch {
+  let that = {} as NJState;
   let N = (that.N = matrix.length);
   if (!labels) labels = [...Array(N).keys()];
   that.cN = that.N;
@@ -1228,7 +1314,6 @@ export function parseMatrix(matrix, labels) {
   // given as strings (e.g. read from a CSV file) become numbers.
   that.D = Array.from(matrix, row => Array.from(row, Number));
   that.labels = labels;
-  that.labelToTaxon = {};
   that.currIndexToLabel = new Array(N);
   that.rowChange = new Array(N);
   that.newRow = new Array(N);
@@ -1237,7 +1322,7 @@ export function parseMatrix(matrix, labels) {
   that.I = new Array(that.N);
   that.S = new Array(that.N);
   for (let i = 0; i < that.N; i++) {
-    let sortedRow = sortWithIndices(that.D[i], i, true);
+    let sortedRow = sortWithIndices(that.D[i], i);
     that.S[i] = sortedRow;
     that.I[i] = sortedRow.sortIndices;
   }
@@ -1248,11 +1333,18 @@ export function parseMatrix(matrix, labels) {
     that.indicesLeft.add(i);
   }
   that.rowSumMax = 0;
-  that.PNewick = "";
-  let minI, minJ, d1, d2, l1, l2, node1, node2, node3;
+  let minI: number,
+    minJ: number,
+    d1: number,
+    d2: number,
+    l1: number,
+    l2: number,
+    node1: Branch,
+    node2: Branch,
+    node3: Branch;
 
-  function setUpNode(labelIndex, distance) {
-    let node;
+  function setUpNode(labelIndex: number, distance: number): Branch {
+    let node: Branch;
     if (labelIndex < that.N) {
       node = new Branch({ id: that.labels[labelIndex], length: distance });
       that.labelToNode[labelIndex] = node;
@@ -1285,7 +1377,7 @@ export function parseMatrix(matrix, labels) {
     node3 = new Branch({ children: [node1, node2] });
 
     recalculateDistanceMatrix(that, minI, minJ);
-    let sorted = sortWithIndices(that.D[minJ], minJ, true);
+    let sorted = sortWithIndices(that.D[minJ], minJ);
     that.S[minJ] = sorted;
     that.I[minJ] = sorted.sortIndices;
     that.S[minI] = that.I[minI] = [];
@@ -1297,8 +1389,8 @@ export function parseMatrix(matrix, labels) {
   }
 
   let left = that.indicesLeft.values();
-  minI = left.next().value;
-  minJ = left.next().value;
+  minI = left.next().value as number;
+  minJ = left.next().value as number;
 
   l1 = that.currIndexToLabel[minI];
   l2 = that.currIndexToLabel[minJ];
@@ -1312,7 +1404,29 @@ export function parseMatrix(matrix, labels) {
   return tree.fixDistances();
 }
 
-function search(t) {
+// The state of a neighbor-joining run.
+interface NJState {
+  N: number;
+  cN: number;
+  D: number[][];
+  labels: Id[];
+  currIndexToLabel: number[];
+  rowChange: number[];
+  newRow: number[];
+  labelToNode: Branch[];
+  nextIndex: number;
+  I: number[][];
+  S: number[][];
+  removedIndices: Set<number>;
+  indicesLeft: Set<number>;
+  rowSumMax: number;
+  rowSums: number[];
+}
+
+// A row's values in ascending order, with the columns they came from.
+type SortedRow = number[] & { sortIndices: number[] };
+
+function search(t: NJState): { minI: number; minJ: number } {
   let qMin = Infinity,
     D = t.D,
     cN = t.cN,
@@ -1322,10 +1436,10 @@ function search(t) {
     rowSums = t.rowSums,
     removedColumns = t.removedIndices,
     uMax = t.rowSumMax,
-    q,
+    q: number,
     minI = -1,
     minJ = -1,
-    c2;
+    c2: number;
 
   // initial guess for qMin
   for (let r = 0; r < t.N; r++) {
@@ -1358,12 +1472,16 @@ function search(t) {
   return { minI, minJ };
 }
 
-function recalculateDistanceMatrix(t, joinedIndex1, joinedIndex2) {
+function recalculateDistanceMatrix(
+  t: NJState,
+  joinedIndex1: number,
+  joinedIndex2: number
+): void {
   let D = t.D,
     n = D.length,
     sum = 0,
-    aux,
-    aux2,
+    aux: number,
+    aux2: number,
     removedIndices = t.removedIndices,
     rowSums = t.rowSums,
     newRow = t.newRow,
@@ -1395,9 +1513,9 @@ function recalculateDistanceMatrix(t, joinedIndex1, joinedIndex2) {
   t.indicesLeft.delete(joinedIndex1);
 }
 
-function sumRows(a) {
+function sumRows(a: number[][]): number[] {
   let n = a.length,
-    sums = new Array(n);
+    sums: number[] = new Array(n);
   for (let i = 0; i < n; i++) {
     let row = a[i],
       sum = 0;
@@ -1407,11 +1525,11 @@ function sumRows(a) {
   return sums;
 }
 
-function sortWithIndices(toSort, skip) {
+function sortWithIndices(toSort: number[], skip?: number): SortedRow {
   if (typeof skip === "undefined") skip = -1;
   let n = toSort.length;
-  let indexCopy = new Array(n);
-  let valueCopy = new Array(n);
+  let indexCopy: number[] = new Array(n);
+  let valueCopy = new Array(n) as SortedRow;
   let i2 = 0;
   for (let i = 0; i < n; i++) {
     if (toSort[i] === -1 || i === skip) continue;
@@ -1436,14 +1554,14 @@ function sortWithIndices(toSort, skip) {
  * @param  {string} newick A Newick String
  * @return {Branch} A Branch representing the root of the output tree
  */
-export function parseNewick(newick) {
-  let ancestors = [],
+export function parseNewick(newick: string): Branch {
+  let ancestors: Branch[] = [],
     tree = new Branch(),
     tokens = newick.split(/\s*(;|\(|\)|,|:)\s*/),
     n = tokens.length;
   for (let t = 0; t < n; t++) {
     let token = tokens[t];
-    let c;
+    let c: Branch;
     switch (token) {
       case "(": // new Branchset
         c = tree.addChild();
@@ -1455,7 +1573,7 @@ export function parseNewick(newick) {
         tree = c;
         break;
       case ")": // optional name next
-        tree = ancestors.pop();
+        tree = ancestors.pop()!;
         break;
       case ":": // optional length next
         break;
