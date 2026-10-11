@@ -265,8 +265,7 @@
    * @return {Branch} The Branch on which it was called
    */
   Branch.prototype.eachAfter = function(callback) {
-    this.eachChild(child => child.eachAfter(callback));
-    callback(this);
+    walk(this, null, callback);
     return this;
   };
 
@@ -278,10 +277,46 @@
    * @return {[type]}            [description]
    */
   Branch.prototype.eachBefore = function(callback) {
-    callback(this);
-    this.eachChild(child => child.eachBefore(callback));
+    walk(this, callback, null);
     return this;
   };
+
+  // Depth-first traversal with an explicit stack, so that deep trees can't
+  // overflow the call stack. Calls `before` on entering each Branch and `after`
+  // on leaving it. Children are read the way Array.prototype.forEach reads them
+  // in a recursive traversal (after `before`, with the length fixed on entry),
+  // so callbacks that edit the tree behave as they did with recursion.
+  function walk(root, before, after) {
+    let nodes = [root],
+      arrays = [],
+      lengths = [],
+      indices = [];
+    if (before) before(root);
+    arrays.push(root.children);
+    lengths.push(root.children.length);
+    indices.push(0);
+    while (nodes.length) {
+      let top = nodes.length - 1,
+        i = indices[top];
+      if (i < lengths[top]) {
+        indices[top] = i + 1;
+        let array = arrays[top];
+        if (!(i in array)) continue;
+        let child = array[i];
+        if (before) before(child);
+        nodes.push(child);
+        arrays.push(child.children);
+        lengths.push(child.children.length);
+        indices.push(0);
+      } else {
+        let node = nodes.pop();
+        arrays.pop();
+        lengths.pop();
+        indices.pop();
+        if (after) after(node);
+      }
+    }
+  }
 
   /**
    * Runs a function on each child of the Branch on which it is called.
@@ -349,13 +384,14 @@
    * @return {Branch} The Branch on which it was called.
    */
   Branch.prototype.fixParenthood = function(nonrecursive) {
-    this.children.forEach(child => {
-      if (!child.parent) child.parent = this;
-      if (child.parent !== this) child.parent = this;
-      if (!nonrecursive && child.children.length > 0) {
-        child.fixParenthood();
-      }
-    });
+    let stack = [this];
+    while (stack.length) {
+      let branch = stack.pop();
+      branch.children.forEach(child => {
+        child.parent = branch;
+        if (!nonrecursive) stack.push(child);
+      });
+    }
     return this;
   };
 
@@ -402,16 +438,19 @@
    * doesn't exist
    */
   Branch.prototype.getDescendant = function(id) {
-    if (this.id === id) return this;
-    let children = this.children,
-      n = children.length;
-    if (children) {
-      for (let i = 0; i < n; i++) {
-        let descendant = children[i].getDescendant(id);
-        if (descendant) return descendant;
-      }
+    let stack = [this];
+    while (stack.length) {
+      let branch = stack.pop();
+      if (branch.id === id) return branch;
+      pushChildren(stack, branch);
     }
   };
+
+  // Pushes a Branch's children onto a stack so that they pop in order.
+  function pushChildren(stack, branch) {
+    let children = branch.children;
+    for (let i = children.length - 1; i >= 0; i--) stack.push(children[i]);
+  }
 
   /**
    * Returns an array of all Branches which are descendants of this Branch
@@ -421,10 +460,12 @@
    */
   Branch.prototype.getDescendants = function(includeSelf) {
     let descendants = includeSelf ? [this] : [];
-    if (!this.isLeaf()) {
-      this.children.forEach(child => {
-        child.getDescendants(true).forEach(d => descendants.push(d));
-      });
+    let stack = [];
+    pushChildren(stack, this);
+    while (stack.length) {
+      let branch = stack.pop();
+      descendants.push(branch);
+      pushChildren(stack, branch);
     }
     return descendants;
   };
@@ -444,15 +485,14 @@
    * @return {Array} An array of all leaves descended from this Branch
    */
   Branch.prototype.getLeaves = function() {
-    if (this.isLeaf()) {
-      return [this];
-    } else {
-      let descendants = [];
-      this.children.forEach(child => {
-        child.getLeaves().forEach(d => descendants.push(d));
-      });
-      return descendants;
+    let leaves = [];
+    let stack = [this];
+    while (stack.length) {
+      let branch = stack.pop();
+      if (branch.isLeaf()) leaves.push(branch);
+      else pushChildren(stack, branch);
     }
+    return leaves;
   };
 
   /**
@@ -575,23 +615,37 @@
     if (!this.isRoot()) {
       if (!this.parent.children.includes(this)) return false;
     }
-    if (!this.isLeaf()) {
-      if (this.children.some(c => c.parent !== this)) return false;
-      return this.children.every(c => c.isConsistent());
+    // Below this Branch, a child whose parent points back at the Branch whose
+    // children it's in is consistent from both sides. A Branch seen twice means
+    // the tree has a cycle (or a Branch listed twice), which would otherwise
+    // loop forever.
+    let seen = new Set([this]);
+    let stack = [this];
+    while (stack.length) {
+      let branch = stack.pop();
+      let children = branch.children;
+      for (let i = 0; i < children.length; i++) {
+        let child = children[i];
+        if (child.parent !== branch || seen.has(child)) return false;
+        seen.add(child);
+        stack.push(child);
+      }
     }
     return true;
   };
 
   /**
    * Returns whether a given Branch is an ancestor of the Branch on which this
-   * method is called. Uses recursive tree-climbing.
+   * method is called.
    * @param  {Branch} ancestor The Branch to check for ancestorhood
    * @return {Boolean} If this Branch is descended from `ancestor`
    */
   Branch.prototype.isDescendantOf = function(ancestor) {
-    if (!ancestor || !this.parent) return false;
-    if (this.parent === ancestor || this.parent.id === ancestor) return true;
-    return this.parent.isDescendantOf(ancestor);
+    if (!ancestor) return false;
+    for (let current = this.parent; current; current = current.parent) {
+      if (current === ancestor || current.id === ancestor) return true;
+    }
+    return false;
   };
 
   /**

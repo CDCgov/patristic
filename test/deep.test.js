@@ -1,0 +1,53 @@
+const patristic = require("../dist/patristic");
+if (!test) test = require("jest");
+
+// A fully unbalanced ("caterpillar") tree is as deep as it has tips, the worst
+// case for anything that recurses once per level.
+const N = 100000;
+function caterpillar(n) {
+  let s = "T0";
+  for (let i = 1; i < n; i++) s = `(${s}:1,T${i}:1)`;
+  return s + ";";
+}
+const newick = caterpillar(N);
+
+// Tests here only read the tree.
+let tree;
+beforeAll(() => {
+  tree = patristic.parseNewick(newick);
+});
+
+describe(`a ${N}-tip caterpillar`, () => {
+  test("parses", () => {
+    expect(tree.height).toBe(N - 1);
+    expect(tree.value).toBe(2 * N - 1);
+    expect(tree.getDescendant("T0").depth).toBe(N - 1);
+  });
+
+  test("traverses", () => {
+    let preorder = 0,
+      postorder = [];
+    tree.eachBefore(() => preorder++);
+    tree.eachAfter(d => postorder.push(d));
+    expect(preorder).toBe(2 * N - 1);
+    expect(postorder[0].id).toBe("T0");
+    expect(postorder[postorder.length - 1]).toBe(tree);
+  });
+
+  test("lists descendants and leaves", () => {
+    let leaves = tree.getLeaves();
+    expect(leaves).toHaveLength(N);
+    expect(leaves[0].id).toBe("T0");
+    expect(leaves[N - 1].id).toBe(`T${N - 1}`);
+    expect(tree.descendants()).toHaveLength(2 * N - 1);
+    expect(tree.getDescendants()).toHaveLength(2 * N - 2);
+  });
+
+  test("checks consistency and ancestry", () => {
+    expect(tree.isConsistent()).toBe(true);
+    expect(tree.fixParenthood()).toBe(tree);
+    let t0 = tree.getDescendant("T0");
+    expect(t0.isDescendantOf(tree)).toBe(true);
+    expect(tree.isDescendantOf(t0)).toBe(false);
+  });
+});

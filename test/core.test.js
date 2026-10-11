@@ -254,6 +254,13 @@ describe("queries", () => {
     tree.children[0].parent = null;
     expect(tree.isConsistent()).toBe(false);
   });
+
+  test("isConsistent detects cycles", () => {
+    let x = tree.children[2];
+    x.children.push(tree);
+    tree.parent = x;
+    expect(x.isConsistent()).toBe(false);
+  });
 });
 
 describe("distances", () => {
