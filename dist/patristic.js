@@ -26,26 +26,20 @@
    */
   function Branch(data, children) {
     if (!data) data = {};
-    if (!children) children = d => d.children;
-    Object.assign(this, {
-      _guid: guid(),
-      id: data.id ?? "",
-      data: data,
-      depth: data.depth ?? 0,
-      height: data.height ?? 0,
-      length: data.length ?? 0,
-      parent: data.parent ?? null,
-      children: children(data) || [],
-      value: data.value ?? 1,
-      representing: 1
-    });
+    this._guid = ++lastGuid;
+    this.id = data.id ?? "";
+    this.data = data;
+    this.depth = data.depth ?? 0;
+    this.height = data.height ?? 0;
+    this.length = data.length ?? 0;
+    this.parent = data.parent ?? null;
+    this.children = (children ? children(data) : data.children) || [];
+    this.value = data.value ?? 1;
+    this.representing = 1;
   }
 
-  function guid(){
-    return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, a => {
-      return (a ^ ((Math.random() * 16) >> (a / 4))).toString(16);
-    });
-  }
+  // Each Branch's _guid is unique within this copy of the library.
+  let lastGuid = 0;
 
   /**
    * Adds a new child to this Branch

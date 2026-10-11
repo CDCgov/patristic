@@ -91,6 +91,8 @@ describe("Branch constructor", () => {
       expect(b.children).toEqual([]);
       expect(b._guid).toBeDefined();
     }
+    let guids = tree.descendants().map(d => d._guid);
+    expect(new Set(guids).size).toBe(guids.length);
   });
 
   test("accepts a children accessor", () => {
