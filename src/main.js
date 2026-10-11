@@ -575,14 +575,25 @@ Branch.prototype.hasChild = function(child) {
  * which this is called, otherwise false.
  */
 Branch.prototype.hasDescendant = function(descendant) {
-  let descendants = this.getDescendants();
   if (descendant instanceof Branch) {
-    return descendants.some(d => d === descendant);
+    return descendant.isDescendantOf(this);
   } else if (typeof descendant === "string") {
-    return descendants.some(d => d.id === descendant);
+    return findBelow(this, d => d.id === descendant) !== undefined;
   }
   throw Error("Unknown type of descendant passed to Branch.hasDescendant!");
 };
+
+// Returns the first descendant of `branch` (in pre-order, excluding `branch`
+// itself) for which `test` returns true, or undefined if there is none.
+function findBelow(branch, test) {
+  let stack = [];
+  pushChildren(stack, branch);
+  while (stack.length) {
+    let d = stack.pop();
+    if (test(d)) return d;
+    pushChildren(stack, d);
+  }
+}
 
 /**
  * Checks to see if a Branch has a descendant leaf.
@@ -590,11 +601,12 @@ Branch.prototype.hasDescendant = function(descendant) {
  * Branch on which this method is called, False otherwise.
  */
 Branch.prototype.hasLeaf = function(leaf) {
-  let leaves = this.getLeaves();
   if (leaf instanceof Branch) {
-    return leaves.includes(leaf);
+    // A leaf's only leaf is itself.
+    return leaf.isLeaf() && (leaf === this || leaf.isDescendantOf(this));
   } else if (typeof leaf === "string") {
-    return leaves.some(d => d.id === leaf);
+    if (this.isLeaf()) return this.id === leaf;
+    return findBelow(this, d => d.isLeaf() && d.id === leaf) !== undefined;
   }
   throw Error("Unknown type of leaf passed to Branch.hasLeaf.");
 };
