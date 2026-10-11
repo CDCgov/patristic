@@ -368,7 +368,18 @@ Branch.prototype.excise = function() {
     child.length += this.length;
     child.parent = parent;
   });
-  parent.children.splice(parent.children.indexOf(this), 1, ...this.children);
+  // Replace this Branch with its children in place. Spreading the children
+  // into splice's arguments would overflow the stack for very many children.
+  let siblings = parent.children;
+  let index = siblings.indexOf(this);
+  if (this.children.length === 1) {
+    siblings[index] = this.children[0];
+  } else {
+    let after = siblings.splice(index);
+    after.shift();
+    this.children.forEach(child => siblings.push(child));
+    after.forEach(sibling => siblings.push(sibling));
+  }
   parent.representing++;
   return parent;
 };
