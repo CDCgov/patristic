@@ -641,7 +641,7 @@ describe("known bugs", () => {
   });
 });
 
-describe("addParent keeps the tree consistent", () => {
+describe("addParent and replace keep the tree consistent", () => {
   test("addParent inserts the new parent where this Branch was", () => {
     let a = tree.children[0];
     let p = new patristic.Branch({ id: "P" });
@@ -677,6 +677,29 @@ describe("addParent keeps the tree consistent", () => {
     a.addParent(p);
     expect(p.children).toEqual([e, a]);
     expect(tree.isConsistent()).toBe(true);
+  });
+
+  test("replace links the replacement and detaches the replaced Branch", () => {
+    let old = tree.children[2];
+    let e = new patristic.Branch({ id: "E", length: 0.5 });
+    expect(old.replace(e)).toBe(tree);
+    expect(e.parent).toBe(tree);
+    expect(old.parent).toBeNull();
+    expect(tree.isConsistent()).toBe(true);
+  });
+
+  test("replace detaches the replacement from its old parent", () => {
+    let [a, , x] = tree.children;
+    let c = x.children[0];
+    a.replace(c);
+    expect(tree.toNewick()).toBe("(C:0.3,B:0.2,(D:0.4):0.5);");
+    expect(tree.isConsistent()).toBe(true);
+  });
+
+  test("replace on a root throws a clear error", () => {
+    expect(() => tree.replace(new patristic.Branch())).toThrow(
+      "Cannot replace a root Branch."
+    );
   });
 });
 

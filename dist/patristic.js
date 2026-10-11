@@ -754,16 +754,21 @@
   };
 
   /**
-   * Removes a Branch and its subtree from the tree, and replaces it.
+   * Removes a Branch and its subtree from the tree, and replaces it. The
+   * replacement is detached from wherever it was, and the replaced Branch
+   * becomes the root of its own tree.
    * @param {Branch} replacement - The branch to replace the branch on which the
    * method is called.
    * @return {Branch} The root of the modified tree.
    */
   Branch.prototype.replace = function(replacement) {
+    let parent = this.parent;
+    if (!parent) throw new Error("Cannot replace a root Branch.");
     let root = this.getRoot();
-    this.parent;
-    let index = this.parent.children.indexOf(this);
-    this.parent.children.splice(index, 1, replacement);
+    detach(replacement);
+    parent.children[parent.children.indexOf(this)] = replacement;
+    replacement.parent = parent;
+    this.parent = null;
     return root;
   };
 
