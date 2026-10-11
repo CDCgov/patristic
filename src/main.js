@@ -1001,15 +1001,58 @@ Branch.prototype.toMatrix = function() {
   let leafs = this.getLeaves();
   let n = leafs.length;
   let matrix = new Array(n);
-  for (let i = 0; i < n; i++) {
-    matrix[i] = new Array(n);
-    matrix[i][i] = 0;
-    for (let j = 0; j < i; j++) {
-      let distance = leafs[i].distanceTo(leafs[j]);
-      matrix[i][j] = distance;
-      matrix[j][i] = distance;
+  for (let i = 0; i < n; i++) matrix[i] = new Array(n).fill(0);
+  let nextLeaf = 0;
+  // In post-order, each Branch's children's lists are the last ones on the
+  // stack. A list holds the indices of a subtree's leaves and their distances
+  // to the subtree's root. Each pair of leaves is visited once, at its MRCA,
+  // so this is O(n^2) in the number of leaves.
+  let indexStack = [],
+    distanceStack = [];
+  this.eachAfter(branch => {
+    if (branch.isLeaf()) {
+      // Leaves come in the same order as getLeaves lists them.
+      indexStack.push([nextLeaf++]);
+      distanceStack.push([0]);
+      return;
     }
-  }
+    let k = branch.children.length;
+    let first = indexStack.length - k;
+    let indices, distances;
+    for (let c = 0; c < k; c++) {
+      let length = branch.children[c].length;
+      let childIndices = indexStack[first + c],
+        childDistances = distanceStack[first + c];
+      // Sum each leaf's lengths upward, in the order depthOf sums them.
+      for (let y = 0; y < childDistances.length; y++)
+        childDistances[y] += length;
+      // Extend the first child's list rather than copying it.
+      if (c === 0) {
+        indices = childIndices;
+        distances = childDistances;
+        continue;
+      }
+      for (let x = 0; x < indices.length; x++) {
+        let i = indices[x],
+          di = distances[x],
+          row = matrix[i];
+        for (let y = 0; y < childIndices.length; y++) {
+          let j = childIndices[y],
+            distance = di + childDistances[y];
+          row[j] = distance;
+          matrix[j][i] = distance;
+        }
+      }
+      for (let y = 0; y < childIndices.length; y++) {
+        indices.push(childIndices[y]);
+        distances.push(childDistances[y]);
+      }
+    }
+    indexStack.length = first;
+    distanceStack.length = first;
+    indexStack.push(indices);
+    distanceStack.push(distances);
+  });
   return {
     matrix: matrix,
     ids: leafs.map(d => d.id)
