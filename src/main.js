@@ -781,19 +781,17 @@ Branch.prototype.normalize = function(newmin, newmax) {
  * Branch and `target`
  */
 Branch.prototype.path = function(target) {
-  let current = this;
-  let branches = [this];
   let mrca = this.getMRCA(target);
-  while (current !== mrca) {
-    current = current.parent;
+  let branches = [];
+  for (let current = this; current !== mrca; current = current.parent) {
     branches.push(current);
   }
-  let k = branches.length;
-  current = target;
-  while (current !== mrca) {
-    branches.splice(k, 0, current);
-    current = current.parent;
+  branches.push(mrca);
+  let down = [];
+  for (let current = target; current !== mrca; current = current.parent) {
+    down.push(current);
   }
+  for (let i = down.length - 1; i >= 0; i--) branches.push(down[i]);
   return branches;
 };
 
