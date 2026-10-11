@@ -27,6 +27,8 @@ const chained: Branch = tree
   .fixDistances();
 const parent: Branch | null = tree.parent;
 const withData = new Branch({ id: 0, length: 1, color: "red" });
+// Optional fields accept undefined, which means "use the default".
+const defaults = new Branch({ id: undefined, length: undefined });
 
 // @ts-expect-error parseNewick takes a string
 parseNewick(42);

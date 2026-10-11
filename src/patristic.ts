@@ -15,13 +15,13 @@ export type Id = string | number;
  * the whole object is kept as the Branch's `data`.
  */
 export interface BranchData {
-  id?: Id;
-  length?: number;
-  depth?: number;
-  height?: number;
-  parent?: Branch | null;
-  children?: Branch[];
-  value?: number;
+  id?: Id | undefined;
+  length?: number | undefined;
+  depth?: number | undefined;
+  height?: number | undefined;
+  parent?: Branch | null | undefined;
+  children?: Branch[] | undefined;
+  value?: number | undefined;
   [key: string]: unknown;
 }
 

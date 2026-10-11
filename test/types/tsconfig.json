@@ -8,6 +8,7 @@
     "lib": ["ES2020"],
     "types": [],
     "strict": true,
+    "exactOptionalPropertyTypes": true,
     "noEmit": true
   },
   "include": ["*.mts", "*.cts"]
