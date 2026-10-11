@@ -6,10 +6,17 @@
   "bugs": "https://github.com/CDCgov/patristic/issues",
   "main": "dist/patristic.js",
   "module": "dist/patristic.mjs",
+  "types": "dist/patristic.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/patristic.mjs",
-      "require": "./dist/patristic.js"
+      "import": {
+        "types": "./dist/patristic.d.mts",
+        "default": "./dist/patristic.mjs"
+      },
+      "require": {
+        "types": "./dist/patristic.d.ts",
+        "default": "./dist/patristic.js"
+      }
     },
     "./package.json": "./package.json",
     "./*": "./*"
@@ -22,7 +29,7 @@
     "minify": "npx terser dist/patristic.js --compress > dist/patristic.min.js",
     "test": "jest",
     "bench": "node bench/bench.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p test/types"
   },
   "keywords": [
     "phylogeny"
