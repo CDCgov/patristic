@@ -982,16 +982,35 @@ Branch.prototype.toMatrix = function() {
  * representation of the Branch.
  */
 Branch.prototype.toNewick = function(nonterminus) {
-  let out = "";
-  if (!this.isLeaf()) {
-    out +=
-      "(" + this.children.map(child => child.toNewick(true)).join(",") + ")";
+  let parts = [];
+  // The stack holds Branches still to write, and strings to write as they are.
+  let stack = [this];
+  while (stack.length) {
+    let item = stack.pop();
+    if (typeof item === "string") {
+      parts.push(item);
+    } else if (item.isLeaf()) {
+      parts.push(newickLabel(item));
+    } else {
+      parts.push("(");
+      stack.push(")" + newickLabel(item));
+      let children = item.children;
+      for (let i = children.length - 1; i >= 0; i--) {
+        stack.push(children[i]);
+        if (i > 0) stack.push(",");
+      }
+    }
   }
-  out += this.id;
-  if (this.length) out += ":" + numberToString(this.length);
-  if (!nonterminus) out += ";";
-  return out;
+  if (!nonterminus) parts.push(";");
+  return parts.join("");
 };
+
+// A Branch's id and (if it has one) length, as written in Newick.
+function newickLabel(branch) {
+  let label = "" + branch.id;
+  if (branch.length) label += ":" + numberToString(branch.length);
+  return label;
+}
 
 // Returns a string representation of a number that doesn't use scientific
 // notation. Works on the digits of JavaScript's own (shortest round-trip)
@@ -1016,12 +1035,25 @@ function numberToString(num) {
  * Branch and its descendants.
  */
 Branch.prototype.toObject = function() {
-  let output = {
-    id: this.id,
-    length: this.length
-  };
-  if (this.children.length > 0)
-    output.children = this.children.map(c => c.toObject());
+  let output;
+  // Pairs of a Branch and the children array its object belongs in.
+  let stack = [[this, null]];
+  while (stack.length) {
+    let [branch, siblings] = stack.pop();
+    let object = {
+      id: branch.id,
+      length: branch.length
+    };
+    if (siblings) siblings.push(object);
+    else output = object;
+    let children = branch.children;
+    if (children.length > 0) {
+      object.children = [];
+      for (let i = children.length - 1; i >= 0; i--) {
+        stack.push([children[i], object.children]);
+      }
+    }
+  }
   return output;
 };
 
@@ -1058,17 +1090,25 @@ export function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
   if (!lengthLabel) lengthLabel = "length";
   if (!childrenLabel) childrenLabel = "children";
   if (typeof json === "string") json = JSON.parse(json);
-  function build(node) {
+  let root;
+  // Pairs of an input object and the Branch to add its Branch to.
+  let stack = [[json, null]];
+  while (stack.length) {
+    let [node, parent] = stack.pop();
     let branch = new Branch({
       id: node[idLabel],
       length: node[lengthLabel]
     });
-    if (node[childrenLabel] instanceof Array) {
-      node[childrenLabel].forEach(child => branch.addChild(build(child)));
+    if (parent) parent.addChild(branch);
+    else root = branch;
+    let children = node[childrenLabel];
+    if (children instanceof Array) {
+      for (let i = children.length - 1; i >= 0; i--) {
+        if (i in children) stack.push([children[i], branch]);
+      }
     }
-    return branch;
   }
-  return build(json).fixDistances();
+  return root.fixDistances();
 }
 
 /**

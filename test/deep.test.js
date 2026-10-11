@@ -50,4 +50,14 @@ describe(`a ${N}-tip caterpillar`, () => {
     expect(t0.isDescendantOf(tree)).toBe(true);
     expect(tree.isDescendantOf(t0)).toBe(false);
   });
+
+  test("round-trips through Newick", () => {
+    expect(tree.toNewick()).toBe(newick);
+  });
+
+  test("round-trips through objects", () => {
+    let t = patristic.parseJSON(tree.toObject());
+    expect(t.height).toBe(N - 1);
+    expect(t.toNewick()).toBe(newick);
+  });
 });
