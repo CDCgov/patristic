@@ -64,10 +64,13 @@ Branch.prototype.addChild = function(data) {
 };
 
 /**
- * Adds a new parent to this Branch. This is a bit esoteric and generally not
+ * Adds a new parent to this Branch, inserting it between this Branch and its
+ * current parent (if any). This is a bit esoteric and generally not
  * recommended.
  * @param  {(Branch|Object)} [data={}] A Branch object, or the data to attach to one
- * @param  {Array} [siblings=[]] An array of Branches to be the children of the new parent Branch (i.e. siblings of this Branch)
+ * @param  {Array} [siblings=[]] An array of Branches to be the children of the
+ * new parent Branch (i.e. siblings of this Branch). They are detached from
+ * wherever they were in the tree.
  * @return {Branch} The Branch on which this was called
  */
 Branch.prototype.addParent = function(data, siblings) {
@@ -75,15 +78,34 @@ Branch.prototype.addParent = function(data, siblings) {
   let c;
   if (data instanceof Branch) {
     c = data;
+    detach(c);
   } else {
     if (!data) data = {};
     c = new Branch(Object.assign(data));
   }
-  siblings.forEach(sib => sib.setParent(c));
-  c.children = [this].concat(siblings);
+  let oldParent = this.parent;
+  if (oldParent) {
+    oldParent.children[oldParent.children.indexOf(this)] = c;
+  }
+  c.parent = oldParent;
   this.parent = c;
+  c.children.push(this);
+  siblings.forEach(sib => {
+    detach(sib);
+    sib.parent = c;
+    c.children.push(sib);
+  });
   return this;
 };
+
+// Removes a Branch from its parent's children, if it has a parent.
+function detach(branch) {
+  let parent = branch.parent;
+  if (!parent) return;
+  let index = parent.children.indexOf(branch);
+  if (index !== -1) parent.children.splice(index, 1);
+  branch.parent = null;
+}
 
 /**
  * Returns an array of Branches from this Branch to the root.

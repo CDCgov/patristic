@@ -641,6 +641,45 @@ describe("known bugs", () => {
   });
 });
 
+describe("addParent keeps the tree consistent", () => {
+  test("addParent inserts the new parent where this Branch was", () => {
+    let a = tree.children[0];
+    let p = new patristic.Branch({ id: "P" });
+    expect(a.addParent(p)).toBe(a);
+    expect(ids(tree.children)).toEqual(["P", "B", ""]);
+    expect(p.parent).toBe(tree);
+    expect(p.children).toEqual([a]);
+    expect(a.parent).toBe(p);
+    expect(tree.isConsistent()).toBe(true);
+    expect(tree.toNewick()).toBe("((A:0.1)P,B:0.2,(C:0.3,D:0.4):0.5);");
+  });
+
+  test("addParent detaches the given siblings from where they were", () => {
+    let [a, b] = tree.children;
+    let d = tree.children[2].children[1];
+    a.addParent({ id: "P" }, [b, d]);
+    expect(tree.isConsistent()).toBe(true);
+    expect(tree.toNewick()).toBe("((A:0.1,B:0.2,D:0.4)P,(C:0.3):0.5);");
+  });
+
+  test("addParent on a root makes the new parent the root", () => {
+    let p = new patristic.Branch({ id: "P" });
+    tree.addParent(p);
+    expect(p.isRoot()).toBe(true);
+    expect(p.children).toEqual([tree]);
+    expect(p.isConsistent()).toBe(true);
+  });
+
+  test("addParent keeps the new parent's existing children", () => {
+    let p = new patristic.Branch({ id: "P" });
+    let e = p.addChild({ id: "E" });
+    let a = tree.children[0];
+    a.addParent(p);
+    expect(p.children).toEqual([e, a]);
+    expect(tree.isConsistent()).toBe(true);
+  });
+});
+
 describe("error conditions", () => {
   test("unknown argument types throw", () => {
     expect(() => tree.hasChild(123)).toThrow("Unknown type of child");
