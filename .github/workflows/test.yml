@@ -20,6 +20,12 @@ jobs:
       - run: npm ci
       # Tests run against dist/, so the committed build must match src/.
       - run: npm run build
-      - name: Check that dist/patristic.js is up to date
-        run: git diff --exit-code dist/patristic.js
+      - name: Check that the built files in dist/ are committed and up to date
+        run: |
+          if [ -n "$(git status --porcelain dist)" ]; then
+            git status dist
+            git diff dist
+            exit 1
+          fi
+      - run: npm run typecheck
       - run: npm test

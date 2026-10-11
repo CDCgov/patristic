@@ -5,14 +5,31 @@
   "homepage": "https://cdcgov.github.io/patristic/",
   "bugs": "https://github.com/CDCgov/patristic/issues",
   "main": "dist/patristic.js",
+  "module": "dist/patristic.mjs",
+  "types": "dist/patristic.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/patristic.d.mts",
+        "default": "./dist/patristic.mjs"
+      },
+      "require": {
+        "types": "./dist/patristic.d.ts",
+        "default": "./dist/patristic.js"
+      }
+    },
+    "./package.json": "./package.json",
+    "./*": "./*"
+  },
   "scripts": {
-    "build": "rollup -c",
+    "build": "tsc && rollup -c",
     "coverage": "jest --coverage",
     "demo": "npx http-server",
-    "doc": "npx documentation build src/main.js -f md -o docs/README.md",
+    "doc": "npx documentation build src/patristic.ts --parse-extension ts -f md -o docs/README.md",
     "minify": "npx terser dist/patristic.js --compress > dist/patristic.min.js",
     "test": "jest",
-    "bench": "node bench/bench.js"
+    "bench": "node bench/bench.js",
+    "typecheck": "tsc --noEmit && tsc -p test/types"
   },
   "keywords": [
     "phylogeny"
@@ -27,6 +44,7 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "jest": "30.5.2",
-    "rollup": "4.63.5"
+    "rollup": "4.63.5",
+    "typescript": "7.0.2"
   }
 }

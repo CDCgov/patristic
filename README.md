@@ -16,6 +16,24 @@ from a phylogenetic tree
 
 To install patristic with NPM use: `npm install --save patristic`
 
+Then load it whichever way suits your project:
+
+```javascript
+// ES modules
+import { parseNewick } from "patristic"; // or: import patristic from "patristic";
+
+// CommonJS
+const patristic = require("patristic");
+```
+
+```html
+<!-- In a browser, as a global named `patristic` -->
+<script src="dist/patristic.js"></script>
+```
+
+patristic is written in TypeScript and ships its type declarations, so editors
+and the TypeScript compiler pick up its types automatically.
+
 ## Usage
 
 Please note that this is a beta-stage API and may change (possibly dramatically)
