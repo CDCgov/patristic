@@ -1299,16 +1299,19 @@ export function parseJSON(
  * @param  {Array} matrix An array of `n` arrays of length `n`
  * @param  {Array} labels An array of `n` strings, each corresponding to the
  * values in `matrix`.
+ * @param  {Object} [options] See ParseMatrixOptions; `{ float32: true }`
+ * stores distances in half the memory, at single precision.
  * @return {Branch} A Branch object representing the root Branch of the tree
  * inferred by neighbor joining on `matrix`.
  */
 export function parseMatrix(
   matrix: ArrayLike<ArrayLike<number | string>>,
-  labels?: Id[]
+  labels?: Id[] | null,
+  options?: ParseMatrixOptions
 ): Branch {
   let N = matrix.length;
   if (!labels) labels = [...Array(N).keys()];
-  let nj = new NeighborJoining(matrix);
+  let nj = new NeighborJoining(matrix, options?.float32 ?? false);
   // currIndexToLabel maps each row to the label of the taxon or joined node
   // it holds; labels from N up are joined nodes, in the order they were made.
   let currIndexToLabel = new Int32Array(N);
@@ -1354,6 +1357,19 @@ export function parseMatrix(
   return tree.fixDistances();
 }
 
+/** Options for [parseMatrix](#parseMatrix). */
+export interface ParseMatrixOptions {
+  /**
+   * Store distances as 32-bit floats, which halves the memory they take
+   * (the matrix and each row's sorted copy) at the cost of precision:
+   * distances keep about 7 significant digits. Arithmetic is still done in
+   * 64 bits. Defaults to false.
+   */
+  float32?: boolean | undefined;
+}
+
+type FloatArray = Float64Array | Float32Array;
+
 /**
  * The distance matrix and search structures of a neighbor-joining run, after
  * RapidNJ (Simonsen, Mailund & Pedersen, 2008): each row keeps its distances
@@ -1373,13 +1389,13 @@ class NeighborJoining {
   rowSums: Float64Array;
   private N: number;
   /** The lower triangle of the distance matrix, row by row. */
-  private D: Float64Array;
+  private D: FloatArray;
   /** Where each row starts in D: i * (i - 1) / 2. */
   private rowStart: Float64Array;
   private removed: Uint8Array;
   private rowSumMax = 0;
   /** Each row's distances in ascending order, and the columns they're in. */
-  private sortedValues: Float64Array[];
+  private sortedValues: FloatArray[];
   private sortedColumns: Int32Array[];
   private sortedLength: Int32Array;
   // Scratch space.
@@ -1387,12 +1403,13 @@ class NeighborJoining {
   private rowChange: Float64Array;
   private sorter: ArgSorter;
 
-  constructor(matrix: ArrayLike<ArrayLike<number | string>>) {
+  constructor(matrix: ArrayLike<ArrayLike<number | string>>, float32: boolean) {
     let N = (this.N = this.cN = matrix.length);
+    let Floats = float32 ? Float32Array : Float64Array;
     this.rowStart = new Float64Array(N);
     for (let i = 0; i < N; i++) this.rowStart[i] = (i * (i - 1)) / 2;
     // Distances given as strings (e.g. read from a CSV file) become numbers.
-    let D = (this.D = new Float64Array((N * (N - 1)) / 2));
+    let D = (this.D = new Floats((N * (N - 1)) / 2));
     for (let i = 0; i < N; i++) {
       let row = matrix[i],
         start = this.rowStart[i];
@@ -1406,7 +1423,7 @@ class NeighborJoining {
     this.sortedColumns = new Array(N);
     this.sortedLength = new Int32Array(N);
     for (let i = 0; i < N; i++) {
-      this.sortedValues[i] = new Float64Array(N - 1);
+      this.sortedValues[i] = new Floats(N - 1);
       this.sortedColumns[i] = new Int32Array(N - 1);
       this.sortRow(i);
     }

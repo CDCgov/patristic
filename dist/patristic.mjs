@@ -1194,14 +1194,16 @@ function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
  * @param  {Array} matrix An array of `n` arrays of length `n`
  * @param  {Array} labels An array of `n` strings, each corresponding to the
  * values in `matrix`.
+ * @param  {Object} [options] See ParseMatrixOptions; `{ float32: true }`
+ * stores distances in half the memory, at single precision.
  * @return {Branch} A Branch object representing the root Branch of the tree
  * inferred by neighbor joining on `matrix`.
  */
-function parseMatrix(matrix, labels) {
+function parseMatrix(matrix, labels, options) {
     let N = matrix.length;
     if (!labels)
         labels = [...Array(N).keys()];
-    let nj = new NeighborJoining(matrix);
+    let nj = new NeighborJoining(matrix, options?.float32 ?? false);
     // currIndexToLabel maps each row to the label of the taxon or joined node
     // it holds; labels from N up are joined nodes, in the order they were made.
     let currIndexToLabel = new Int32Array(N);
@@ -1258,14 +1260,15 @@ function parseMatrix(matrix, labels) {
  * nodes was made last.
  */
 class NeighborJoining {
-    constructor(matrix) {
+    constructor(matrix, float32) {
         this.rowSumMax = 0;
         let N = (this.N = this.cN = matrix.length);
+        let Floats = float32 ? Float32Array : Float64Array;
         this.rowStart = new Float64Array(N);
         for (let i = 0; i < N; i++)
             this.rowStart[i] = (i * (i - 1)) / 2;
         // Distances given as strings (e.g. read from a CSV file) become numbers.
-        let D = (this.D = new Float64Array((N * (N - 1)) / 2));
+        let D = (this.D = new Floats((N * (N - 1)) / 2));
         for (let i = 0; i < N; i++) {
             let row = matrix[i], start = this.rowStart[i];
             for (let j = 0; j < i; j++)
@@ -1279,7 +1282,7 @@ class NeighborJoining {
         this.sortedColumns = new Array(N);
         this.sortedLength = new Int32Array(N);
         for (let i = 0; i < N; i++) {
-            this.sortedValues[i] = new Float64Array(N - 1);
+            this.sortedValues[i] = new Floats(N - 1);
             this.sortedColumns[i] = new Int32Array(N - 1);
             this.sortRow(i);
         }

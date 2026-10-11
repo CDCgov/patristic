@@ -569,6 +569,25 @@ describe("parseMatrix", () => {
     expect(ids(t.getLeaves()).sort()).toEqual([0, 1, 2]);
   });
 
+  test("can store distances as 32-bit floats", () => {
+    let pair = [
+      [0, 0.1],
+      [0.1, 0]
+    ];
+    expect(patristic.parseMatrix(pair).children[0].length).toBe(0.05);
+    expect(
+      patristic.parseMatrix(pair, null, { float32: true }).children[0].length
+    ).toBe(Math.fround(0.1) / 2);
+    let t = patristic.parseMatrix(copy(additive), labels, { float32: true });
+    let { matrix, ids: order } = t.toMatrix();
+    for (let i = 0; i < 4; i++)
+      for (let j = 0; j < 4; j++) {
+        let a = labels.indexOf(order[i]),
+          b = labels.indexOf(order[j]);
+        expect(matrix[i][j]).toBeCloseTo(additive[a][b], 6);
+      }
+  });
+
   test("accepts distances given as numeric strings", () => {
     let strings = additive.map(row => row.map(String));
     expect(patristic.parseMatrix(strings, labels).toNewick()).toBe(
