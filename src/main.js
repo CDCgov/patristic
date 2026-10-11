@@ -229,9 +229,27 @@ Branch.prototype.depthOf = function(descendant) {
  * @return {number} The patristic distance between the given descendants.
  */
 Branch.prototype.distanceBetween = function(descendantA, descendantB) {
-  let mrca = descendantA.getMRCA(descendantB);
-  return mrca.depthOf(descendantA) + mrca.depthOf(descendantB);
+  let [, a, b] = distancesToMRCA(descendantA, descendantB);
+  return a + b;
 };
+
+// Finds the MRCA of two Branches along with each one's distance to it, in a
+// single climb from each side. Returns [mrca, distanceFromA, distanceFromB].
+// Lengths are summed from each Branch upward, as depthOf sums them.
+function distancesToMRCA(a, b) {
+  let fromA = new Map();
+  let distance = 0;
+  for (let branch = a; branch; branch = branch.parent) {
+    fromA.set(branch, distance);
+    distance += branch.length;
+  }
+  distance = 0;
+  for (let branch = b; branch; branch = branch.parent) {
+    if (fromA.has(branch)) return [branch, fromA.get(branch), distance];
+    distance += branch.length;
+  }
+  throw Error("Branch and cousin do not appear to share a common ancestor!");
+}
 
 /**
  * Computes the patristic distance between `cousin` and the Branch on which
@@ -241,8 +259,8 @@ Branch.prototype.distanceBetween = function(descendantA, descendantB) {
  * this method is called.
  */
 Branch.prototype.distanceTo = function(cousin) {
-  let mrca = this.getMRCA(cousin);
-  return mrca.depthOf(this) + mrca.depthOf(cousin);
+  let [, a, b] = distancesToMRCA(this, cousin);
+  return a + b;
 };
 
 /**
@@ -925,8 +943,8 @@ Branch.prototype.sort = function(comparator) {
  * false.
  */
 Branch.prototype.sources = function(cousin) {
-  let mrca = this.getMRCA(cousin);
-  return mrca.depthOf(this) < mrca.depthOf(cousin);
+  let [, a, b] = distancesToMRCA(this, cousin);
+  return a < b;
 };
 
 /**
