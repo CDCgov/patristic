@@ -1203,8 +1203,9 @@ export function parseMatrix(matrix, labels) {
   let N = (that.N = matrix.length);
   if (!labels) labels = [...Array(N).keys()];
   that.cN = that.N;
-  // Copy the matrix: neighbor joining overwrites it as it goes.
-  that.D = Array.from(matrix, row => Array.from(row));
+  // Copy the matrix: neighbor joining overwrites it as it goes. Distances
+  // given as strings (e.g. read from a CSV file) become numbers.
+  that.D = Array.from(matrix, row => Array.from(row, Number));
   that.labels = labels;
   that.labelToTaxon = {};
   that.currIndexToLabel = new Array(N);
@@ -1377,12 +1378,9 @@ function sumRows(a) {
   let n = a.length,
     sums = new Array(n);
   for (let i = 0; i < n; i++) {
-    let sum = 0;
-    for (let j = 0; j < n; j++) {
-      let v = parseFloat(a[i][j]);
-      if (typeof v !== "number") continue;
-      sum += a[i][j];
-    }
+    let row = a[i],
+      sum = 0;
+    for (let j = 0; j < n; j++) sum += row[j];
     sums[i] = sum;
   }
   return sums;

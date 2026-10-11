@@ -569,6 +569,13 @@ describe("parseMatrix", () => {
     expect(ids(t.getLeaves()).sort()).toEqual([0, 1, 2]);
   });
 
+  test("accepts distances given as numeric strings", () => {
+    let strings = additive.map(row => row.map(String));
+    expect(patristic.parseMatrix(strings, labels).toNewick()).toBe(
+      patristic.parseMatrix(copy(additive), labels).toNewick()
+    );
+  });
+
   test("recovers an additive matrix exactly", () => {
     let t = patristic.parseMatrix(copy(additive), labels);
     let { matrix, ids: order } = t.toMatrix();
