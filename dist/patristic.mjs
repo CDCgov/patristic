@@ -2245,3 +2245,4 @@ var patristic = /*#__PURE__*/Object.freeze({
 // package was CommonJS only.
 
 export { Branch, patristic as default, parseJSON, parseMatrix, parseNewick, version };
+//# sourceMappingURL=patristic.mjs.map

@@ -31,6 +31,8 @@
   doubled quote standing for one (`'O''Brien'`).
 - NHX annotations (`[&&NHX:key=value:...]`) are read into the `data.nhx` of the
   Branch they follow, and `toNewick` writes them back.
+- `dist/patristic.js` and `dist/patristic.mjs` come with source maps, which
+  hold the TypeScript source, so debuggers and stack traces can show it.
 
 ### Fixes
 
@@ -43,6 +45,11 @@
 - `parseNewick` scans the string once, without a regex split. That makes it
   about 1.7× faster on large trees: a 100,000-tip tree takes 117 ms instead of
   190 ms.
+
+### Tooling
+
+- `npm run coverage` reports coverage of `src/patristic.ts`, through the
+  bundles' source maps, rather than of the bundle.
 
 ## 0.7.0
 
