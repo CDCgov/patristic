@@ -570,20 +570,36 @@ export declare class Branch {
  */
 export declare function parseJSON(json: string | object, idLabel?: string, lengthLabel?: string, childrenLabel?: string): Branch;
 /**
- * Parses a matrix of distances and returns the root Branch of the output tree.
- * This is adapted from Maciej Korzepa's [neighbor-joining](https://github.com/biosustain/neighbor-joining),
+ * Builds a tree from a matrix of distances and returns its root Branch.
+ *
+ * By default this is neighbor joining, with RapidNJ's search, adapted from
+ * Maciej Korzepa's [neighbor-joining](https://github.com/biosustain/neighbor-joining),
  * which is released for modification under the [MIT License](https://opensource.org/licenses/MIT).
- * @param  {Array} matrix An array of `n` arrays of length `n`
+ * The `method` option chooses another algorithm:
+ * - `"bionj"`: BIONJ (Gascuel 1997), which joins the same way but computes
+ *   the new node's distances to reduce their variance, and is usually more
+ *   accurate than neighbor joining when distances are noisy.
+ *
+ * Neighbor joining and BIONJ trees are unrooted at heart; they're rooted
+ * where the last two nodes are joined.
+ * @param  {Array} matrix An array of `n` arrays of length `n`. Only the lower
+ * triangle is read, and the diagonal is taken to be zero.
  * @param  {Array} labels An array of `n` strings, each corresponding to the
  * values in `matrix`.
- * @param  {Object} [options] See ParseMatrixOptions; `{ float32: true }`
- * stores distances in half the memory, at single precision.
+ * @param  {Object} [options] See ParseMatrixOptions: `method` picks the
+ * algorithm, and `{ float32: true }` stores distances in half the memory, at
+ * single precision.
  * @return {Branch} A Branch object representing the root Branch of the tree
- * inferred by neighbor joining on `matrix`.
+ * inferred from `matrix`.
  */
 export declare function parseMatrix(matrix: ArrayLike<ArrayLike<number | string>>, labels?: Id[] | null, options?: ParseMatrixOptions): Branch;
 /** Options for [parseMatrix](#parseMatrix). */
 export interface ParseMatrixOptions {
+    /**
+     * The algorithm: neighbor joining (`"nj"`, the default) or BIONJ
+     * (`"bionj"`).
+     */
+    method?: "nj" | "bionj" | undefined;
     /**
      * Store distances as 32-bit floats, which halves the memory they take
      * (the matrix and each row's sorted copy) at the cost of precision:

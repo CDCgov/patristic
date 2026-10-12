@@ -1783,16 +1783,27 @@ export function parseJSON(
 }
 
 /**
- * Parses a matrix of distances and returns the root Branch of the output tree.
- * This is adapted from Maciej Korzepa's [neighbor-joining](https://github.com/biosustain/neighbor-joining),
+ * Builds a tree from a matrix of distances and returns its root Branch.
+ *
+ * By default this is neighbor joining, with RapidNJ's search, adapted from
+ * Maciej Korzepa's [neighbor-joining](https://github.com/biosustain/neighbor-joining),
  * which is released for modification under the [MIT License](https://opensource.org/licenses/MIT).
- * @param  {Array} matrix An array of `n` arrays of length `n`
+ * The `method` option chooses another algorithm:
+ * - `"bionj"`: BIONJ (Gascuel 1997), which joins the same way but computes
+ *   the new node's distances to reduce their variance, and is usually more
+ *   accurate than neighbor joining when distances are noisy.
+ *
+ * Neighbor joining and BIONJ trees are unrooted at heart; they're rooted
+ * where the last two nodes are joined.
+ * @param  {Array} matrix An array of `n` arrays of length `n`. Only the lower
+ * triangle is read, and the diagonal is taken to be zero.
  * @param  {Array} labels An array of `n` strings, each corresponding to the
  * values in `matrix`.
- * @param  {Object} [options] See ParseMatrixOptions; `{ float32: true }`
- * stores distances in half the memory, at single precision.
+ * @param  {Object} [options] See ParseMatrixOptions: `method` picks the
+ * algorithm, and `{ float32: true }` stores distances in half the memory, at
+ * single precision.
  * @return {Branch} A Branch object representing the root Branch of the tree
- * inferred by neighbor joining on `matrix`.
+ * inferred from `matrix`.
  */
 export function parseMatrix(
   matrix: ArrayLike<ArrayLike<number | string>>,
@@ -1801,7 +1812,12 @@ export function parseMatrix(
 ): Branch {
   let N = matrix.length;
   if (!labels) labels = [...Array(N).keys()];
-  let nj = new NeighborJoining(matrix, options?.float32 ?? false);
+  let method = options?.method ?? "nj";
+  let float32 = options?.float32 ?? false;
+  if (method !== "nj" && method !== "bionj") {
+    throw new Error(`Unknown parseMatrix method "${method}"; use "nj" or "bionj".`);
+  }
+  let nj = new NeighborJoining(matrix, float32, method === "bionj");
   // currIndexToLabel maps each row to the label of the taxon or joined node
   // it holds; labels from N up are joined nodes, in the order they were made.
   let currIndexToLabel = new Int32Array(N);
@@ -1840,7 +1856,7 @@ export function parseMatrix(
     d2 = dIJ - d1;
     let node1 = setUpNode(currIndexToLabel[minI], d1);
     let node2 = setUpNode(currIndexToLabel[minJ], d2);
-    nj.join(minI, minJ);
+    nj.join(minI, minJ, d1, d2);
     labelToNode[nextIndex] = join(node1, node2);
     currIndexToLabel[minI] = -1;
     currIndexToLabel[minJ] = nextIndex++;
@@ -1856,6 +1872,11 @@ export function parseMatrix(
 
 /** Options for [parseMatrix](#parseMatrix). */
 export interface ParseMatrixOptions {
+  /**
+   * The algorithm: neighbor joining (`"nj"`, the default) or BIONJ
+   * (`"bionj"`).
+   */
+  method?: "nj" | "bionj" | undefined;
   /**
    * Store distances as 32-bit floats, which halves the memory they take
    * (the matrix and each row's sorted copy) at the cost of precision:
@@ -1888,6 +1909,8 @@ class NeighborJoining {
   private N: number;
   /** The lower triangle of the distance matrix, row by row. */
   private D: FloatArray;
+  /** For BIONJ, the variances of the distances, laid out like D. */
+  private V: FloatArray | null;
   /** Where each row starts in D: i * (i - 1) / 2. */
   private rowStart: Float64Array;
   private removed: Uint8Array;
@@ -1901,7 +1924,11 @@ class NeighborJoining {
   private rowChange: Float64Array;
   private sorter: ArgSorter;
 
-  constructor(matrix: ArrayLike<ArrayLike<number | string>>, float32: boolean) {
+  constructor(
+    matrix: ArrayLike<ArrayLike<number | string>>,
+    float32: boolean,
+    bionj: boolean
+  ) {
     let N = (this.N = this.cN = matrix.length);
     let Floats = float32 ? Float32Array : Float64Array;
     this.rowStart = new Float64Array(N);
@@ -1913,6 +1940,8 @@ class NeighborJoining {
         start = this.rowStart[i];
       for (let j = 0; j < i; j++) D[start + j] = Number(row[j]);
     }
+    // BIONJ starts with the variances equal to the distances.
+    this.V = bionj ? D.slice() : null;
     this.removed = new Uint8Array(N);
     this.newRow = new Float64Array(N);
     this.rowChange = new Float64Array(N);
@@ -2011,8 +2040,15 @@ class NeighborJoining {
     return [minI, minJ];
   }
 
-  /** Joins rows i and j: removes row i and reuses row j for the new node. */
-  join(joinedIndex1: number, joinedIndex2: number): void {
+  /**
+   * Joins rows i and j: removes row i and reuses row j for the new node,
+   * whose branches to i and j have lengths d1 and d2.
+   */
+  join(joinedIndex1: number, joinedIndex2: number, d1: number, d2: number): void {
+    if (this.V) {
+      this.joinBIONJ(joinedIndex1, joinedIndex2, d1, d2, this.V);
+      return;
+    }
     let { D, rowStart, removed, rowSums, newRow, rowChange } = this,
       n = this.N,
       sum = 0,
@@ -2049,7 +2085,71 @@ class NeighborJoining {
     this.sortedLength[joinedIndex1] = 0;
     this.cN--;
   }
+
+  /**
+   * BIONJ's join (Gascuel 1997). The new node's distance to each row k is
+   * lambda * (D[i][k] - d1) + (1 - lambda) * (D[j][k] - d2), where lambda
+   * (clamped to [0, 1]) minimizes the variance of those distances; the
+   * variances V are updated alongside. With lambda = 1/2 this is neighbor
+   * joining's join.
+   */
+  private joinBIONJ(
+    i: number,
+    j: number,
+    d1: number,
+    d2: number,
+    V: FloatArray
+  ): void {
+    let { D, rowStart, removed, rowSums, newRow, rowChange } = this,
+      n = this.N,
+      r = this.cN;
+    let variance = (a: number, b: number) =>
+      a > b ? V[rowStart[a] + b] : V[rowStart[b] + a];
+    let vij = variance(i, j);
+    let lambda = 0.5;
+    if (vij !== 0) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        if (removed[k] || k === i || k === j) continue;
+        sum += variance(j, k) - variance(i, k);
+      }
+      lambda = Math.min(1, Math.max(0, 0.5 + sum / (2 * (r - 2) * vij)));
+    }
+    let newVariance = new Float64Array(n),
+      sum = 0,
+      newMax = 0;
+    removed[i] = 1;
+    for (let k = 0; k < n; k++) {
+      if (removed[k] || k === j) continue;
+      let dik = this.distance(i, k),
+        djk = this.distance(j, k);
+      newRow[k] = lambda * (dik - d1) + (1 - lambda) * (djk - d2);
+      newVariance[k] =
+        lambda * variance(i, k) +
+        (1 - lambda) * variance(j, k) -
+        lambda * (1 - lambda) * vij;
+      sum += newRow[k];
+      rowChange[k] = newRow[k] - dik - djk;
+    }
+    for (let k = 0; k < n; k++) {
+      if (removed[k] || k === j) continue;
+      let at = k > j ? rowStart[k] + j : rowStart[j] + k;
+      D[at] = newRow[k];
+      V[at] = newVariance[k];
+      rowSums[k] += rowChange[k];
+      if (rowSums[k] > newMax) newMax = rowSums[k];
+    }
+    rowSums[i] = 0;
+    rowSums[j] = sum;
+    if (sum > newMax) newMax = sum;
+    this.rowSumMax = newMax;
+
+    this.sortRow(j);
+    this.sortedLength[i] = 0;
+    this.cN--;
+  }
 }
+
 
 /**
  * @private
