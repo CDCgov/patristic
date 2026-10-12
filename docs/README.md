@@ -2,114 +2,134 @@
 
 ### Table of Contents
 
--   [version][1]
-    -   [Examples][2]
--   [Branch][3]
-    -   [Parameters][4]
-    -   [addChild][5]
-        -   [Parameters][6]
-    -   [addParent][7]
-        -   [Parameters][8]
-    -   [ancestors][9]
-    -   [clone][10]
-    -   [consolidate][11]
-    -   [copy][12]
-    -   [count][13]
-    -   [descendants][14]
-    -   [depthOf][15]
-        -   [Parameters][16]
-    -   [distanceBetween][17]
-        -   [Parameters][18]
-    -   [distanceTo][19]
-        -   [Parameters][20]
-    -   [each][21]
-        -   [Parameters][22]
-    -   [eachAfter][23]
-        -   [Parameters][24]
-    -   [eachBefore][25]
-        -   [Parameters][26]
-    -   [eachChild][27]
-        -   [Parameters][28]
-    -   [excise][29]
-    -   [fixDistances][30]
-    -   [fixParenthood][31]
-        -   [Parameters][32]
-    -   [flip][33]
-    -   [getAncestors][34]
-        -   [Parameters][35]
-    -   [getChild][36]
-        -   [Parameters][37]
-    -   [getDescendant][38]
-        -   [Parameters][39]
-    -   [getDescendants][40]
-        -   [Parameters][41]
-    -   [getLeafs][42]
-    -   [getLeaves][43]
-    -   [getMRCA][44]
-        -   [Parameters][45]
-    -   [getRoot][46]
-    -   [hasChild][47]
-        -   [Parameters][48]
-    -   [hasDescendant][49]
-        -   [Parameters][50]
-    -   [hasLeaf][51]
-        -   [Parameters][52]
-    -   [invert][53]
-    -   [isChildOf][54]
-        -   [Parameters][55]
-    -   [isConsistent][56]
-    -   [isDescendantOf][57]
-        -   [Parameters][58]
-    -   [isLeaf][59]
-    -   [isolate][60]
-    -   [isRoot][61]
-    -   [leafs][62]
-    -   [leaves][63]
-    -   [links][64]
-    -   [normalize][65]
-        -   [Parameters][66]
-        -   [Examples][67]
-    -   [path][68]
-        -   [Parameters][69]
-    -   [remove][70]
-    -   [replace][71]
-        -   [Parameters][72]
-    -   [reroot][73]
-        -   [Examples][74]
-    -   [rotate][75]
-        -   [Parameters][76]
-    -   [setLength][77]
-        -   [Parameters][78]
-    -   [setParent][79]
-        -   [Parameters][80]
-    -   [simplify][81]
-    -   [sort][82]
-        -   [Parameters][83]
-    -   [sources][84]
-        -   [Parameters][85]
-    -   [sum][86]
-        -   [Parameters][87]
-    -   [targets][88]
-        -   [Parameters][89]
-    -   [toJSON][90]
-    -   [toMatrix][91]
-    -   [toNewick][92]
-        -   [Parameters][93]
-    -   [toObject][94]
-    -   [toString][95]
-        -   [Parameters][96]
--   [parseJSON][97]
-    -   [Parameters][98]
--   [parseMatrix][99]
-    -   [Parameters][100]
--   [parseNewick][101]
-    -   [Parameters][102]
+*   [version][1]
+    *   [Examples][2]
+*   [Id][3]
+*   [BranchData][4]
+*   [BranchObject][5]
+*   [DistanceMatrix][6]
+*   [Link][7]
+*   [Branch][8]
+    *   [Parameters][9]
+    *   [\_guid][10]
+    *   [id][11]
+    *   [length][12]
+    *   [depth][13]
+    *   [height][14]
+    *   [value][15]
+    *   [representing][16]
+    *   [data][17]
+    *   [parent][18]
+    *   [children][19]
+    *   [addChild][20]
+        *   [Parameters][21]
+    *   [addParent][22]
+        *   [Parameters][23]
+    *   [ancestors][24]
+    *   [clone][25]
+    *   [consolidate][26]
+    *   [copy][27]
+    *   [count][28]
+    *   [descendants][29]
+    *   [depthOf][30]
+        *   [Parameters][31]
+    *   [distanceBetween][32]
+        *   [Parameters][33]
+    *   [distanceTo][34]
+        *   [Parameters][35]
+    *   [each][36]
+        *   [Parameters][37]
+    *   [eachAfter][38]
+        *   [Parameters][39]
+    *   [eachBefore][40]
+        *   [Parameters][41]
+    *   [eachChild][42]
+        *   [Parameters][43]
+    *   [excise][44]
+    *   [fixDistances][45]
+    *   [fixParenthood][46]
+        *   [Parameters][47]
+    *   [flip][48]
+    *   [getAncestors][49]
+        *   [Parameters][50]
+    *   [getChild][51]
+        *   [Parameters][52]
+    *   [getDescendant][53]
+        *   [Parameters][54]
+    *   [getDescendants][55]
+        *   [Parameters][56]
+    *   [getLeafs][57]
+    *   [getLeaves][58]
+    *   [getMRCA][59]
+        *   [Parameters][60]
+    *   [getRoot][61]
+    *   [hasChild][62]
+        *   [Parameters][63]
+    *   [hasDescendant][64]
+        *   [Parameters][65]
+    *   [hasLeaf][66]
+        *   [Parameters][67]
+    *   [invert][68]
+    *   [isChildOf][69]
+        *   [Parameters][70]
+    *   [isConsistent][71]
+    *   [isDescendantOf][72]
+        *   [Parameters][73]
+    *   [isLeaf][74]
+    *   [isolate][75]
+    *   [isRoot][76]
+    *   [leafs][77]
+    *   [leaves][78]
+    *   [links][79]
+    *   [normalize][80]
+        *   [Parameters][81]
+        *   [Examples][82]
+    *   [path][83]
+        *   [Parameters][84]
+    *   [remove][85]
+        *   [Parameters][86]
+    *   [removeIfNoChildren][87]
+        *   [Parameters][88]
+    *   [replace][89]
+        *   [Parameters][90]
+    *   [reroot][91]
+        *   [Examples][92]
+    *   [rotate][93]
+        *   [Parameters][94]
+    *   [setLength][95]
+        *   [Parameters][96]
+    *   [setParent][97]
+        *   [Parameters][98]
+    *   [simplify][99]
+    *   [sort][100]
+        *   [Parameters][101]
+    *   [sources][102]
+        *   [Parameters][103]
+    *   [sum][104]
+        *   [Parameters][105]
+    *   [targets][106]
+        *   [Parameters][107]
+    *   [toJSON][108]
+    *   [toMatrix][109]
+    *   [toNewick][110]
+        *   [Parameters][111]
+    *   [toObject][112]
+    *   [toString][113]
+        *   [Parameters][114]
+*   [parseJSON][115]
+    *   [Parameters][116]
+*   [parseMatrix][117]
+    *   [Parameters][118]
+*   [ParseMatrixOptions][119]
+    *   [float32][120]
+*   [parseNewick][121]
+    *   [Parameters][122]
 
 ## version
 
-The [SemVer][103] version string of the patristic library
+The [SemVer][123] version string of the patristic library
 
-Type: [String][104]
+Type: [String][124]
 
 ### Examples
 
@@ -117,20 +137,131 @@ Type: [String][104]
 console.log(patristic.version);
 ```
 
+## Id
+
+A Branch's identifier. Trees built by parseMatrix without labels use numbers.
+
+Type: ([string][124] | [number][125])
+
+## BranchData
+
+Data a Branch is built from. Its known attributes initialize the Branch's;
+the whole object is kept as the Branch's `data`.
+
+## BranchObject
+
+A serializable representation of a Branch and its descendants.
+
+## DistanceMatrix
+
+Patristic distances between leaves, and the ids of the leaves in order.
+
+## Link
+
+A link from a parent Branch to one of its children.
+
 ## Branch
 
 A class for representing Branches in trees.
 It's written predominantly for phylogenetic trees (hence the
-[Newick parser][105],
-[neighbor-joining implementation][106], etc.), but could
+[Newick parser][126],
+[neighbor-joining implementation][127], etc.), but could
 conceivably be useful for representing other types of trees as well.
+
+A tree's data is stored in typed arrays; a Branch is a view onto one entry,
+made when it's first asked for and kept from then on. Its links (`parent`
+and `children`) can't disagree: setting either updates both sides.
 
 ### Parameters
 
--   `data` **[Object][107]?** An object containing data you wish to assign to
+*   `data` **[Object][128]?** An object containing data you wish to assign to
     this Branch object. In particular, intended to overwrite the default
     attributes of a Branch, namely `id`, `parent`, `length`, and `children`.
--   `children`  
+*   `children` **function (data: [BranchData][4]): ([Array][129]<[Branch][8]> | null | [undefined][130])?**&#x20;
+
+### \_guid
+
+A number unique to this Branch within the loaded library.
+
+Type: [number][125]
+
+### id
+
+This Branch's identifier.
+
+Type: [Id][3]
+
+Returns **[Id][3]**&#x20;
+
+### length
+
+The length of the edge from this Branch to its parent.
+
+Type: [number][125]
+
+Returns **[number][125]**&#x20;
+
+### depth
+
+The number of edges from the root (set by fixDistances).
+
+Type: [number][125]
+
+Returns **[number][125]**&#x20;
+
+### height
+
+The greatest number of edges to a leaf below (set by fixDistances).
+
+Type: [number][125]
+
+Returns **[number][125]**&#x20;
+
+### value
+
+A value for layouts and sorting (see count, sum and fixDistances).
+
+Type: [number][125]
+
+Returns **[number][125]**&#x20;
+
+### representing
+
+How many Branches this one stands for, after excising others into it.
+
+Type: [number][125]
+
+Returns **[number][125]**&#x20;
+
+### data
+
+The data this Branch was made from, or an empty object.
+
+Type: [BranchData][4]
+
+Returns **[BranchData][4]**&#x20;
+
+### parent
+
+This Branch's parent, or null for a root. Setting it moves this Branch
+(with its subtree) to be the last child of the new parent, or detaches
+it if set to null.
+
+Type: ([Branch][8] | null)
+
+Returns **([Branch][8] | null)**&#x20;
+
+### children
+
+This Branch's children, as a new array, or undefined for a leaf (as in
+d3-hierarchy). Changing the array doesn't change the tree. Assigning an
+array of Branches makes them the children, in that order; children left
+out are detached, and assigning null or an empty array makes this Branch
+a leaf.
+
+Type: ([Array][129]<[Branch][8]> | [undefined][130])
+
+Returns **([Array][129]<[Branch][8]> | [undefined][130])**&#x20;
 
 ### addChild
 
@@ -138,28 +269,33 @@ Adds a new child to this Branch
 
 #### Parameters
 
--   `data` **([Branch][108] \| [Object][107])** The new Branch, or data to attach to it. (optional, default `{}`)
+*   `data` **([Branch][8] | [Object][128])** The new Branch, or data to attach to it. (optional, default `{}`)
 
-Returns **[Branch][108]** The (possibly new) child Branch
+Returns **[Branch][8]** The (possibly new) child Branch
 
 ### addParent
 
-Adds a new parent to this Branch. This is a bit esoteric and generally not
+Adds a new parent to this Branch, inserting it between this Branch and its
+current parent (if any). This is a bit esoteric and generally not
 recommended.
 
 #### Parameters
 
--   `data` **([Branch][108] \| [Object][107])** A Branch object, or the data to attach to one (optional, default `{}`)
--   `siblings` **[Array][109]** An array of Branches to be the children of the new parent Branch (i.e. siblings of this Branch) (optional, default `[]`)
+*   `data` **([Branch][8] | [Object][128])** A Branch object, or the data to attach to one (optional, default `{}`)
+*   `siblings` **[Array][129]** An array of Branches to be the children of the
+    new parent Branch (i.e. siblings of this Branch). They are detached from
+    wherever they were in the tree. (optional, default `[]`)
 
-Returns **[Branch][108]** The Branch on which this was called
+Returns **[Branch][8]** The Branch on which this was called
 
 ### ancestors
 
 Returns an array of Branches from this Branch to the root.
-[d3-hierarchy compatibility method.][110]
+[d3-hierarchy compatibility method.][131]
 
-Type: [Array][109]
+Type: [Array][129]
+
+Returns **[Array][129]<[Branch][8]>**&#x20;
 
 ### clone
 
@@ -167,37 +303,41 @@ Returns a deep clone of the Branch on which it is called. Note that this does
 not clone all descendants, rather than providing references to the existing
 descendant Branches.
 
-Returns **[Branch][108]** A clone of the Branch on which it is called.
+Returns **[Branch][8]** A clone of the Branch on which it is called.
 
 ### consolidate
 
 All descendant Branches with near-zero length are excised
 
-Returns **[Branch][108]** The Branch on which this method was called.
+Returns **[Branch][8]** The Branch on which this method was called.
 
 ### copy
 
 Returns a clone of the Branch on which it is called. Note that this also
 clones all descendants, rather than providing references to the existing
-descendant Branches. (For a shallow clone, see [Branch.clone][10].
+descendant Branches. (For a shallow clone, see [Branch.clone][25].
 Finally, the cloned Branch will become the root of the cloned tree, having a
 parent of `null`.
-[d3-hierarchy compatibility method.][111]
+[d3-hierarchy compatibility method.][132]
 
-Returns **[Branch][108]** A clone of the Branch on which it is called.
+Returns **[Branch][8]** A clone of the Branch on which it is called.
 
 ### count
 
-Sets the values of all nodes to be equal to the number of their descendants.
+Sets the value of each Branch to the number of leaves in its subtree (1
+for a leaf), as d3-hierarchy's count does.
+[d3-hierarchy compatibility method.][133]
 
-Returns **[Branch][108]** The Branch on which it was called
+Returns **[Branch][8]** The Branch on which it was called
 
 ### descendants
 
 Returns an array pf descendants, starting with this Branch.
-[d3-hierarchy compatibility method.][112]
+[d3-hierarchy compatibility method.][134]
 
-Type: [Array][109]
+Type: [Array][129]
+
+Returns **[Array][129]<[Branch][8]>**&#x20;
 
 ### depthOf
 
@@ -206,10 +346,10 @@ called.
 
 #### Parameters
 
--   `descendant` **([Branch][108] \| [String][104])** A descendant Branch (or `id` string
+*   `descendant` **([Branch][8] | [String][124])** A descendant Branch (or `id` string
     thereof)
 
-Returns **[Number][113]** The sum of the lengths of all Branches between the Branch on
+Returns **[Number][125]** The sum of the lengths of all Branches between the Branch on
 which it is called and `descendant`. Throws an error if `descendant` is not a
 descendant of this Branch.
 
@@ -219,11 +359,11 @@ Computes the patristic distance between `descendantA` and `descendantB`.
 
 #### Parameters
 
--   `descendantA` **[Branch][108]** The Branch from which you wish to compute
+*   `descendantA` **[Branch][8]** The Branch from which you wish to compute
     distance
--   `descendantB` **[Branch][108]** The Branch to which you wish to compute distance
+*   `descendantB` **[Branch][8]** The Branch to which you wish to compute distance
 
-Returns **[number][113]** The patristic distance between the given descendants.
+Returns **[number][125]** The patristic distance between the given descendants.
 
 ### distanceTo
 
@@ -232,46 +372,46 @@ this method is called.
 
 #### Parameters
 
--   `cousin` **[Branch][108]** The Branch to which you wish to compute distance
+*   `cousin` **[Branch][8]** The Branch to which you wish to compute distance
 
-Returns **[number][113]** The patristic distance between `cousin` and the Branch on
+Returns **[number][125]** The patristic distance between `cousin` and the Branch on
 this method is called.
 
 ### each
 
 Visits each Branch descended from the Branch on which it is called in
-[Breadth First Search][114]
+[Breadth First Search][135]
 order and returns the Branch on which it was called.
 
 #### Parameters
 
--   `callback` **[Function][115]** The function to be run on each Branch
+*   `callback` **[Function][136]** The function to be run on each Branch
 
-Returns **[Branch][108]** The Branch on which it was called.
+Returns **[Branch][8]** The Branch on which it was called.
 
 ### eachAfter
 
 Visits each Branch descended from the Branch on which it is called in
-[post-traversal order][116]
+[post-traversal order][137]
 and returns the Branch on which it was called.
 
 #### Parameters
 
--   `callback` **[Function][115]** Function to run on each Branch
+*   `callback` **[Function][136]** Function to run on each Branch
 
-Returns **[Branch][108]** The Branch on which it was called
+Returns **[Branch][8]** The Branch on which it was called
 
 ### eachBefore
 
 Visits each Branch descended from the Branch on which it is called in
-[pre-traversal order][117]
+[pre-traversal order][138]
 and returns the Branch on which it was called.
 
 #### Parameters
 
--   `callback` **[Function][115]** [description]
+*   `callback` **[Function][136]** \[description]
 
-Returns **\[type]** [description]
+Returns **\[type]** \[description]
 
 ### eachChild
 
@@ -279,21 +419,25 @@ Runs a function on each child of the Branch on which it is called.
 
 #### Parameters
 
--   `callback` **[Function][115]** The function to run on each child.
+*   `callback` **[Function][136]** The function to run on each child.
 
-Returns **[Branch][108]** The Branch on which it was called.
+Returns **[Branch][8]** The Branch on which it was called.
 
 ### excise
 
 Excises the Branch on which it is called and updates its parent and children.
+Excising a root Branch with a single child makes that child the new root.
 
-Returns **[Branch][108]** The parent of the excised Branch.
+Returns **[Branch][8]** The parent of the excised Branch, or the new root if the
+excised Branch was the root.
 
 ### fixDistances
 
-Sets the distance values (height and depth) for each Branch
+Sets the distance values (height and depth) for each Branch, and sets each
+Branch's value to the number of Branches in its subtree (see
+[Branch.count][28]).
 
-Returns **[Branch][108]** The Branch on which it is called.
+Returns **[Branch][8]** The Branch on which it is called.
 
 ### fixParenthood
 
@@ -301,33 +445,33 @@ Repairs incorrect links by recurively confirming that children reference
 their parents, and correcting those references if they do not.
 
 If you need to call this, something has messed up the state of your tree
-and you should be concerned about that. Just FYI. ¯\\_(ツ)_/¯
+and you should be concerned about that. Just FYI. ¯\\*(ツ)*/¯
 
 #### Parameters
 
--   `nonrecursive` **[Boolean][118]** Should this just fix the children of the
+*   `nonrecursive` **[Boolean][139]** Should this just fix the children of the
     Branch on which it is called, or all descendants?
 
-Returns **[Branch][108]** The Branch on which it was called.
+Returns **[Branch][8]** The Branch on which it was called.
 
 ### flip
 
 Reverses the order of (all of) the descendants of the Branch.
 
-Returns **[Branch][108]** The Branch on which this was called.
+Returns **[Branch][8]** The Branch on which this was called.
 
 ### getAncestors
 
 Returns an Array of all the ancestors of the Branch on which it is called.
 Note that this does not include itself. For all ancestors and itself, see
-[Branch.ancestors][9]
+[Branch.ancestors][24]
 
 #### Parameters
 
--   `includeSelf` **[Boolean][118]** Should the Branch on which this is called be
+*   `includeSelf` **[Boolean][139]** Should the Branch on which this is called be
     included in the results?
 
-Returns **[Array][109]** Every Ancestor of the Branch on which it was called.
+Returns **[Array][129]** Every Ancestor of the Branch on which it was called.
 
 ### getChild
 
@@ -336,9 +480,10 @@ child is present).
 
 #### Parameters
 
--   `childID` **[String][104]** the ID of the child to return.
+*   `childID` **([String][124] | [Number][125])** the ID of the child to return. (Trees
+    built by [parseMatrix][127] without labels have numeric ids.)
 
-Returns **([Branch][108] \| [undefined][119])** The desired child Branch, or `undefined` if the
+Returns **([Branch][8] | [undefined][130])** The desired child Branch, or `undefined` if the
 child doesn't exist.
 
 ### getDescendant
@@ -348,9 +493,9 @@ Given an id string, returns the descendant Branch with that ID, or
 
 #### Parameters
 
--   `id` **[String][104]** The id string of the Branch to find
+*   `id` **[String][124]** The id string of the Branch to find
 
-Returns **([Branch][108] \| [undefined][119])** The descendant Branch, or `undefined` if it
+Returns **([Branch][8] | [undefined][130])** The descendant Branch, or `undefined` if it
 doesn't exist
 
 ### getDescendants
@@ -359,36 +504,37 @@ Returns an array of all Branches which are descendants of this Branch
 
 #### Parameters
 
--   `includeSelf` **[Boolean][118]?** Is this not the Branch on which the user
+*   `includeSelf` **[Boolean][139]?** Is this not the Branch on which the user
     called the function? This is used internally and should be ignored.
 
-Returns **[Array][109]** An array of all Branches descended from this Branch
+Returns **[Array][129]** An array of all Branches descended from this Branch
 
 ### getLeafs
 
 Returns an array of all leaves which are descendants of this Branch.
-Alias of [getLeaves][120] for people whose strong suit isn't spelling.
+Alias of [getLeaves][140] for people whose strong suit isn't spelling.
 
-Returns **[Array][109]** An array of all leaves descended from this Branch
+Returns **[Array][129]** An array of all leaves descended from this Branch
 
 ### getLeaves
 
 Returns an array of all leaves which are descendants of this Branch
-See also: [getLeafs][121]
+See also: [getLeafs][141]
 
-Returns **[Array][109]** An array of all leaves descended from this Branch
+Returns **[Array][129]** An array of all leaves descended from this Branch
 
 ### getMRCA
 
 Traverses the tree upward until it finds the Most Recent Common Ancestor
 (i.e. the first Branch for which both the Branch on which it was called and
-`cousin` are descendants).
+`cousin` are descendants). A Branch counts as its own descendant here, so
+the MRCA of a Branch and one of its ancestors is that ancestor.
 
 #### Parameters
 
--   `cousin`  
+*   `cousin` **[Branch][8]**&#x20;
 
-Returns **[Branch][108]** The Most Recent Common Ancestor of both the Branch on
+Returns **[Branch][8]** The Most Recent Common Ancestor of both the Branch on
 which it was called and the `cousin`.
 
 ### getRoot
@@ -396,7 +542,7 @@ which it was called and the `cousin`.
 Traverses the tree upward until it finds the root Branch, and returns the
 root.
 
-Returns **[Branch][108]** The root Branch of the tree
+Returns **[Branch][8]** The root Branch of the tree
 
 ### hasChild
 
@@ -404,9 +550,9 @@ Determines if a given Branch (or ID) is a child of this Branch
 
 #### Parameters
 
--   `child` **([Branch][108] \| [String][104])** The Branch (or the id thereof) to check for
+*   `child` **([Branch][8] | [String][124])** The Branch (or the id thereof) to check for
 
-Returns **[Boolean][118]** 
+Returns **[Boolean][139]**&#x20;
 
 ### hasDescendant
 
@@ -415,10 +561,10 @@ method is called.
 
 #### Parameters
 
--   `descendant` **([Branch][108] \| [String][104])** Either the descendant Branch or its'
+*   `descendant` **([Branch][8] | [String][124])** Either the descendant Branch or its'
     `id`.
 
-Returns **[Boolean][118]** True if `descendant` is descended from the Branch from
+Returns **[Boolean][139]** True if `descendant` is descended from the Branch from
 which this is called, otherwise false.
 
 ### hasLeaf
@@ -427,17 +573,17 @@ Checks to see if a Branch has a descendant leaf.
 
 #### Parameters
 
--   `leaf`  
+*   `leaf` **([Branch][8] | [string][124])**&#x20;
 
-Returns **[Boolean][118]** True if leaf is both a leaf and a descendant of the
+Returns **[Boolean][139]** True if leaf is both a leaf and a descendant of the
 Branch on which this method is called, False otherwise.
 
 ### invert
 
 Swaps the branch on which it is called with its parent. This method is
-probably only useful as an internal component of [Branch.reroot][73].
+probably only useful as an internal component of [Branch.reroot][91].
 
-Returns **[Branch][108]** The Branch object on which it was called.
+Returns **[Branch][8]** The Branch object on which it was called.
 
 ### isChildOf
 
@@ -446,10 +592,10 @@ Returns whether the Branch on which it is called is a child of a given parent
 
 #### Parameters
 
--   `parent` **([Branch][108] \| [String][104])** A Branch (or ID thereof) to test for
+*   `parent` **([Branch][8] | [String][124])** A Branch (or ID thereof) to test for
     paternity of this Branch.
 
-Returns **[Boolean][118]** True is `parent` is the parent of this Branch, false
+Returns **[Boolean][139]** True is `parent` is the parent of this Branch, false
 otherwise.
 
 ### isConsistent
@@ -457,25 +603,25 @@ otherwise.
 Tests whether this and each descendant Branch holds correct links to both
 its parent and its children.
 
-Returns **[Boolean][118]** True if consistent, otherwise false
+Returns **[Boolean][139]** True if consistent, otherwise false
 
 ### isDescendantOf
 
 Returns whether a given Branch is an ancestor of the Branch on which this
-method is called. Uses recursive tree-climbing.
+method is called.
 
 #### Parameters
 
--   `ancestor` **[Branch][108]** The Branch to check for ancestorhood
+*   `ancestor` **[Branch][8]** The Branch to check for ancestorhood
 
-Returns **[Boolean][118]** If this Branch is descended from `ancestor`
+Returns **[Boolean][139]** If this Branch is descended from `ancestor`
 
 ### isLeaf
 
 Returns a boolean indicating if this Branch is a leaf (i.e. has no
 children).
 
-Returns **[Boolean][118]** True is this Branch is a leaf, otherwise false.
+Returns **[Boolean][139]** True is this Branch is a leaf, otherwise false.
 
 ### isolate
 
@@ -484,41 +630,45 @@ Returns a boolean indicating whether or not this Branch is olate.
 ...Just kidding!
 
 Isolates a Branch and its subtree (i.e. removes everything above it, making
-it the root Branch). Similar to [Branch.remove][70], only it returns
+it the root Branch). Similar to [Branch.remove][85], only it returns
 the Branch on which it is called.
 
-Returns **[Branch][108]** The Branch object on which it was called.
+Returns **[Branch][8]** The Branch object on which it was called.
 
 ### isRoot
 
 Returns a boolean indicating if this Branch is the root of a tree (i.e. has
 no parents).
 
-Returns **[Boolean][118]** True if this Branch is the root, otherwise false.
+Returns **[Boolean][139]** True if this Branch is the root, otherwise false.
 
 ### leafs
 
 Returns the array of leaf nodes in traversal order; leaves are nodes with no
-children. Alias of [Branch.getLeaves][120] \`cuz spelling is hard.
+children. Alias of [Branch.getLeaves][140] \`cuz spelling is hard.
 
-Type: [Array][109]
+Type: [Array][129]
+
+Returns **[Array][129]<[Branch][8]>**&#x20;
 
 ### leaves
 
 Returns the array of leaf nodes in traversal order; leaves are nodes with no
-children. Alias of [Branch.getLeaves][120].
-[d3-hierarchy compatibility method.][122]
+children. Alias of [Branch.getLeaves][140].
+[d3-hierarchy compatibility method.][142]
 
-Type: [Array][109]
+Type: [Array][129]
+
+Returns **[Array][129]<[Branch][8]>**&#x20;
 
 ### links
 
 Returns an Array of links, which are plain javascript objects containing a
 `source` attribute (which is a reference to the parent Branch) and a `target`
 attribute (which is a reference to the child Branch).
-[d3-hierarchy compatibility method][123]
+[d3-hierarchy compatibility method][143]
 
-Returns **[Array][109]** An array of plain Javascript objects
+Returns **[Array][129]** An array of plain Javascript objects
 
 ### normalize
 
@@ -528,8 +678,8 @@ when passed an original range. For example:
 
 #### Parameters
 
--   `newmin` **[Number][113]** The desired minimum value.
--   `newmax` **[Number][113]** The desired maximum value.
+*   `newmin` **[Number][125]** The desired minimum value.
+*   `newmax` **[Number][125]** The desired maximum value.
 
 #### Examples
 
@@ -537,7 +687,7 @@ when passed an original range. For example:
 tree.normalize().normalize(1, tree.getDescendants().length + 1);
 ```
 
-Returns **[Branch][108]** The Branch on which it was called.
+Returns **[Branch][8]** The Branch on which it was called.
 
 ### path
 
@@ -546,29 +696,46 @@ the same, returns an array containing only the Branch on which it is called.
 
 #### Parameters
 
--   `target` **[Branch][108]** A Branch object
+*   `target` **[Branch][8]** A Branch object
 
-Returns **[Array][109]** An ordered Array of Branches following the path between this
+Returns **[Array][129]** An ordered Array of Branches following the path between this
 Branch and `target`
 
 ### remove
 
 Removes a Branch and its subtree from the tree. Similar to
-[Branch.isolate][60], only it returns the root Branch of the tree
+[Branch.isolate][75], only it returns the root Branch of the tree
 from which this Branch is removed.
-
-Returns **[Branch][108]** The root of the remaining tree.
-
-### replace
-
-Removes a Branch and its subtree from the tree, and replaces it.
 
 #### Parameters
 
--   `replacement` **[Branch][108]** The branch to replace the branch on which the
+*   `pruneAncestors` **[Boolean][139]** If true, removes ancestors with no remaining children as well
+
+Returns **[Branch][8]** The root of the remaining tree.
+
+### removeIfNoChildren
+
+Removes the branch if it has no children. Then recursively removes all
+ancestors with no children.
+
+#### Parameters
+
+*   `nonrecursive` **[Boolean][139]** If true, does not remove ancestors with no children
+
+Returns **[Branch][8]** The root of the modified tree.
+
+### replace
+
+Removes a Branch and its subtree from the tree, and replaces it. The
+replacement is detached from wherever it was, and the replaced Branch
+becomes the root of its own tree.
+
+#### Parameters
+
+*   `replacement` **[Branch][8]** The branch to replace the branch on which the
     method is called.
 
-Returns **[Branch][108]** The root of the modified tree.
+Returns **[Branch][8]** The root of the modified tree.
 
 ### reroot
 
@@ -582,7 +749,7 @@ not replace that root automatically.
 tree = tree.children[0].children[0].reroot();
 ```
 
-Returns **[Branch][108]** The new root Branch, which is the Branch on which this was
+Returns **[Branch][8]** The new root Branch, which is the Branch on which this was
 called
 
 ### rotate
@@ -591,9 +758,9 @@ Reverses the order of the children of the branch on which it is called.
 
 #### Parameters
 
--   `recursive`  
+*   `recursive` **[boolean][139]?**&#x20;
 
-Returns **[Branch][108]** The Branch on which this was called.
+Returns **[Branch][8]** The Branch on which this was called.
 
 ### setLength
 
@@ -601,9 +768,9 @@ Set the length of a Branch
 
 #### Parameters
 
--   `length` **[number][113]** The new length to assign to the Branch
+*   `length` **[number][125]** The new length to assign to the Branch
 
-Returns **[Branch][108]** The Branch object on which this was called
+Returns **[Branch][8]** The Branch object on which this was called
 
 ### setParent
 
@@ -611,16 +778,16 @@ Sets the parent of the Branch on which it is called.
 
 #### Parameters
 
--   `parent` **[Branch][108]** The Branch to set as parent
+*   `parent` **[Branch][8]** The Branch to set as parent
 
-Returns **[Branch][108]** The Branch on which this method was called.
+Returns **[Branch][8]** The Branch on which this method was called.
 
 ### simplify
 
 Collapses each descendant Branch with exactly one child into a single
-continuous branch.
+continuous branch. The Branch on which it is called is left in place.
 
-Returns **[Branch][108]** The Branch on which this method was called.
+Returns **[Branch][8]** The Branch on which this method was called.
 
 ### sort
 
@@ -628,10 +795,10 @@ Sorts the Tree from the branch on which it is called downward.
 
 #### Parameters
 
--   `comparator` **[Function][115]?** A Function taking two Branches and returning
-    a numberic value. For details, see [MDN Array.sort][124]
+*   `comparator` **[Function][136]?** A Function taking two Branches and returning
+    a numberic value. For details, see [MDN Array.sort][144]
 
-Returns **[Branch][108]** The Branch on which it was called
+Returns **[Branch][8]** The Branch on which it was called
 
 ### sources
 
@@ -640,9 +807,9 @@ if `cousin` is a source of this Branch.
 
 #### Parameters
 
--   `cousin` **[Branch][108]** The other Branch to test
+*   `cousin` **[Branch][8]** The other Branch to test
 
-Returns **[Boolean][118]** True if this might be the source of cousin, otherwise
+Returns **[Boolean][139]** True if this might be the source of cousin, otherwise
 false.
 
 ### sum
@@ -651,10 +818,10 @@ Computes the value of each Branch according to some valuator function
 
 #### Parameters
 
--   `value` **[Function][115]** A Function taking a Branch and returning a
+*   `value` **[Function][136]** A Function taking a Branch and returning a
     (numeric?) value.
 
-Returns **[Branch][108]** The Branch on which it was called.
+Returns **[Branch][8]** The Branch on which it was called.
 
 ### targets
 
@@ -663,26 +830,26 @@ if `cousin` is a target of this Branch.
 
 #### Parameters
 
--   `cousin` **[Branch][108]** The other Branch to test
+*   `cousin` **[Branch][8]** The other Branch to test
 
-Returns **[Boolean][118]** True if this might be the target of cousin, otherwise
+Returns **[Boolean][139]** True if this might be the target of cousin, otherwise
 false.
 
 ### toJSON
 
-toJSON is an alias for [toObject][125], enabling the safe use of
+toJSON is an alias for [toObject][145], enabling the safe use of
 `JSON.stringify` on Branch objects (in spite of their circular references).
 
-Type: [Function][115]
+Type: [Function][136]
 
-Returns **[Object][107]** A serializable Object
+Returns **[Object][128]** A serializable Object
 
 ### toMatrix
 
 Computes a matrix of all patristic distances between all leaves which are
 descendants of the Branch on which this method is called.
 
-Returns **[Object][107]** An Object containing a matrix (an Array of Arrays) and
+Returns **[Object][128]** An Object containing a matrix (an Array of Arrays) and
 Array of `id`s corresponding to the rows (and columns) of the matrix.
 
 ### toNewick
@@ -691,12 +858,12 @@ Returns the Newick representation of this Branch and its descendants.
 
 #### Parameters
 
--   `nonterminus` **[Boolean][118]** Is this not the terminus of the
+*   `nonterminus` **[Boolean][139]** Is this not the terminus of the
     Newick Tree? This should be falsy when called by a user (i.e. you). It's
     used internally to decide whether or not in include a semicolon in the
     returned string. (optional, default `falsy`)
 
-Returns **[String][104]** The [Newick][126]
+Returns **[String][124]** The [Newick][146]
 representation of the Branch.
 
 ### toObject
@@ -707,7 +874,7 @@ descendants. This is useful in cases where you want to serialize the tree
 references (for simplicity, elegance, and performance reasons, each Branch
 tracks both its children and its parent).
 
-Returns **[Object][107]** A serializable bare Javascript Object representing this
+Returns **[Object][128]** A serializable bare Javascript Object representing this
 Branch and its descendants.
 
 ### toString
@@ -716,13 +883,13 @@ Returns a valid JSON-string version of this Branch and its descendants.
 
 #### Parameters
 
--   `replacer` **[Function][115]** A replacer function to [pass to `JSON.stringify`][127].
--   `width`  
--   `space` **([Number][113] \| [String][104])** A string or number of spaces to use for
-    indenting the output. See [https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Parameters][127]
+*   `replacer` **[Function][136]** A replacer function to [pass to `JSON.stringify`][147].
+*   `width` **([string][124] | [number][125])?**&#x20;
+*   `space` **([Number][125] | [String][124])** A string or number of spaces to use for
+    indenting the output. See [https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global\_Objects/JSON/stringify#Parameters][147]
     for additional details.
 
-Returns **[Object][107]** A valid JSON string representing this Branch and its
+Returns **[Object][128]** A valid JSON string representing this Branch and its
 descendants.
 
 ## parseJSON
@@ -731,302 +898,357 @@ Parses a hierarchical JSON string (or Object) as a Branch object.
 
 ### Parameters
 
--   `json` **([String][104] \| [Object][107])** A json string (or Javascript Object)
+*   `json` **([String][124] | [Object][128])** A json string (or Javascript Object)
     representing hierarchical data.
--   `idLabel` **[String][104]** The key used in the objects of `json` to
+*   `idLabel` **[String][124]** The key used in the objects of `json` to
     indicate their identifiers. (optional, default `"id"`)
--   `lengthLabel` **[String][104]** The key used in the objects of `json`
+*   `lengthLabel` **[String][124]** The key used in the objects of `json`
     to indicate their length. (optional, default `'length'`)
--   `childrenLabel` **[String][104]** The key used in the objects of
+*   `childrenLabel` **[String][124]** The key used in the objects of
     `json` to indicate their children. (optional, default `` `children` ``)
 
-Returns **[Branch][108]** The Branch representing the root of the hierarchy
+Returns **[Branch][8]** The Branch representing the root of the hierarchy
 represented by `json`.
 
 ## parseMatrix
 
 Parses a matrix of distances and returns the root Branch of the output tree.
-This is adapted from Maciej Korzepa's [neighbor-joining][128],
-which is released for modification under the [MIT License][129].
+This is adapted from Maciej Korzepa's [neighbor-joining][148],
+which is released for modification under the [MIT License][149].
 
 ### Parameters
 
--   `matrix` **[Array][109]** An array of `n` arrays of length `n`
--   `labels` **[Array][109]** An array of `n` strings, each corresponding to the
+*   `matrix` **[Array][129]** An array of `n` arrays of length `n`
+*   `labels` **[Array][129]** An array of `n` strings, each corresponding to the
     values in `matrix`.
+*   `options` **[Object][128]?** See ParseMatrixOptions; `{ float32: true }`
+    stores distances in half the memory, at single precision.
 
-Returns **[Branch][108]** A Branch object representing the root Branch of the tree
+Returns **[Branch][8]** A Branch object representing the root Branch of the tree
 inferred by neighbor joining on `matrix`.
+
+## ParseMatrixOptions
+
+Options for [parseMatrix][127].
+
+### float32
+
+Store distances as 32-bit floats, which halves the memory they take
+(the matrix and each row's sorted copy) at the cost of precision:
+distances keep about 7 significant digits. Arithmetic is still done in
+64 bits. Defaults to false.
+
+Type: ([boolean][139] | [undefined][130])
 
 ## parseNewick
 
 Parses a Newick String and returns a Branch object representing the root
 of the output Tree.
-This is adapted Jason Davies' [newick.js][130],
-which is released for modification under [the MIT License][129].
+This is adapted Jason Davies' [newick.js][150],
+which is released for modification under [the MIT License][149].
 
 ### Parameters
 
--   `newick` **[string][104]** A Newick String
+*   `newick` **[string][124]** A Newick String
 
-Returns **[Branch][108]** A Branch representing the root of the output tree
+Returns **[Branch][8]** A Branch representing the root of the output tree
 
 [1]: #version
 
 [2]: #examples
 
-[3]: #branch
+[3]: #id
 
-[4]: #parameters
+[4]: #branchdata
 
-[5]: #addchild
+[5]: #branchobject
 
-[6]: #parameters-1
+[6]: #distancematrix
 
-[7]: #addparent
+[7]: #link
 
-[8]: #parameters-2
+[8]: #branch
 
-[9]: #ancestors
+[9]: #parameters
 
-[10]: #clone
+[10]: #_guid
 
-[11]: #consolidate
+[11]: #id-1
 
-[12]: #copy
+[12]: #length
 
-[13]: #count
+[13]: #depth
 
-[14]: #descendants
+[14]: #height
 
-[15]: #depthof
+[15]: #value
 
-[16]: #parameters-3
+[16]: #representing
 
-[17]: #distancebetween
+[17]: #data
 
-[18]: #parameters-4
+[18]: #parent
 
-[19]: #distanceto
+[19]: #children
 
-[20]: #parameters-5
+[20]: #addchild
 
-[21]: #each
+[21]: #parameters-1
 
-[22]: #parameters-6
+[22]: #addparent
 
-[23]: #eachafter
+[23]: #parameters-2
 
-[24]: #parameters-7
+[24]: #ancestors
 
-[25]: #eachbefore
+[25]: #clone
 
-[26]: #parameters-8
+[26]: #consolidate
 
-[27]: #eachchild
+[27]: #copy
 
-[28]: #parameters-9
+[28]: #count
 
-[29]: #excise
+[29]: #descendants
 
-[30]: #fixdistances
+[30]: #depthof
 
-[31]: #fixparenthood
+[31]: #parameters-3
 
-[32]: #parameters-10
+[32]: #distancebetween
 
-[33]: #flip
+[33]: #parameters-4
 
-[34]: #getancestors
+[34]: #distanceto
 
-[35]: #parameters-11
+[35]: #parameters-5
 
-[36]: #getchild
+[36]: #each
 
-[37]: #parameters-12
+[37]: #parameters-6
 
-[38]: #getdescendant
+[38]: #eachafter
 
-[39]: #parameters-13
+[39]: #parameters-7
 
-[40]: #getdescendants
+[40]: #eachbefore
 
-[41]: #parameters-14
+[41]: #parameters-8
 
-[42]: #getleafs
+[42]: #eachchild
 
-[43]: #getleaves
+[43]: #parameters-9
 
-[44]: #getmrca
+[44]: #excise
 
-[45]: #parameters-15
+[45]: #fixdistances
 
-[46]: #getroot
+[46]: #fixparenthood
 
-[47]: #haschild
+[47]: #parameters-10
 
-[48]: #parameters-16
+[48]: #flip
 
-[49]: #hasdescendant
+[49]: #getancestors
 
-[50]: #parameters-17
+[50]: #parameters-11
 
-[51]: #hasleaf
+[51]: #getchild
 
-[52]: #parameters-18
+[52]: #parameters-12
 
-[53]: #invert
+[53]: #getdescendant
 
-[54]: #ischildof
+[54]: #parameters-13
 
-[55]: #parameters-19
+[55]: #getdescendants
 
-[56]: #isconsistent
+[56]: #parameters-14
 
-[57]: #isdescendantof
+[57]: #getleafs
 
-[58]: #parameters-20
+[58]: #getleaves
 
-[59]: #isleaf
+[59]: #getmrca
 
-[60]: #isolate
+[60]: #parameters-15
 
-[61]: #isroot
+[61]: #getroot
 
-[62]: #leafs
+[62]: #haschild
 
-[63]: #leaves
+[63]: #parameters-16
 
-[64]: #links
+[64]: #hasdescendant
 
-[65]: #normalize
+[65]: #parameters-17
 
-[66]: #parameters-21
+[66]: #hasleaf
 
-[67]: #examples-1
+[67]: #parameters-18
 
-[68]: #path
+[68]: #invert
 
-[69]: #parameters-22
+[69]: #ischildof
 
-[70]: #remove
+[70]: #parameters-19
 
-[71]: #replace
+[71]: #isconsistent
 
-[72]: #parameters-23
+[72]: #isdescendantof
 
-[73]: #reroot
+[73]: #parameters-20
 
-[74]: #examples-2
+[74]: #isleaf
 
-[75]: #rotate
+[75]: #isolate
 
-[76]: #parameters-24
+[76]: #isroot
 
-[77]: #setlength
+[77]: #leafs
 
-[78]: #parameters-25
+[78]: #leaves
 
-[79]: #setparent
+[79]: #links
 
-[80]: #parameters-26
+[80]: #normalize
 
-[81]: #simplify
+[81]: #parameters-21
 
-[82]: #sort
+[82]: #examples-1
 
-[83]: #parameters-27
+[83]: #path
 
-[84]: #sources
+[84]: #parameters-22
 
-[85]: #parameters-28
+[85]: #remove
 
-[86]: #sum
+[86]: #parameters-23
 
-[87]: #parameters-29
+[87]: #removeifnochildren
 
-[88]: #targets
+[88]: #parameters-24
 
-[89]: #parameters-30
+[89]: #replace
 
-[90]: #tojson
+[90]: #parameters-25
 
-[91]: #tomatrix
+[91]: #reroot
 
-[92]: #tonewick
+[92]: #examples-2
 
-[93]: #parameters-31
+[93]: #rotate
 
-[94]: #toobject
+[94]: #parameters-26
 
-[95]: #tostring
+[95]: #setlength
 
-[96]: #parameters-32
+[96]: #parameters-27
 
-[97]: #parsejson
+[97]: #setparent
 
-[98]: #parameters-33
+[98]: #parameters-28
 
-[99]: #parsematrix
+[99]: #simplify
 
-[100]: #parameters-34
+[100]: #sort
 
-[101]: #parsenewick
+[101]: #parameters-29
 
-[102]: #parameters-35
+[102]: #sources
 
-[103]: https://semver.org/
+[103]: #parameters-30
 
-[104]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+[104]: #sum
 
-[105]: #parseNewick
+[105]: #parameters-31
 
-[106]: #parseMatrix
+[106]: #targets
 
-[107]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+[107]: #parameters-32
 
-[108]: #branch
+[108]: #tojson
 
-[109]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+[109]: #tomatrix
 
-[110]: https://github.com/d3/d3-hierarchy#node_ancestors
+[110]: #tonewick
 
-[111]: https://github.com/d3/d3-hierarchy#node_copy
+[111]: #parameters-33
 
-[112]: https://github.com/d3/d3-hierarchy#node_descendants
+[112]: #toobject
 
-[113]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+[113]: #tostring
 
-[114]: https://en.wikipedia.org/wiki/Breadth-first_search
+[114]: #parameters-34
 
-[115]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
+[115]: #parsejson
 
-[116]: https://en.wikipedia.org/wiki/Tree_traversal#Post-order
+[116]: #parameters-35
 
-[117]: https://en.wikipedia.org/wiki/Tree_traversal#Pre-order
+[117]: #parsematrix
 
-[118]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+[118]: #parameters-36
 
-[119]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined
+[119]: #parsematrixoptions
 
-[120]: #getLeaves
+[120]: #float32
 
-[121]: #getLeafs
+[121]: #parsenewick
 
-[122]: https://github.com/d3/d3-hierarchy#node_leaves
+[122]: #parameters-37
 
-[123]: https://github.com/d3/d3-hierarchy#node_links
+[123]: https://semver.org/
 
-[124]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#Description
+[124]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
 
-[125]: #toObject
+[125]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
 
-[126]: https://en.wikipedia.org/wiki/Newick_format
+[126]: #parseNewick
 
-[127]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Parameters
+[127]: #parseMatrix
 
-[128]: https://github.com/biosustain/neighbor-joining
+[128]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
 
-[129]: https://opensource.org/licenses/MIT
+[129]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
 
-[130]: https://github.com/jasondavies/newick.js/blob/master/src/newick.js
+[130]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined
+
+[131]: https://github.com/d3/d3-hierarchy#node_ancestors
+
+[132]: https://github.com/d3/d3-hierarchy#node_copy
+
+[133]: https://github.com/d3/d3-hierarchy#node_count
+
+[134]: https://github.com/d3/d3-hierarchy#node_descendants
+
+[135]: https://en.wikipedia.org/wiki/Breadth-first_search
+
+[136]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
+
+[137]: https://en.wikipedia.org/wiki/Tree_traversal#Post-order
+
+[138]: https://en.wikipedia.org/wiki/Tree_traversal#Pre-order
+
+[139]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+
+[140]: #getLeaves
+
+[141]: #getLeafs
+
+[142]: https://github.com/d3/d3-hierarchy#node_leaves
+
+[143]: https://github.com/d3/d3-hierarchy#node_links
+
+[144]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#Description
+
+[145]: #toObject
+
+[146]: https://en.wikipedia.org/wiki/Newick_format
+
+[147]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Parameters
+
+[148]: https://github.com/biosustain/neighbor-joining
+
+[149]: https://opensource.org/licenses/MIT
+
+[150]: https://github.com/jasondavies/newick.js/blob/master/src/newick.js

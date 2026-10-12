@@ -5,7 +5,7 @@
  * @example
  * console.log(patristic.version);
  */
-export const version = "0.6.0";
+export const version = "0.7.0";
 
 /** A Branch's identifier. Trees built by parseMatrix without labels use numbers. */
 export type Id = string | number;
@@ -44,7 +44,10 @@ export interface Link {
   target: Branch;
 }
 
-/** The second argument to JSON.stringify. */
+/**
+ * The second argument to JSON.stringify.
+ * @private
+ */
 type Replacer =
   | ((this: unknown, key: string, value: unknown) => unknown)
   | (string | number)[]
@@ -56,6 +59,7 @@ const NONE = -1;
 const MOVED = -2;
 
 /**
+ * @private
  * @internal
  * The storage behind Branches: a forest kept in parallel arrays, one slot per
  * Branch. Each tree lives in one Store; Branch objects are views onto slots,
@@ -263,6 +267,7 @@ class Store {
 }
 
 /**
+ * @private
  * Facts about one tree that take a traversal to work out, kept until the
  * tree's structure changes: its slots in pre-order, where each slot falls in
  * that order, how many slots each subtree has (so a subtree is a contiguous
@@ -360,6 +365,7 @@ function bind(view: Branch, store: Store, index: number): void {
 }
 
 /**
+ * @private
  * Moves the subtree under root slot `root` of `from` into `to`, and returns
  * its new root slot. Views of the moved Branches are re-pointed, so they keep
  * their identity; their old slots are left empty.
@@ -405,6 +411,7 @@ function checkNotAncestor(child: Branch, parent: Branch): void {
 }
 
 /**
+ * @private
  * Makes `child` a child of `parent`: before `before` (one of parent's
  * children) or last. The child is detached from wherever it was, and moved
  * into parent's Store if it's in another.
@@ -435,9 +442,17 @@ function attach(child: Branch, parent: Branch, before?: Branch): void {
 export class Branch {
   /** A number unique to this Branch within the loaded library. */
   _guid!: number;
-  /** @internal The Store holding this Branch. */
+  /**
+   * The Store holding this Branch.
+   * @internal
+   * @private
+   */
   _store!: Store;
-  /** @internal This Branch's slot in its Store. */
+  /**
+   * This Branch's slot in its Store.
+   * @internal
+   * @private
+   */
   _index!: number;
 
   constructor(
@@ -1832,6 +1847,7 @@ export interface ParseMatrixOptions {
 type FloatArray = Float64Array | Float32Array;
 
 /**
+ * @private
  * The distance matrix and search structures of a neighbor-joining run, after
  * RapidNJ (Simonsen, Mailund & Pedersen, 2008): each row keeps its distances
  * sorted, so the search for the pair to join can stop scanning a row once
@@ -2015,6 +2031,7 @@ class NeighborJoining {
 }
 
 /**
+ * @private
  * Sorts items (column indices) by their keys (distances), stably: items with
  * equal keys stay in the order given. A bottom-up merge sort on typed arrays,
  * which avoids Array.prototype.sort's comparator calls.

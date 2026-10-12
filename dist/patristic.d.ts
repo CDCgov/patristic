@@ -5,7 +5,7 @@
  * @example
  * console.log(patristic.version);
  */
-export declare const version = "0.6.0";
+export declare const version = "0.7.0";
 /** A Branch's identifier. Trees built by parseMatrix without labels use numbers. */
 export type Id = string | number;
 /**
@@ -38,7 +38,10 @@ export interface Link {
     source: Branch;
     target: Branch;
 }
-/** The second argument to JSON.stringify. */
+/**
+ * The second argument to JSON.stringify.
+ * @private
+ */
 type Replacer = ((this: unknown, key: string, value: unknown) => unknown) | (string | number)[] | null;
 /**
  * A class for representing Branches in trees.
