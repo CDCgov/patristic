@@ -20,6 +20,10 @@ const { matrix, ids }: DistanceMatrix = tree.toMatrix();
 const labels: Id[] = ids;
 const nj: Branch = parseMatrix(matrix, labels);
 const nj32: Branch = parseMatrix(matrix, null, { float32: true });
+const bionj: Branch = parseMatrix(matrix, labels, { method: "bionj" });
+const upgma: Branch = parseMatrix(matrix, labels, { method: "upgma" });
+// @ts-expect-error methods are "nj", "bionj" or "upgma"
+parseMatrix(matrix, labels, { method: "fast" });
 const distance: number = leaves[0].distanceTo(leaves[1]);
 // Methods that return the Branch they're called on chain.
 const chained: Branch = tree

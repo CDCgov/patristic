@@ -1630,22 +1630,42 @@ function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
     return store.view(0).fixDistances();
 }
 /**
- * Parses a matrix of distances and returns the root Branch of the output tree.
- * This is adapted from Maciej Korzepa's [neighbor-joining](https://github.com/biosustain/neighbor-joining),
+ * Builds a tree from a matrix of distances and returns its root Branch.
+ *
+ * By default this is neighbor joining, with RapidNJ's search, adapted from
+ * Maciej Korzepa's [neighbor-joining](https://github.com/biosustain/neighbor-joining),
  * which is released for modification under the [MIT License](https://opensource.org/licenses/MIT).
- * @param  {Array} matrix An array of `n` arrays of length `n`
+ * The `method` option chooses another algorithm:
+ * - `"bionj"`: BIONJ (Gascuel 1997), which joins the same way but computes
+ *   the new node's distances to reduce their variance, and is usually more
+ *   accurate than neighbor joining when distances are noisy.
+ * - `"upgma"`: UPGMA, which builds a rooted tree with every leaf the same
+ *   distance from the root (assuming a molecular clock).
+ *
+ * Neighbor joining and BIONJ trees are unrooted at heart; they're rooted
+ * where the last two nodes are joined.
+ * @param  {Array} matrix An array of `n` arrays of length `n`. Only the lower
+ * triangle is read, and the diagonal is taken to be zero.
  * @param  {Array} labels An array of `n` strings, each corresponding to the
  * values in `matrix`.
- * @param  {Object} [options] See ParseMatrixOptions; `{ float32: true }`
- * stores distances in half the memory, at single precision.
+ * @param  {Object} [options] See ParseMatrixOptions: `method` picks the
+ * algorithm, and `{ float32: true }` stores distances in half the memory, at
+ * single precision.
  * @return {Branch} A Branch object representing the root Branch of the tree
- * inferred by neighbor joining on `matrix`.
+ * inferred from `matrix`.
  */
 function parseMatrix(matrix, labels, options) {
     let N = matrix.length;
     if (!labels)
         labels = [...Array(N).keys()];
-    let nj = new NeighborJoining(matrix, options?.float32 ?? false);
+    let method = options?.method ?? "nj";
+    let float32 = options?.float32 ?? false;
+    if (method === "upgma")
+        return upgma(matrix, labels, float32);
+    if (method !== "nj" && method !== "bionj") {
+        throw new Error(`Unknown parseMatrix method "${method}"; use "nj", "bionj" or "upgma".`);
+    }
+    let nj = new NeighborJoining(matrix, float32, method === "bionj");
     // currIndexToLabel maps each row to the label of the taxon or joined node
     // it holds; labels from N up are joined nodes, in the order they were made.
     let currIndexToLabel = new Int32Array(N);
@@ -1683,7 +1703,7 @@ function parseMatrix(matrix, labels, options) {
         d2 = dIJ - d1;
         let node1 = setUpNode(currIndexToLabel[minI], d1);
         let node2 = setUpNode(currIndexToLabel[minJ], d2);
-        nj.join(minI, minJ);
+        nj.join(minI, minJ, d1, d2);
         labelToNode[nextIndex] = join(node1, node2);
         currIndexToLabel[minI] = -1;
         currIndexToLabel[minJ] = nextIndex++;
@@ -1709,7 +1729,7 @@ function parseMatrix(matrix, labels, options) {
  * nodes was made last.
  */
 class NeighborJoining {
-    constructor(matrix, float32) {
+    constructor(matrix, float32, bionj) {
         this.rowSumMax = 0;
         let N = (this.N = this.cN = matrix.length);
         let Floats = float32 ? Float32Array : Float64Array;
@@ -1723,6 +1743,8 @@ class NeighborJoining {
             for (let j = 0; j < i; j++)
                 D[start + j] = Number(row[j]);
         }
+        // BIONJ starts with the variances equal to the distances.
+        this.V = bionj ? D.slice() : null;
         this.removed = new Uint8Array(N);
         this.newRow = new Float64Array(N);
         this.rowChange = new Float64Array(N);
@@ -1813,8 +1835,15 @@ class NeighborJoining {
         }
         return [minI, minJ];
     }
-    /** Joins rows i and j: removes row i and reuses row j for the new node. */
-    join(joinedIndex1, joinedIndex2) {
+    /**
+     * Joins rows i and j: removes row i and reuses row j for the new node,
+     * whose branches to i and j have lengths d1 and d2.
+     */
+    join(joinedIndex1, joinedIndex2, d1, d2) {
+        if (this.V) {
+            this.joinBIONJ(joinedIndex1, joinedIndex2, d1, d2, this.V);
+            return;
+        }
         let { D, rowStart, removed, rowSums, newRow, rowChange } = this, n = this.N, sum = 0, aux, newMax = 0;
         let aux2 = this.distance(joinedIndex1, joinedIndex2);
         removed[joinedIndex1] = 1;
@@ -1851,6 +1880,150 @@ class NeighborJoining {
         this.sortedLength[joinedIndex1] = 0;
         this.cN--;
     }
+    /**
+     * BIONJ's join (Gascuel 1997). The new node's distance to each row k is
+     * lambda * (D[i][k] - d1) + (1 - lambda) * (D[j][k] - d2), where lambda
+     * (clamped to [0, 1]) minimizes the variance of those distances; the
+     * variances V are updated alongside. With lambda = 1/2 this is neighbor
+     * joining's join.
+     */
+    joinBIONJ(i, j, d1, d2, V) {
+        let { D, rowStart, removed, rowSums, newRow, rowChange } = this, n = this.N, r = this.cN;
+        let variance = (a, b) => a > b ? V[rowStart[a] + b] : V[rowStart[b] + a];
+        let vij = variance(i, j);
+        let lambda = 0.5;
+        if (vij !== 0) {
+            let sum = 0;
+            for (let k = 0; k < n; k++) {
+                if (removed[k] || k === i || k === j)
+                    continue;
+                sum += variance(j, k) - variance(i, k);
+            }
+            lambda = Math.min(1, Math.max(0, 0.5 + sum / (2 * (r - 2) * vij)));
+        }
+        let newVariance = new Float64Array(n), sum = 0, newMax = 0;
+        removed[i] = 1;
+        for (let k = 0; k < n; k++) {
+            if (removed[k] || k === j)
+                continue;
+            let dik = this.distance(i, k), djk = this.distance(j, k);
+            newRow[k] = lambda * (dik - d1) + (1 - lambda) * (djk - d2);
+            newVariance[k] =
+                lambda * variance(i, k) +
+                    (1 - lambda) * variance(j, k) -
+                    lambda * (1 - lambda) * vij;
+            sum += newRow[k];
+            rowChange[k] = newRow[k] - dik - djk;
+        }
+        for (let k = 0; k < n; k++) {
+            if (removed[k] || k === j)
+                continue;
+            let at = k > j ? rowStart[k] + j : rowStart[j] + k;
+            D[at] = newRow[k];
+            V[at] = newVariance[k];
+            rowSums[k] += rowChange[k];
+            if (rowSums[k] > newMax)
+                newMax = rowSums[k];
+        }
+        rowSums[i] = 0;
+        rowSums[j] = sum;
+        if (sum > newMax)
+            newMax = sum;
+        this.rowSumMax = newMax;
+        this.sortRow(j);
+        this.sortedLength[i] = 0;
+        this.cN--;
+    }
+}
+/**
+ * Builds a tree by UPGMA: repeatedly merges the two closest clusters into a
+ * node at half their distance (so every leaf ends up equally far from the
+ * root), and takes the merged cluster's distance to each other cluster to be
+ * the size-weighted mean of its parts'. Each row remembers its nearest
+ * neighbor, so finding the closest pair is O(n) per merge.
+ */
+function upgma(matrix, labels, float32) {
+    let N = matrix.length;
+    if (N === 0)
+        throw new Error("parseMatrix needs at least one taxon.");
+    let rowStart = new Float64Array(N);
+    for (let i = 0; i < N; i++)
+        rowStart[i] = (i * (i - 1)) / 2;
+    let D = new (float32 ? Float32Array : Float64Array)((N * (N - 1)) / 2);
+    for (let i = 0; i < N; i++) {
+        let row = matrix[i];
+        for (let j = 0; j < i; j++)
+            D[rowStart[i] + j] = Number(row[j]);
+    }
+    let at = (a, b) => (a > b ? rowStart[a] + b : rowStart[b] + a);
+    let store = new Store(2 * N);
+    let node = new Int32Array(N), size = new Int32Array(N).fill(1), height = new Float64Array(N), removed = new Uint8Array(N), nearest = new Int32Array(N), nearestDistance = new Float64Array(N);
+    for (let i = 0; i < N; i++)
+        node[i] = store.add(labels[i], 0);
+    // Finds row i's nearest other row (the lowest-numbered, on ties).
+    function findNearest(i) {
+        let best = Infinity, bestRow = -1;
+        for (let k = 0; k < N; k++) {
+            if (removed[k] || k === i)
+                continue;
+            let d = D[at(i, k)];
+            if (d < best) {
+                best = d;
+                bestRow = k;
+            }
+        }
+        nearest[i] = bestRow;
+        nearestDistance[i] = best;
+    }
+    for (let i = 0; i < N; i++)
+        findNearest(i);
+    for (let left = N; left > 1; left--) {
+        // The closest pair, taking the lowest-numbered row on ties.
+        let i = -1;
+        for (let k = 0; k < N; k++) {
+            if (removed[k])
+                continue;
+            if (i === -1 || nearestDistance[k] < nearestDistance[i])
+                i = k;
+        }
+        let a = Math.min(i, nearest[i]), b = Math.max(i, nearest[i]);
+        let h = D[at(a, b)] / 2;
+        store.length[node[a]] = h - height[a];
+        store.length[node[b]] = h - height[b];
+        let parent = store.add("", 0);
+        store.link(node[a], parent, NONE);
+        store.link(node[b], parent, NONE);
+        // Row a becomes the merged cluster; row b goes.
+        for (let k = 0; k < N; k++) {
+            if (removed[k] || k === a || k === b)
+                continue;
+            D[at(a, k)] =
+                (size[a] * D[at(a, k)] + size[b] * D[at(b, k)]) / (size[a] + size[b]);
+        }
+        removed[b] = 1;
+        size[a] += size[b];
+        height[a] = h;
+        node[a] = parent;
+        findNearest(a);
+        for (let k = 0; k < N; k++) {
+            if (removed[k] || k === a)
+                continue;
+            if (nearest[k] === a || nearest[k] === b) {
+                findNearest(k);
+            }
+            else {
+                let d = D[at(a, k)];
+                if (d < nearestDistance[k] || (d === nearestDistance[k] && a < nearest[k])) {
+                    nearest[k] = a;
+                    nearestDistance[k] = d;
+                }
+            }
+        }
+    }
+    let root = 0;
+    while (removed[root])
+        root++;
+    return store.view(node[root]).fixDistances();
 }
 /**
  * @private

@@ -17,6 +17,13 @@
 
 ### New
 
+- `parseMatrix(matrix, labels, { method: "bionj" })` builds the tree with
+  BIONJ (Gascuel 1997). It picks pairs as neighbor joining does, but weights
+  the new node's distances to reduce their variance, which is usually more
+  accurate when distances are noisy. `method: "nj"` (the default) is
+  neighbor joining as before.
+- `parseMatrix(matrix, labels, { method: "upgma" })` builds a rooted
+  ultrametric tree by UPGMA, with every leaf the same distance from the root.
 - `parseNewick` reads quoted labels, in single or double quotes, with a
   doubled quote standing for one (`'O''Brien'`).
 - NHX annotations (`[&&NHX:key=value:...]`) are read into the `data.nhx` of the
