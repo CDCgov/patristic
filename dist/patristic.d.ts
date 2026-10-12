@@ -110,7 +110,9 @@ export declare class Branch {
      */
     copy(): Branch;
     /**
-     * Sets the values of all nodes to be equal to the number of their descendants.
+     * Sets the value of each Branch to the number of leaves in its subtree (1
+     * for a leaf), as d3-hierarchy's count does.
+     * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_count)
      * @return {Branch} The Branch on which it was called
      */
     count(): this;

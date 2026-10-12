@@ -384,10 +384,11 @@ describe("traversal", () => {
 });
 
 describe("values", () => {
-  test("count counts every Branch in each subtree", () => {
+  test("count counts the leaves in each subtree (d3-hierarchy)", () => {
     expect(tree.count()).toBe(tree);
-    expect(tree.value).toBe(6);
-    expect(tree.children[2].value).toBe(3);
+    expect(tree.value).toBe(4);
+    expect(tree.children[2].value).toBe(2);
+    expect(tree.children[0].value).toBe(1);
   });
 
   test("sum", () => {

@@ -134,11 +134,15 @@ class Branch {
         return copyTree(this);
     }
     /**
-     * Sets the values of all nodes to be equal to the number of their descendants.
+     * Sets the value of each Branch to the number of leaves in its subtree (1
+     * for a leaf), as d3-hierarchy's count does.
+     * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_count)
      * @return {Branch} The Branch on which it was called
      */
     count() {
-        return this.sum(() => 1);
+        return this.eachAfter(d => {
+            d.value = d.isLeaf() ? 1 : d.children.reduce((a, c) => a + c.value, 0);
+        });
     }
     /**
      * Returns an array pf descendants, starting with this Branch.

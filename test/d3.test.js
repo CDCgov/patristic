@@ -37,8 +37,11 @@ function preorder(root) {
   return nodes;
 }
 
+// tree, cluster and pack expect leaves' children to be undefined.
+const failing = ["tree", "cluster", "pack"];
+
 for (let [name, [layout, keys]] of Object.entries(layouts)) {
-  test.failing(`d3.${name} lays out a Branch tree as it does d3's hierarchy`, () => {
+  (failing.includes(name) ? test.failing : test)(`d3.${name} lays out a Branch tree as it does d3's hierarchy`, () => {
     let tree = patristic.parseNewick(newick).count();
     let reference = d3.hierarchy(tree.toObject()).count();
     layout()(tree);
