@@ -1373,7 +1373,9 @@ class Branch {
     /**
      * Returns the Newick representation of this Branch and its descendants.
      * Labels containing whitespace, punctuation, brackets or quotes are written
-     * in single quotes, with any single quotes in them doubled.
+     * in single quotes, with any single quotes in them doubled. A Branch's
+     * `data.nhx` annotations, if any, are written after its length as an NHX
+     * comment.
      * @param  {Boolean} [nonterminus=falsy] Is this not the terminus of the
      * Newick Tree? This should be falsy when called by a user (i.e. you). It's
      * used internally to decide whether or not in include a semicolon in the
@@ -1557,6 +1559,12 @@ function newickLabel(store, i) {
     let label = quoteLabel("" + store.ids[i]);
     if (store.length[i])
         label += ":" + numberToString(store.length[i]);
+    let nhx = store.data[i]?.nhx;
+    if (nhx) {
+        let fields = Object.entries(nhx).map(([key, value]) => key + "=" + value);
+        if (fields.length)
+            label += "[&&NHX:" + fields.join(":") + "]";
+    }
     return label;
 }
 // Characters that can't appear in an unquoted Newick label: whitespace,
@@ -1917,7 +1925,9 @@ class ArgSorter {
  * spaces and punctuation; a quote is escaped by doubling it (`'O''Brien'`).
  * Unquoted labels keep spaces inside them (and underscores as they are), and
  * whitespace around punctuation is ignored. Comments in square brackets are
- * skipped. Parsing stops at the first `;`, which may be left out.
+ * skipped, except NHX annotations (`[&&NHX:key=value:...]`), which are read
+ * into the `data.nhx` of the Branch they follow (and written back by
+ * toNewick). Parsing stops at the first `;`, which may be left out.
  * @param  {string} newick A Newick String
  * @return {Branch} A Branch representing the root of the output tree
  * @throws {SyntaxError} If the parentheses don't balance, a quoted label or
@@ -1928,7 +1938,8 @@ function parseNewick(newick) {
     function fail(message, at) {
         throw new SyntaxError(`Invalid Newick: ${message} at position ${at}.`);
     }
-    // Skips whitespace and [comments].
+    // Skips whitespace and [comments], reading NHX annotations
+    // ([&&NHX:key=value:...]) into the data of the Branch they follow.
     function skip() {
         while (i < n) {
             let c = newick.charCodeAt(i);
@@ -1936,6 +1947,9 @@ function parseNewick(newick) {
                 let close = newick.indexOf("]", i + 1);
                 if (close === -1)
                     fail("unterminated comment", i);
+                if (newick.startsWith("&&NHX", i + 1)) {
+                    readNHX(newick.slice(i + 6, close));
+                }
                 i = close + 1;
             }
             else if (c <= 32) {
@@ -1944,6 +1958,20 @@ function parseNewick(newick) {
             else {
                 return;
             }
+        }
+    }
+    function readNHX(fields) {
+        var _a;
+        let data = ((_a = store.data)[current] ?? (_a[current] = {}));
+        let nhx = (data.nhx ?? (data.nhx = {}));
+        for (let field of fields.split(":")) {
+            if (!field)
+                continue;
+            let equals = field.indexOf("=");
+            if (equals === -1)
+                nhx[field] = "";
+            else
+                nhx[field.slice(0, equals)] = field.slice(equals + 1);
         }
     }
     // Reads an unquoted label or length, up to the next punctuation or comment,

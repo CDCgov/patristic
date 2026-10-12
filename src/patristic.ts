@@ -22,6 +22,8 @@ export interface BranchData {
   parent?: Branch | null | undefined;
   children?: Branch[] | undefined;
   value?: number | undefined;
+  /** NHX annotations, as read from and written to Newick. */
+  nhx?: Record<string, string> | undefined;
   [key: string]: unknown;
 }
 
@@ -1519,7 +1521,9 @@ export class Branch {
   /**
    * Returns the Newick representation of this Branch and its descendants.
    * Labels containing whitespace, punctuation, brackets or quotes are written
-   * in single quotes, with any single quotes in them doubled.
+   * in single quotes, with any single quotes in them doubled. A Branch's
+   * `data.nhx` annotations, if any, are written after its length as an NHX
+   * comment.
    * @param  {Boolean} [nonterminus=falsy] Is this not the terminus of the
    * Newick Tree? This should be falsy when called by a user (i.e. you). It's
    * used internally to decide whether or not in include a semicolon in the
@@ -1703,6 +1707,11 @@ function walk(
 function newickLabel(store: Store, i: number): string {
   let label = quoteLabel("" + store.ids[i]);
   if (store.length[i]) label += ":" + numberToString(store.length[i]);
+  let nhx = store.data[i]?.nhx;
+  if (nhx) {
+    let fields = Object.entries(nhx).map(([key, value]) => key + "=" + value);
+    if (fields.length) label += "[&&NHX:" + fields.join(":") + "]";
+  }
   return label;
 }
 
@@ -2131,7 +2140,9 @@ class ArgSorter {
  * spaces and punctuation; a quote is escaped by doubling it (`'O''Brien'`).
  * Unquoted labels keep spaces inside them (and underscores as they are), and
  * whitespace around punctuation is ignored. Comments in square brackets are
- * skipped. Parsing stops at the first `;`, which may be left out.
+ * skipped, except NHX annotations (`[&&NHX:key=value:...]`), which are read
+ * into the `data.nhx` of the Branch they follow (and written back by
+ * toNewick). Parsing stops at the first `;`, which may be left out.
  * @param  {string} newick A Newick String
  * @return {Branch} A Branch representing the root of the output tree
  * @throws {SyntaxError} If the parentheses don't balance, a quoted label or
@@ -2148,19 +2159,34 @@ export function parseNewick(newick: string): Branch {
     throw new SyntaxError(`Invalid Newick: ${message} at position ${at}.`);
   }
 
-  // Skips whitespace and [comments].
+  // Skips whitespace and [comments], reading NHX annotations
+  // ([&&NHX:key=value:...]) into the data of the Branch they follow.
   function skip(): void {
     while (i < n) {
       let c = newick.charCodeAt(i);
       if (c === 91 /* [ */) {
         let close = newick.indexOf("]", i + 1);
         if (close === -1) fail("unterminated comment", i);
+        if (newick.startsWith("&&NHX", i + 1)) {
+          readNHX(newick.slice(i + 6, close));
+        }
         i = close + 1;
       } else if (c <= 32) {
         i++;
       } else {
         return;
       }
+    }
+  }
+
+  function readNHX(fields: string): void {
+    let data = (store.data[current] ??= {});
+    let nhx = (data.nhx ??= {});
+    for (let field of fields.split(":")) {
+      if (!field) continue;
+      let equals = field.indexOf("=");
+      if (equals === -1) nhx[field] = "";
+      else nhx[field.slice(0, equals)] = field.slice(equals + 1);
     }
   }
 

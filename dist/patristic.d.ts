@@ -20,6 +20,8 @@ export interface BranchData {
     parent?: Branch | null | undefined;
     children?: Branch[] | undefined;
     value?: number | undefined;
+    /** NHX annotations, as read from and written to Newick. */
+    nhx?: Record<string, string> | undefined;
     [key: string]: unknown;
 }
 /** A serializable representation of a Branch and its descendants. */
@@ -521,7 +523,9 @@ export declare class Branch {
     /**
      * Returns the Newick representation of this Branch and its descendants.
      * Labels containing whitespace, punctuation, brackets or quotes are written
-     * in single quotes, with any single quotes in them doubled.
+     * in single quotes, with any single quotes in them doubled. A Branch's
+     * `data.nhx` annotations, if any, are written after its length as an NHX
+     * comment.
      * @param  {Boolean} [nonterminus=falsy] Is this not the terminus of the
      * Newick Tree? This should be falsy when called by a user (i.e. you). It's
      * used internally to decide whether or not in include a semicolon in the
@@ -596,7 +600,9 @@ export interface ParseMatrixOptions {
  * spaces and punctuation; a quote is escaped by doubling it (`'O''Brien'`).
  * Unquoted labels keep spaces inside them (and underscores as they are), and
  * whitespace around punctuation is ignored. Comments in square brackets are
- * skipped. Parsing stops at the first `;`, which may be left out.
+ * skipped, except NHX annotations (`[&&NHX:key=value:...]`), which are read
+ * into the `data.nhx` of the Branch they follow (and written back by
+ * toNewick). Parsing stops at the first `;`, which may be left out.
  * @param  {string} newick A Newick String
  * @return {Branch} A Branch representing the root of the output tree
  * @throws {SyntaxError} If the parentheses don't balance, a quoted label or

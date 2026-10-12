@@ -149,3 +149,30 @@ describe("toNewick quoting", () => {
     expect(back.toNewick()).toBe(t.toNewick());
   });
 });
+
+describe("NHX annotations", () => {
+  const nhx = "(A:1[&&NHX:S=human:E=1.1],B[&&NHX:S=mouse]:2,C:3[plain comment])[&&NHX:D=Y];";
+
+  test("are read into data.nhx of the Branch they follow", () => {
+    let t = patristic.parseNewick(nhx);
+    let [a, b, c] = t.children;
+    expect(a.data.nhx).toEqual({ S: "human", E: "1.1" });
+    expect(b.data.nhx).toEqual({ S: "mouse" });
+    expect(c.data.nhx).toBeUndefined();
+    expect(t.data.nhx).toEqual({ D: "Y" });
+    expect(t.toNewick()).toBe(
+      "(A:1[&&NHX:S=human:E=1.1],B:2[&&NHX:S=mouse],C:3)[&&NHX:D=Y];"
+    );
+  });
+
+  test("are written after the label and length, and round-trip", () => {
+    let t = patristic.parseNewick("(A:1,B:2);");
+    t.children[0].data.nhx = { S: "human", T: "9606" };
+    let out = t.toNewick();
+    expect(out).toBe("(A:1[&&NHX:S=human:T=9606],B:2);");
+    expect(patristic.parseNewick(out).children[0].data.nhx).toEqual({
+      S: "human",
+      T: "9606"
+    });
+  });
+});
