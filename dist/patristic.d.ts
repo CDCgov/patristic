@@ -533,10 +533,22 @@ export declare function parseJSON(json: string | object, idLabel?: string, lengt
  * @param  {Array} matrix An array of `n` arrays of length `n`
  * @param  {Array} labels An array of `n` strings, each corresponding to the
  * values in `matrix`.
+ * @param  {Object} [options] See ParseMatrixOptions; `{ float32: true }`
+ * stores distances in half the memory, at single precision.
  * @return {Branch} A Branch object representing the root Branch of the tree
  * inferred by neighbor joining on `matrix`.
  */
-export declare function parseMatrix(matrix: ArrayLike<ArrayLike<number | string>>, labels?: Id[]): Branch;
+export declare function parseMatrix(matrix: ArrayLike<ArrayLike<number | string>>, labels?: Id[] | null, options?: ParseMatrixOptions): Branch;
+/** Options for [parseMatrix](#parseMatrix). */
+export interface ParseMatrixOptions {
+    /**
+     * Store distances as 32-bit floats, which halves the memory they take
+     * (the matrix and each row's sorted copy) at the cost of precision:
+     * distances keep about 7 significant digits. Arithmetic is still done in
+     * 64 bits. Defaults to false.
+     */
+    float32?: boolean | undefined;
+}
 /**
  * Parses a Newick String and returns a Branch object representing the root
  * of the output Tree.
