@@ -7,6 +7,10 @@
   "main": "dist/patristic.js",
   "module": "dist/patristic.mjs",
   "types": "dist/patristic.d.ts",
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
   "exports": {
     ".": {
       "import": {
@@ -47,5 +51,19 @@
     "jest": "30.5.2",
     "rollup": "4.63.5",
     "typescript": "7.0.2"
+  },
+  "jest": {
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/test/"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 100,
+        "branches": 100,
+        "functions": 100,
+        "lines": 100
+      }
+    }
   }
 }

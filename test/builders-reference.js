@@ -46,7 +46,9 @@ function upgma(matrix, labels) {
 // one. For neighbor joining the choice doesn't matter; for BIONJ it changes
 // the branch lengths. `lastTie` picks which of the tied pairs to join: 0 for
 // the first found, 1 for its complement.
-function bionj(matrix, labels, lastTie = 0) {
+//
+// With `nj` set, lambda stays 1/2, which is neighbor joining.
+function bionj(matrix, labels, lastTie = 0, nj = false) {
   let n = matrix.length;
   let D = matrix.map(row => row.map(Number));
   let V = D.map(row => row.slice());
@@ -69,7 +71,7 @@ function bionj(matrix, labels, lastTie = 0) {
     let di = 0.5 * D[i][j] + (S[bi] - S[bj]) / (2 * (r - 2));
     let dj = D[i][j] - di;
     let lambda = 0.5;
-    if (V[i][j] !== 0) {
+    if (!nj && V[i][j] !== 0) {
       let sum = 0;
       for (let k of active) if (k !== i && k !== j) sum += V[j][k] - V[i][k];
       lambda = Math.min(1, Math.max(0, 0.5 + sum / (2 * (r - 2) * V[i][j])));
@@ -89,4 +91,8 @@ function bionj(matrix, labels, lastTie = 0) {
   return { id: "", length: 0, children: [node[i], node[j]] };
 }
 
-module.exports = { upgma, bionj };
+function nj(matrix, labels) {
+  return bionj(matrix, labels, 0, true);
+}
+
+module.exports = { upgma, bionj, nj };

@@ -7,6 +7,8 @@
     "rootDir": "src",
     "outDir": "build",
     "declaration": true,
+    "sourceMap": true,
+    "inlineSources": true,
     "stripInternal": true,
     "strict": true,
     "exactOptionalPropertyTypes": true,

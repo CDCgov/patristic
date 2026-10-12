@@ -1666,10 +1666,17 @@
             labels = [...Array(N).keys()];
         let method = options?.method ?? "nj";
         let float32 = options?.float32 ?? false;
+        if (N === 0)
+            throw new Error("parseMatrix needs at least one taxon.");
         if (method === "upgma")
             return upgma(matrix, labels, float32);
         if (method !== "nj" && method !== "bionj") {
             throw new Error(`Unknown parseMatrix method "${method}"; use "nj", "bionj" or "upgma".`);
+        }
+        if (N === 1) {
+            let store = new Store(1);
+            store.add(labels[0], 0);
+            return store.view(0);
         }
         let nj = new NeighborJoining(matrix, float32, method === "bionj");
         // currIndexToLabel maps each row to the label of the taxon or joined node
@@ -1950,8 +1957,6 @@
      */
     function upgma(matrix, labels, float32) {
         let N = matrix.length;
-        if (N === 0)
-            throw new Error("parseMatrix needs at least one taxon.");
         let rowStart = new Float64Array(N);
         for (let i = 0; i < N; i++)
             rowStart[i] = (i * (i - 1)) / 2;
@@ -2026,10 +2031,8 @@
                 }
             }
         }
-        let root = 0;
-        while (removed[root])
-            root++;
-        return store.view(node[root]).fixDistances();
+        // Each join keeps the lower-numbered row, so row 0 holds the root.
+        return store.view(node[0]).fixDistances();
     }
     /**
      * @private
@@ -2243,3 +2246,4 @@
     exports.version = version;
 
 }));
+//# sourceMappingURL=patristic.js.map

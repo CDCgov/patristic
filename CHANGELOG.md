@@ -14,6 +14,9 @@
   starts with a quote is read as a quoted label.
 - `toNewick` writes ids containing whitespace, punctuation, brackets or quotes
   in single quotes, so `Homo sapiens` is written `'Homo sapiens'`.
+- The npm package contains only `dist/`, the README, the changelog and the
+  license. It used to include the whole repository, so paths like
+  `patristic/demo/...` or `patristic/test/...` no longer resolve.
 
 ### New
 
@@ -28,18 +31,31 @@
   doubled quote standing for one (`'O''Brien'`).
 - NHX annotations (`[&&NHX:key=value:...]`) are read into the `data.nhx` of the
   Branch they follow, and `toNewick` writes them back.
+- `dist/patristic.js` and `dist/patristic.mjs` come with source maps, which
+  hold the TypeScript source, so debuggers and stack traces can show it.
 
 ### Fixes
 
 - A tree that's a single Branch keeps its label: `"A;"` used to be read as an
   unlabeled Branch.
 - Every id round-trips through `toNewick` and `parseNewick`.
+- `parseMatrix` with neighbor joining or BIONJ makes a single leaf of a 1×1
+  matrix, and rejects an empty one with `"parseMatrix needs at least one
+  taxon."`, as UPGMA does. Both used to throw `RangeError: Invalid array
+  length`.
 
 ### Performance
 
 - `parseNewick` scans the string once, without a regex split. That makes it
   about 1.7× faster on large trees: a 100,000-tip tree takes 117 ms instead of
   190 ms.
+
+### Tooling
+
+- `npm run coverage` reports coverage of `src/patristic.ts`, through the
+  bundles' source maps, rather than of the bundle.
+- Every line and branch of `src/patristic.ts` is tested, and CI runs
+  `npm run coverage`, which fails if coverage drops below 100%.
 
 ## 0.7.0
 

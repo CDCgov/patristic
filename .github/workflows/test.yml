@@ -28,4 +28,5 @@ jobs:
             exit 1
           fi
       - run: npm run typecheck
-      - run: npm test
+      # Fails if any line or branch of src/ goes untested.
+      - run: npm run coverage
