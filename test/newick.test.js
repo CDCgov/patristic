@@ -176,3 +176,16 @@ describe("NHX annotations", () => {
     });
   });
 });
+
+describe("NHX edge cases", () => {
+  test("a field without a value is read as an empty string", () => {
+    let t = patristic.parseNewick("(A[&&NHX:flag:S=human],B);");
+    expect(t.children[0].data.nhx).toEqual({ flag: "", S: "human" });
+  });
+
+  test("an empty annotation isn't written", () => {
+    let t = patristic.parseNewick("(A:1,B:2);");
+    t.children[0].data.nhx = {};
+    expect(t.toNewick()).toBe("(A:1,B:2);");
+  });
+});

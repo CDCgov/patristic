@@ -201,4 +201,58 @@ describe("parseMatrix edge cases", () => {
       expect(t.toNewick()).toBe("A;");
     }
   });
+
+  test("neighbor joining matches a textbook implementation when distances break the triangle inequality", () => {
+    // Taxon 0 is much further from 1 and 3 than its neighbor 2 is, so the
+    // node made by joining 0 and 2 has a larger row sum than any other row.
+    let m = [
+      [0, 10, 0.1, 10],
+      [10, 0, 5, 1.3],
+      [0.1, 5, 0, 5],
+      [10, 1.3, 5, 0]
+    ];
+    let labels = [0, 1, 2, 3];
+    expectSameDistances(patristic.parseMatrix(m), patristic.parseJSON(reference.nj(m, labels)));
+    let random = generator(77);
+    for (let trial = 0; trial < 20; trial++) {
+      let n = 5 + trial;
+      let r = Array.from({ length: n }, () => Array(n).fill(0));
+      for (let i = 0; i < n; i++)
+        for (let j = 0; j < i; j++) r[i][j] = r[j][i] = random() * (random() < 0.2 ? 10 : 1);
+      let ours = patristic.parseMatrix(r);
+      let theirs = patristic.parseJSON(reference.nj(r, [...Array(n).keys()]));
+      expect(splits(ours)).toEqual(splits(theirs));
+      expectSameDistances(ours, theirs);
+    }
+  });
+
+  test("BIONJ matches a textbook implementation when two taxa are identical", () => {
+    // A zero distance gives a zero variance, where lambda stays at 1/2.
+    let m = euclidean(8, 31);
+    m[1] = m[0].slice();
+    m.forEach((row, i) => (row[1] = m[0][i]));
+    let labels = [...Array(8).keys()];
+    let ours = patristic.parseMatrix(m, null, { method: "bionj" });
+    let close = (a, b) => Object.keys(a).every(k => Math.abs(a[k] - b[k]) < 1e-9);
+    let variants = [0, 1].map(tie => patristic.parseJSON(reference.bionj(m, labels, tie)));
+    expect(variants.some(v => close(distances(ours), distances(v)))).toBe(true);
+  });
+
+  test("UPGMA matches a textbook implementation when averaging rounds down", () => {
+    // Joining {1, 2} with 3 averages 0.7 twice and 0.7 once, which rounds to
+    // just under 0.7, so 4's nearest cluster changes from 0 to {1, 2, 3}.
+    expect((2 * 0.7 + 0.7) / 3).toBeLessThan(0.7);
+    let m = [
+      [0, 1, 1, 1, 0.7],
+      [1, 0, 0.1, 0.3, 0.7],
+      [1, 0.1, 0, 0.3, 0.7],
+      [1, 0.3, 0.3, 0, 0.7],
+      [0.7, 0.7, 0.7, 0.7, 0]
+    ];
+    let labels = [0, 1, 2, 3, 4];
+    let ours = patristic.parseMatrix(m, labels, { method: "upgma" });
+    let theirs = patristic.parseJSON(reference.upgma(m, labels));
+    expect(clades(ours)).toEqual(clades(theirs));
+    expectSameDistances(ours, theirs);
+  });
 });
