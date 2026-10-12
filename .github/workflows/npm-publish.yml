@@ -1,5 +1,5 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
-# For more information see: https://docs.github.com/en/actions/publishing-packages/publishing-nodejs-packages
+# Publishes the package to npm when a release is created, after checking that
+# the committed build is current and the tests pass.
 
 name: Node.js Package
 
@@ -11,12 +11,23 @@ jobs:
     runs-on: ubuntu-latest
     environment: npm_publish
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 22
           registry-url: https://registry.npmjs.org/
       - run: npm ci
+      # dist/ is published as committed, so it must match src/.
+      - run: npm run build
+      - name: Check that the built files in dist/ are committed and up to date
+        run: |
+          if [ -n "$(git status --porcelain dist)" ]; then
+            git status dist
+            git diff dist
+            exit 1
+          fi
+      - run: npm run typecheck
+      - run: npm test
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_ACCESS_TOKEN}}
