@@ -78,6 +78,11 @@ class Store {
   ids: Id[] = [];
   data: (BranchData | undefined)[] = [];
   views: (Branch | undefined)[] = [];
+  /** Counts changes to the structure, so the index knows when it's stale. */
+  version = 0;
+  /** Counts changes to ids, for the index's id lookup. */
+  idVersion = 0;
+  private index: TreeIndex | undefined;
 
   constructor(capacity = 16) {
     this.capacity = Math.max(capacity, 1);
@@ -130,6 +135,7 @@ class Store {
     this.ids[i] = id;
     this.data[i] = data;
     this.views[i] = undefined;
+    this.version++;
     return i;
   }
 
@@ -149,6 +155,7 @@ class Store {
    */
   link(child: number, parent: number, before: number): void {
     let { firstChild, lastChild, nextSibling, prevSibling } = this;
+    this.version++;
     this.parent[child] = parent;
     if (before === NONE) {
       let last = lastChild[parent];
@@ -171,6 +178,7 @@ class Store {
   unlink(child: number): void {
     let parent = this.parent[child];
     if (parent < 0) return;
+    this.version++;
     let { nextSibling, prevSibling } = this;
     let previous = prevSibling[child],
       next = nextSibling[child];
@@ -221,6 +229,7 @@ class Store {
 
   /** Puts i's children in the given order. */
   reorder(i: number, children: number[]): void {
+    this.version++;
     let previous = NONE;
     for (let c of children) {
       this.prevSibling[c] = previous;
@@ -236,6 +245,106 @@ class Store {
   isAncestorOrSelf(a: number, b: number): boolean {
     for (let j = b; j >= 0; j = this.parent[j]) if (j === a) return true;
     return false;
+  }
+
+  /**
+   * The index of the tree containing slot i, built if the tree has changed
+   * since it was last built (or it's for another tree in this Store).
+   */
+  treeIndex(i: number): TreeIndex {
+    let index = this.index;
+    if (index && index.version === this.version && index.position[i] >= 0) {
+      return index;
+    }
+    let root = i;
+    while (this.parent[root] >= 0) root = this.parent[root];
+    return (this.index = new TreeIndex(this, root));
+  }
+}
+
+/**
+ * Facts about one tree that take a traversal to work out, kept until the
+ * tree's structure changes: its slots in pre-order, where each slot falls in
+ * that order, how many slots each subtree has (so a subtree is a contiguous
+ * run of the order), each slot's number of edges from the root, and (built
+ * when first needed) where each id appears.
+ */
+class TreeIndex {
+  version: number;
+  order: number[];
+  /** Each slot's position in `order`, or -1 for slots in other trees. */
+  position: Int32Array;
+  size: Int32Array;
+  level: Int32Array;
+  private store: Store;
+  private idVersion = -1;
+  private idPositions = new Map<Id, number[]>();
+
+  constructor(store: Store, root: number) {
+    this.store = store;
+    this.version = store.version;
+    let order = (this.order = store.preorder(root));
+    let position = (this.position = new Int32Array(store.size).fill(-1));
+    let size = (this.size = new Int32Array(store.size));
+    let level = (this.level = new Int32Array(store.size));
+    let parent = store.parent;
+    for (let k = 0; k < order.length; k++) {
+      let i = order[k];
+      position[i] = k;
+      if (i !== root) level[i] = level[parent[i]] + 1;
+    }
+    for (let k = order.length - 1; k >= 0; k--) {
+      let i = order[k];
+      size[i] += 1;
+      if (i !== root) size[parent[i]] += size[i];
+    }
+  }
+
+  /** Whether slot d is in the subtree under slot a (counting a itself). */
+  contains(a: number, d: number): boolean {
+    let p = this.position[a],
+      q = this.position[d];
+    return q >= p && q < p + this.size[a];
+  }
+
+  /**
+   * The first slot in pre-order, in the subtree under `under` (excluding
+   * `under` itself if `strict`), whose id is `id` and which passes `test`.
+   */
+  find(
+    under: number,
+    id: Id,
+    strict: boolean,
+    test?: (i: number) => boolean
+  ): number {
+    let store = this.store;
+    if (this.idVersion !== store.idVersion) {
+      this.idPositions.clear();
+      for (let k = 0; k < this.order.length; k++) {
+        let key = store.ids[this.order[k]];
+        let positions = this.idPositions.get(key);
+        if (positions) positions.push(k);
+        else this.idPositions.set(key, [k]);
+      }
+      this.idVersion = store.idVersion;
+    }
+    let positions = this.idPositions.get(id);
+    if (!positions) return NONE;
+    let start = this.position[under] + (strict ? 1 : 0),
+      end = this.position[under] + this.size[under];
+    // Binary search for the first position at or after start.
+    let lo = 0,
+      hi = positions.length;
+    while (lo < hi) {
+      let mid = (lo + hi) >> 1;
+      if (positions[mid] < start) lo = mid + 1;
+      else hi = mid;
+    }
+    for (let k = lo; k < positions.length && positions[k] < end; k++) {
+      let i = this.order[positions[k]];
+      if (!test || test(i)) return i;
+    }
+    return NONE;
   }
 }
 
@@ -270,6 +379,7 @@ function move(from: Store, root: number, to: Store): number {
     let view = from.views[i];
     if (view !== undefined) bind(view, to, j);
   }
+  from.version++;
   for (let i of order) {
     from.parent[i] = MOVED;
     from.firstChild[i] = NONE;
@@ -352,6 +462,7 @@ export class Branch {
   }
   set id(id: Id) {
     this._store.ids[this._index] = id;
+    this._store.idVersion++;
   }
 
   /** The length of the edge from this Branch to its parent. */
@@ -790,10 +901,8 @@ export class Branch {
    */
   getDescendant(id: Id): Branch | undefined {
     let store = this._store;
-    for (let i of store.preorder(this._index)) {
-      if (store.ids[i] === id) return store.view(i);
-    }
-    return undefined;
+    let found = store.treeIndex(this._index).find(this._index, id, false);
+    return found === NONE ? undefined : store.view(found);
   }
 
 
@@ -805,10 +914,12 @@ export class Branch {
    */
   getDescendants(includeSelf?: boolean): Branch[] {
     let store = this._store;
-    let order = store.preorder(this._index);
+    let index = store.treeIndex(this._index);
+    let start = index.position[this._index],
+      end = start + index.size[this._index];
     let descendants: Branch[] = [];
-    for (let k = includeSelf ? 0 : 1; k < order.length; k++) {
-      descendants.push(store.view(order[k]));
+    for (let k = includeSelf ? start : start + 1; k < end; k++) {
+      descendants.push(store.view(index.order[k]));
     }
     return descendants;
   }
@@ -830,8 +941,12 @@ export class Branch {
    */
   getLeaves(): Branch[] {
     let store = this._store;
+    let index = store.treeIndex(this._index);
+    let start = index.position[this._index],
+      end = start + index.size[this._index];
     let leaves: Branch[] = [];
-    for (let i of store.preorder(this._index)) {
+    for (let k = start; k < end; k++) {
+      let i = index.order[k];
       if (store.firstChild[i] === NONE) leaves.push(store.view(i));
     }
     return leaves;
@@ -847,8 +962,7 @@ export class Branch {
    * which it was called and the `cousin`.
    */
   getMRCA(cousin: Branch): Branch {
-    let [mrca] = climbToMRCA(this, cousin);
-    return this._store.view(mrca);
+    return this._store.view(climbToMRCA(this, cousin));
   }
 
 
@@ -894,7 +1008,8 @@ export class Branch {
     if (descendant instanceof Branch) {
       return descendant.isDescendantOf(this);
     } else if (typeof descendant === "string") {
-      return findBelow(this, (s, i) => s.ids[i] === descendant) !== undefined;
+      let index = this._store.treeIndex(this._index);
+      return index.find(this._index, descendant, true) !== NONE;
     }
     throw Error("Unknown type of descendant passed to Branch.hasDescendant!");
   }
@@ -910,10 +1025,10 @@ export class Branch {
       return leaf.isLeaf() && (leaf === this || leaf.isDescendantOf(this));
     } else if (typeof leaf === "string") {
       if (this.isLeaf()) return this.id === leaf;
-      return (
-        findBelow(this, (s, i) => s.firstChild[i] === NONE && s.ids[i] === leaf) !==
-        undefined
-      );
+      let store = this._store;
+      let index = store.treeIndex(this._index);
+      let isLeaf = (i: number) => store.firstChild[i] === NONE;
+      return index.find(this._index, leaf, true, isLeaf) !== NONE;
     }
     throw Error("Unknown type of leaf passed to Branch.hasLeaf.");
   }
@@ -980,8 +1095,14 @@ export class Branch {
    */
   isDescendantOf(ancestor: Branch | string): boolean {
     if (!ancestor) return false;
-    for (let current = this.parent; current; current = current.parent) {
-      if (current === ancestor || current.id === ancestor) return true;
+    let store = this._store;
+    if (ancestor instanceof Branch) {
+      if (ancestor._store !== store || ancestor === this) return false;
+      return store.treeIndex(this._index).contains(ancestor._index, this._index);
+    }
+    let parent = store.parent;
+    for (let i = parent[this._index]; i >= 0; i = parent[i]) {
+      if (store.ids[i] === ancestor) return true;
     }
     return false;
   }
@@ -1489,44 +1610,41 @@ function joinIds(a: Id, b: Id): Id {
   return a + "+" + b;
 }
 
-// Finds the MRCA of two Branches along with each one's distance to it, in a
-// single climb from each side. Returns [mrca, distanceFromA, distanceFromB].
-// Lengths are summed from each Branch upward, as depthOf sums them.
+// Finds the MRCA of two Branches along with each one's distance to it.
+// Returns [mrca, distanceFromA, distanceFromB]. Lengths are summed from each
+// Branch upward, as depthOf sums them.
 function distancesToMRCA(a: Branch, b: Branch): [Branch, number, number] {
-  let [mrca, i, j, fromA, fromB] = climbToMRCA(a, b);
-  let length = a._store.length;
+  let mrca = climbToMRCA(a, b);
+  let { parent, length } = a._store;
   let distanceA = 0,
     distanceB = 0;
-  for (let k = 0; k < i; k++) distanceA += length[fromA[k]];
-  for (let k = 0; k < j; k++) distanceB += length[fromB[k]];
+  for (let i = a._index; i !== mrca; i = parent[i]) distanceA += length[i];
+  for (let i = b._index; i !== mrca; i = parent[i]) distanceB += length[i];
   return [a._store.view(mrca), distanceA, distanceB];
 }
 
-// Lists the ancestors of two Branches (each including itself) as slots and
-// matches them up from the root down; the last match is the MRCA. Returns
-// [mrca, i, j, fromA, fromB], where fromA[i] and fromB[j] are the MRCA.
-function climbToMRCA(
-  a: Branch,
-  b: Branch
-): [number, number, number, number[], number[]] {
-  if (a._store !== b._store) {
+// Finds the slot of the MRCA of two Branches, climbing only from each up to
+// it: first the deeper one to the other's level, then both together.
+function climbToMRCA(a: Branch, b: Branch): number {
+  let store = a._store;
+  if (b._store !== store) {
     throw Error("Branch and cousin do not appear to share a common ancestor!");
   }
-  let parent = a._store.parent;
-  let fromA: number[] = [],
-    fromB: number[] = [];
-  for (let k = a._index; k >= 0; k = parent[k]) fromA.push(k);
-  for (let k = b._index; k >= 0; k = parent[k]) fromB.push(k);
-  let i = fromA.length - 1,
-    j = fromB.length - 1;
-  if (fromA[i] !== fromB[j]) {
+  let index = store.treeIndex(a._index);
+  if (index.position[b._index] < 0) {
     throw Error("Branch and cousin do not appear to share a common ancestor!");
   }
-  while (i > 0 && j > 0 && fromA[i - 1] === fromB[j - 1]) {
-    i--;
-    j--;
+  let { level } = index;
+  let parent = store.parent;
+  let i = a._index,
+    j = b._index;
+  while (level[i] > level[j]) i = parent[i];
+  while (level[j] > level[i]) j = parent[j];
+  while (i !== j) {
+    i = parent[i];
+    j = parent[j];
   }
-  return [fromA[i], i, j, fromA, fromB];
+  return i;
 }
 
 // Depth-first traversal with an explicit stack, so that deep trees can't
@@ -1562,20 +1680,6 @@ function walk(
       if (after) after(node);
     }
   }
-}
-
-// Returns the first descendant of `branch` (in pre-order, excluding `branch`
-// itself) for which `test` returns true, or undefined if there is none.
-function findBelow(
-  branch: Branch,
-  test: (store: Store, i: number) => boolean
-): Branch | undefined {
-  let store = branch._store;
-  let order = store.preorder(branch._index);
-  for (let k = 1; k < order.length; k++) {
-    if (test(store, order[k])) return store.view(order[k]);
-  }
-  return undefined;
 }
 
 // A Branch's id and (if it has one) length, as written in Newick.

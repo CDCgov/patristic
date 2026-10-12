@@ -883,6 +883,52 @@ describe("Branches are views over shared storage", () => {
   });
 });
 
+describe("lookups stay right as the tree changes", () => {
+  test("getDescendant after renaming, adding and detaching", () => {
+    let c = tree.getDescendant("C");
+    expect(c.id).toBe("C");
+    c.id = "Z";
+    expect(tree.getDescendant("Z")).toBe(c);
+    expect(tree.getDescendant("C")).toBeUndefined();
+    let n = tree.children[0].addChild({ id: "N" });
+    expect(tree.getDescendant("N")).toBe(n);
+    expect(tree.hasDescendant("N")).toBe(true);
+    c.parent = null;
+    expect(tree.getDescendant("Z")).toBeUndefined();
+    expect(tree.hasDescendant(c)).toBe(false);
+    expect(c.getDescendant("Z")).toBe(c);
+  });
+
+  test("getDescendant finds the first match in pre-order within the subtree", () => {
+    let t = patristic.parseNewick("((A:1,(A:1,B:1)X:1)Y:1,(A:1)W:1);");
+    let [y, w] = t.children;
+    expect(t.getDescendant("A")).toBe(y.children[0]);
+    expect(y.children[1].getDescendant("A")).toBe(y.children[1].children[0]);
+    expect(w.getDescendant("A")).toBe(w.children[0]);
+    expect(w.hasDescendant("B")).toBe(false);
+    expect(y.hasLeaf("B")).toBe(true);
+    expect(w.hasLeaf("A")).toBe(true);
+    expect(t.hasLeaf("X")).toBe(false);
+  });
+
+  test("ancestry and MRCAs after restructuring", () => {
+    let [a, b, x] = tree.children;
+    let [c, d] = x.children;
+    expect(c.getMRCA(d)).toBe(x);
+    expect(c.isDescendantOf(x)).toBe(true);
+    a.parent = x;
+    expect(a.getMRCA(c)).toBe(x);
+    expect(a.isDescendantOf(x)).toBe(true);
+    expect(a.distanceTo(d)).toBeCloseTo(0.5);
+    x.reroot();
+    expect(x.isRoot()).toBe(true);
+    expect(b.getMRCA(c)).toBe(x);
+    expect(tree.isDescendantOf(x)).toBe(true);
+    expect(x.hasDescendant(tree)).toBe(true);
+    expect(tree.hasDescendant(x)).toBe(false);
+  });
+});
+
 describe("error conditions", () => {
   test("unknown argument types throw", () => {
     expect(() => tree.hasChild(123)).toThrow("Unknown type of child");
