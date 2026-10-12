@@ -589,10 +589,16 @@ export interface ParseMatrixOptions {
 /**
  * Parses a Newick String and returns a Branch object representing the root
  * of the output Tree.
- * This is adapted Jason Davies' [newick.js](https://github.com/jasondavies/newick.js/blob/master/src/newick.js),
- * which is released for modification under [the MIT License](https://opensource.org/licenses/MIT).
+ *
+ * Labels may be quoted with single or double quotes, which lets them contain
+ * spaces and punctuation; a quote is escaped by doubling it (`'O''Brien'`).
+ * Unquoted labels keep spaces inside them (and underscores as they are), and
+ * whitespace around punctuation is ignored. Comments in square brackets are
+ * skipped. Parsing stops at the first `;`, which may be left out.
  * @param  {string} newick A Newick String
  * @return {Branch} A Branch representing the root of the output tree
+ * @throws {SyntaxError} If the parentheses don't balance, a quoted label or
+ * comment isn't closed, or a comma appears outside parentheses.
  */
 export declare function parseNewick(newick: string): Branch;
 export {};

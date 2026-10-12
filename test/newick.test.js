@@ -62,12 +62,70 @@ describe("parseNewick on valid input", () => {
 });
 
 describe("parseNewick bugs", () => {
-  test.failing("reads the label of a tree that's a single Branch", () => {
+  test("reads the label of a tree that's a single Branch", () => {
     expect(summary("A;")).toEqual([["A", 0]]);
     expect(summary("A:2;")).toEqual([["A", 2]]);
   });
 
-  test.failing("stops at the end of the tree", () => {
+  test("stops at the end of the tree", () => {
     expect(summary("(A:1,B:2);(C,D);")).toEqual(summary("(A:1,B:2);"));
+  });
+});
+
+describe("quoted labels", () => {
+  test("may contain punctuation, brackets and spaces", () => {
+    expect(
+      summary("('Homo sapiens':1,'a,b:c;(d)':2,'[not a comment]':3,' A ':4);")
+    ).toEqual([
+      ["", 0],
+      ["Homo sapiens", 1],
+      ["a,b:c;(d)", 2],
+      ["[not a comment]", 3],
+      [" A ", 4]
+    ]);
+  });
+
+  test("escape quotes by doubling them", () => {
+    expect(summary("('O''Brien':1,\"say \"\"hi\"\"\":2);")).toEqual([
+      ["", 0],
+      ["O'Brien", 1],
+      ['say "hi"', 2]
+    ]);
+  });
+
+  test("label internal Branches and roots", () => {
+    expect(summary("(('A',B)'clade one':1)'the root';")).toEqual([
+      ["the root", 0],
+      ["clade one", 1],
+      ["A", 0],
+      ["B", 0]
+    ]);
+  });
+});
+
+describe("comments", () => {
+  test("are skipped wherever they appear", () => {
+    expect(
+      summary("[start](A[c1]:1[c2],B:[c3]2,[c4]C)[root]:[c5]3[end];")
+    ).toEqual([
+      ["", 3],
+      ["A", 1],
+      ["B", 2],
+      ["C", 0]
+    ]);
+  });
+});
+
+describe("malformed Newick", () => {
+  test.each([
+    ["(A,B", "missing ')'"],
+    ["((A,B);", "missing ')'"],
+    ["(A,B));", "')' without a matching '('"],
+    ["A,B;", "',' outside parentheses"],
+    ["('A:1,B);", "unterminated quoted label"],
+    ["(A[comment,B);", "unterminated comment"]
+  ])("%s throws a SyntaxError", (newick, message) => {
+    expect(() => patristic.parseNewick(newick)).toThrow(SyntaxError);
+    expect(() => patristic.parseNewick(newick)).toThrow(message);
   });
 });
