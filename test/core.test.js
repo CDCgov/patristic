@@ -276,17 +276,11 @@ describe("queries", () => {
     expect(links[0]).toEqual({ source: tree, target: tree.children[0] });
   });
 
-  test("isConsistent", () => {
+  test("isConsistent: links can't disagree, so trees always are", () => {
     expect(tree.isConsistent()).toBe(true);
     tree.children[0].parent = null;
-    expect(tree.isConsistent()).toBe(false);
-  });
-
-  test("isConsistent detects cycles", () => {
-    let x = tree.children[2];
-    x.children.push(tree);
-    tree.parent = x;
-    expect(x.isConsistent()).toBe(false);
+    expect(tree.isConsistent()).toBe(true);
+    expect(ids(tree.children)).toEqual(["B", ""]);
   });
 });
 
@@ -499,15 +493,13 @@ describe("restructuring", () => {
     expect(a.distanceTo(d.getDescendant("C"))).toBeCloseTo(0.9);
   });
 
-  test("fixParenthood", () => {
+  test("fixParenthood has nothing to fix: links can't disagree", () => {
     let [c] = tree.children[2].children;
     c.parent = null;
-    tree.children[2].parent = null;
-    tree.fixParenthood(true);
-    expect(tree.children[2].parent).toBe(tree);
+    expect(tree.fixParenthood()).toBe(tree);
+    expect(tree.fixParenthood(true)).toBe(tree);
     expect(c.parent).toBeNull();
-    tree.fixParenthood();
-    expect(c.parent).toBe(tree.children[2]);
+    expect(tree.toNewick()).toBe("(A:0.1,B:0.2,(D:0.4):0.5);");
     expect(tree.isConsistent()).toBe(true);
   });
 
@@ -801,6 +793,78 @@ describe("addParent and replace keep the tree consistent", () => {
   test("replace on a root throws a clear error", () => {
     expect(() => tree.replace(new patristic.Branch())).toThrow(
       "Cannot replace a root Branch."
+    );
+  });
+});
+
+describe("Branches are views over shared storage", () => {
+  test("the same Branch is always the same object", () => {
+    expect(tree.children[0]).toBe(tree.children[0]);
+    expect(tree.getDescendant("C")).toBe(tree.children[2].children[0]);
+    expect(tree.children[2].children[0].parent.parent).toBe(tree);
+    expect(tree.getLeaves()[2]).toBe(tree.children[2].children[0]);
+  });
+
+  test("properties set on a Branch stay with it", () => {
+    let c = tree.getDescendant("C");
+    c.x = 0.25;
+    expect(tree.children[2].children[0].x).toBe(0.25);
+  });
+
+  test("assigning children relinks the tree", () => {
+    let x = tree.children[2];
+    let [c, d] = x.children;
+    x.children = [d];
+    expect(tree.toNewick()).toBe("(A:0.1,B:0.2,(D:0.4):0.5);");
+    expect(c.parent).toBeNull();
+    expect(d.parent).toBe(x);
+    tree.children = tree.children.filter(b => b.id !== "B");
+    expect(tree.toNewick()).toBe("(A:0.1,(D:0.4):0.5);");
+  });
+
+  test("setting parent moves a Branch to the end of its new parent's children", () => {
+    let [a, , x] = tree.children;
+    a.parent = x;
+    expect(a.parent).toBe(x);
+    expect(tree.toNewick()).toBe("(B:0.2,(C:0.3,D:0.4,A:0.1):0.5);");
+    a.parent = x;
+    expect(tree.toNewick()).toBe("(B:0.2,(C:0.3,D:0.4,A:0.1):0.5);");
+    a.parent = null;
+    expect(a.isRoot()).toBe(true);
+    expect(tree.toNewick()).toBe("(B:0.2,(C:0.3,D:0.4):0.5);");
+  });
+
+  test("editing the array children returns doesn't change the tree", () => {
+    tree.children.push(new patristic.Branch({ id: "E" }));
+    tree.children.reverse();
+    expect(tree.toNewick()).toBe(newick);
+  });
+
+  test("a Branch can't be made a descendant of itself", () => {
+    let x = tree.children[2];
+    expect(() => {
+      tree.parent = x;
+    }).toThrow("descendant of itself");
+    expect(() => x.children[0].addChild(tree)).toThrow("descendant of itself");
+    expect(() => x.addChild(x)).toThrow("descendant of itself");
+    expect(() => {
+      x.children = [tree, ...x.children];
+    }).toThrow("descendant of itself");
+    expect(tree.toNewick()).toBe(newick);
+  });
+
+  test("a Branch moved to another tree keeps its identity and subtree", () => {
+    let other = patristic.parseNewick("((P:1,Q:1)X:1,Y:1);");
+    let x = other.children[0];
+    x.marker = "kept";
+    tree.addChild(x);
+    expect(x.getRoot()).toBe(tree);
+    expect(x.marker).toBe("kept");
+    expect(x.children.map(b => b.id)).toEqual(["P", "Q"]);
+    expect(x.children[0].parent).toBe(x);
+    expect(other.toNewick()).toBe("(Y:1);");
+    expect(tree.toNewick()).toBe(
+      "(A:0.1,B:0.2,(C:0.3,D:0.4):0.5,(P:1,Q:1)X:1);"
     );
   });
 });

@@ -74,9 +74,7 @@ describe("a Branch with 200,000 children", () => {
     let root = patristic.parseNewick("(A:1,X:1,B:1);");
     let x = root.children[1];
     for (let i = 0; i < 200000; i++) x.addChild({ id: `C${i}`, length: 1 });
-    let children = root.children;
     expect(x.excise()).toBe(root);
-    expect(root.children).toBe(children);
     expect(root.children).toHaveLength(200002);
     expect(root.children[0].id).toBe("A");
     expect(root.children[1].id).toBe("C0");
