@@ -520,6 +520,8 @@ export declare class Branch {
     toMatrix(): DistanceMatrix;
     /**
      * Returns the Newick representation of this Branch and its descendants.
+     * Labels containing whitespace, punctuation, brackets or quotes are written
+     * in single quotes, with any single quotes in them doubled.
      * @param  {Boolean} [nonterminus=falsy] Is this not the terminus of the
      * Newick Tree? This should be falsy when called by a user (i.e. you). It's
      * used internally to decide whether or not in include a semicolon in the

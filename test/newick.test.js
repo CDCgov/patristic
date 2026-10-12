@@ -129,3 +129,23 @@ describe("malformed Newick", () => {
     expect(() => patristic.parseNewick(newick)).toThrow(message);
   });
 });
+
+describe("toNewick quoting", () => {
+  test("quotes labels that need it, doubling quotes inside them", () => {
+    let t = patristic.parseNewick("(A:1,B:2,C:3,D:4,E:5,F:6)R;");
+    let ids = ["O'Brien", "Homo sapiens", "a,b:c;(d)", "[x]", ' "q" ', "plain_id"];
+    t.children.forEach((b, i) => (b.id = ids[i]));
+    expect(t.toNewick()).toBe(
+      `('O''Brien':1,'Homo sapiens':2,'a,b:c;(d)':3,'[x]':4,' "q" ':5,plain_id:6)R;`
+    );
+  });
+
+  test("round-trips any label", () => {
+    let ids = ["O'Brien", "a b", "x,y", "(z)", "''", "[c]", "tab\there", "1:2", 0, ""];
+    let t = new patristic.Branch();
+    ids.forEach((id, i) => t.addChild({ id, length: i + 1 }));
+    let back = patristic.parseNewick(t.toNewick());
+    expect(back.children.map(b => b.id)).toEqual(ids.map(String));
+    expect(back.toNewick()).toBe(t.toNewick());
+  });
+});

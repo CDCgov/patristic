@@ -1518,6 +1518,8 @@ export class Branch {
 
   /**
    * Returns the Newick representation of this Branch and its descendants.
+   * Labels containing whitespace, punctuation, brackets or quotes are written
+   * in single quotes, with any single quotes in them doubled.
    * @param  {Boolean} [nonterminus=falsy] Is this not the terminus of the
    * Newick Tree? This should be falsy when called by a user (i.e. you). It's
    * used internally to decide whether or not in include a semicolon in the
@@ -1699,9 +1701,19 @@ function walk(
 
 // A Branch's id and (if it has one) length, as written in Newick.
 function newickLabel(store: Store, i: number): string {
-  let label = "" + store.ids[i];
+  let label = quoteLabel("" + store.ids[i]);
   if (store.length[i]) label += ":" + numberToString(store.length[i]);
   return label;
+}
+
+// Characters that can't appear in an unquoted Newick label: whitespace,
+// punctuation, brackets and quotes.
+const NEEDS_QUOTES = /[\s(),:;[\]'"]/;
+
+// Quotes a label in single quotes (doubling any inside it) if it needs them.
+function quoteLabel(label: string): string {
+  if (!NEEDS_QUOTES.test(label)) return label;
+  return "'" + label.replace(/'/g, "''") + "'";
 }
 
 // Returns a string representation of a number that doesn't use scientific
