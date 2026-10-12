@@ -52,6 +52,15 @@ We can use this tree to compute a patristic distance matrix.
 var matrix = tree.toMatrix();
 ```
 
+And we can build a tree from a distance matrix, by neighbor joining (the
+default), BIONJ or UPGMA:
+
+```javascript
+var nj = patristic.parseMatrix(matrix.matrix, matrix.ids);
+var bionj = patristic.parseMatrix(matrix.matrix, matrix.ids, { method: "bionj" });
+var upgma = patristic.parseMatrix(matrix.matrix, matrix.ids, { method: "upgma" });
+```
+
 Note that elements in the tree object maintain references to their parents,
 creating circular references. If you need a tree without circular references for
 serialization:
