@@ -2025,10 +2025,8 @@ function upgma(matrix, labels, float32) {
             }
         }
     }
-    let root = 0;
-    while (removed[root])
-        root++;
-    return store.view(node[root]).fixDistances();
+    // Each join keeps the lower-numbered row, so row 0 holds the root.
+    return store.view(node[0]).fixDistances();
 }
 /**
  * @private
