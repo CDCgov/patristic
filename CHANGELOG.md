@@ -39,6 +39,10 @@
 - A tree that's a single Branch keeps its label: `"A;"` used to be read as an
   unlabeled Branch.
 - Every id round-trips through `toNewick` and `parseNewick`.
+- `parseMatrix` with neighbor joining or BIONJ makes a single leaf of a 1×1
+  matrix, and rejects an empty one with `"parseMatrix needs at least one
+  taxon."`, as UPGMA does. Both used to throw `RangeError: Invalid array
+  length`.
 
 ### Performance
 

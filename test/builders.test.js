@@ -184,3 +184,21 @@ describe("parseMatrix methods", () => {
     ).toEqual(splits(patristic.parseMatrix(m, null, { method: "bionj" })));
   });
 });
+
+describe("parseMatrix edge cases", () => {
+  test("every method rejects an empty matrix with the same error", () => {
+    for (let method of ["nj", "bionj", "upgma"]) {
+      expect(() => patristic.parseMatrix([], null, { method })).toThrow(
+        "parseMatrix needs at least one taxon."
+      );
+    }
+  });
+
+  test("every method makes a single leaf of a single taxon", () => {
+    for (let method of ["nj", "bionj", "upgma"]) {
+      let t = patristic.parseMatrix([[0]], ["A"], { method });
+      expect(t.isLeaf()).toBe(true);
+      expect(t.toNewick()).toBe("A;");
+    }
+  });
+});
