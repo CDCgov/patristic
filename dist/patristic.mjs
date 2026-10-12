@@ -1372,6 +1372,10 @@ class Branch {
     }
     /**
      * Returns the Newick representation of this Branch and its descendants.
+     * Labels containing whitespace, punctuation, brackets or quotes are written
+     * in single quotes, with any single quotes in them doubled. A Branch's
+     * `data.nhx` annotations, if any, are written after its length as an NHX
+     * comment.
      * @param  {Boolean} [nonterminus=falsy] Is this not the terminus of the
      * Newick Tree? This should be falsy when called by a user (i.e. you). It's
      * used internally to decide whether or not in include a semicolon in the
@@ -1552,10 +1556,25 @@ function walk(root, before, after) {
 }
 // A Branch's id and (if it has one) length, as written in Newick.
 function newickLabel(store, i) {
-    let label = "" + store.ids[i];
+    let label = quoteLabel("" + store.ids[i]);
     if (store.length[i])
         label += ":" + numberToString(store.length[i]);
+    let nhx = store.data[i]?.nhx;
+    if (nhx) {
+        let fields = Object.entries(nhx).map(([key, value]) => key + "=" + value);
+        if (fields.length)
+            label += "[&&NHX:" + fields.join(":") + "]";
+    }
     return label;
+}
+// Characters that can't appear in an unquoted Newick label: whitespace,
+// punctuation, brackets and quotes.
+const NEEDS_QUOTES = /[\s(),:;[\]'"]/;
+// Quotes a label in single quotes (doubling any inside it) if it needs them.
+function quoteLabel(label) {
+    if (!NEEDS_QUOTES.test(label))
+        return label;
+    return "'" + label.replace(/'/g, "''") + "'";
 }
 // Returns a string representation of a number that doesn't use scientific
 // notation. Works on the digits of JavaScript's own (shortest round-trip)
@@ -1901,43 +1920,140 @@ class ArgSorter {
 /**
  * Parses a Newick String and returns a Branch object representing the root
  * of the output Tree.
- * This is adapted Jason Davies' [newick.js](https://github.com/jasondavies/newick.js/blob/master/src/newick.js),
- * which is released for modification under [the MIT License](https://opensource.org/licenses/MIT).
+ *
+ * Labels may be quoted with single or double quotes, which lets them contain
+ * spaces and punctuation; a quote is escaped by doubling it (`'O''Brien'`).
+ * Unquoted labels keep spaces inside them (and underscores as they are), and
+ * whitespace around punctuation is ignored. Comments in square brackets are
+ * skipped, except NHX annotations (`[&&NHX:key=value:...]`), which are read
+ * into the `data.nhx` of the Branch they follow (and written back by
+ * toNewick). Parsing stops at the first `;`, which may be left out.
  * @param  {string} newick A Newick String
  * @return {Branch} A Branch representing the root of the output tree
+ * @throws {SyntaxError} If the parentheses don't balance, a quoted label or
+ * comment isn't closed, or a comma appears outside parentheses.
  */
 function parseNewick(newick) {
-    let store = new Store(), ancestors = [], tree = store.add("", 0), tokens = newick.split(/\s*(;|\(|\)|,|:)\s*/), n = tokens.length;
-    for (let t = 0; t < n; t++) {
-        let token = tokens[t];
-        let c;
-        switch (token) {
-            case "(": // new Branchset
-                c = store.add("", 0);
-                store.link(c, tree, NONE);
-                ancestors.push(tree);
-                tree = c;
-                break;
-            case ",": // another Branch
-                c = store.add("", 0);
-                store.link(c, ancestors[ancestors.length - 1], NONE);
-                tree = c;
-                break;
-            case ")": // optional name next
-                tree = ancestors.pop();
-                break;
-            case ":": // optional length next
-                break;
-            default:
-                let x = tokens[t - 1];
-                if (x == ")" || x == "(" || x == ",") {
-                    store.ids[tree] = token;
+    let store = new Store(), ancestors = [], current = store.add("", 0), n = newick.length, i = 0;
+    function fail(message, at) {
+        throw new SyntaxError(`Invalid Newick: ${message} at position ${at}.`);
+    }
+    // Skips whitespace and [comments], reading NHX annotations
+    // ([&&NHX:key=value:...]) into the data of the Branch they follow.
+    function skip() {
+        while (i < n) {
+            let c = newick.charCodeAt(i);
+            if (c === 91 /* [ */) {
+                let close = newick.indexOf("]", i + 1);
+                if (close === -1)
+                    fail("unterminated comment", i);
+                if (newick.startsWith("&&NHX", i + 1)) {
+                    readNHX(newick.slice(i + 6, close));
                 }
-                else if (x == ":") {
-                    store.length[tree] = parseFloat(token);
-                }
+                i = close + 1;
+            }
+            else if (c <= 32) {
+                i++;
+            }
+            else {
+                return;
+            }
         }
     }
+    function readNHX(fields) {
+        var _a;
+        let data = ((_a = store.data)[current] ?? (_a[current] = {}));
+        let nhx = (data.nhx ?? (data.nhx = {}));
+        for (let field of fields.split(":")) {
+            if (!field)
+                continue;
+            let equals = field.indexOf("=");
+            if (equals === -1)
+                nhx[field] = "";
+            else
+                nhx[field.slice(0, equals)] = field.slice(equals + 1);
+        }
+    }
+    // Reads an unquoted label or length, up to the next punctuation or comment,
+    // without surrounding whitespace.
+    function bare() {
+        let start = i;
+        while (i < n) {
+            let c = newick.charCodeAt(i);
+            if (c === 40 /* ( */ ||
+                c === 41 /* ) */ ||
+                c === 44 /* , */ ||
+                c === 58 /* : */ ||
+                c === 59 /* ; */ ||
+                c === 91 /* [ */) {
+                break;
+            }
+            i++;
+        }
+        return newick.slice(start, i).trim();
+    }
+    // Reads a label in quotes, where a doubled quote stands for one quote.
+    function quoted(quote) {
+        let start = i, label = "";
+        i++;
+        for (;;) {
+            let close = newick.indexOf(quote, i);
+            if (close === -1)
+                fail("unterminated quoted label", start);
+            label += newick.slice(i, close);
+            i = close + 1;
+            if (newick[i] !== quote)
+                return label;
+            label += quote;
+            i++;
+        }
+    }
+    scan: for (;;) {
+        skip();
+        if (i >= n)
+            break;
+        let c = newick[i];
+        switch (c) {
+            case "(": {
+                let child = store.add("", 0);
+                store.link(child, current, NONE);
+                ancestors.push(current);
+                current = child;
+                i++;
+                break;
+            }
+            case ",": {
+                if (!ancestors.length)
+                    fail("',' outside parentheses", i);
+                let child = store.add("", 0);
+                store.link(child, ancestors[ancestors.length - 1], NONE);
+                current = child;
+                i++;
+                break;
+            }
+            case ")":
+                if (!ancestors.length)
+                    fail("')' without a matching '('", i);
+                current = ancestors.pop();
+                i++;
+                break;
+            case ":":
+                i++;
+                skip();
+                store.length[current] = parseFloat(bare());
+                break;
+            case ";":
+                break scan;
+            case "'":
+            case '"':
+                store.ids[current] = quoted(c);
+                break;
+            default:
+                store.ids[current] = bare();
+        }
+    }
+    if (ancestors.length)
+        fail("missing ')'", n);
     return store.view(0).fixDistances();
 }
 

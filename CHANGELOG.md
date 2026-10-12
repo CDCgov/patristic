@@ -1,5 +1,39 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+
+- `parseNewick` throws a `SyntaxError` for malformed Newick. That covers a
+  missing `)`, a `)` without a matching `(`, a `,` outside parentheses, and an
+  unterminated quoted label or comment. The error names the problem and its
+  position. Before, it produced a tree anyway.
+- `parseNewick` stops at the first `;`. Text after it was parsed into the same
+  tree.
+- Square brackets start comments, so `A[x]` is labeled `A`, and a label that
+  starts with a quote is read as a quoted label.
+- `toNewick` writes ids containing whitespace, punctuation, brackets or quotes
+  in single quotes, so `Homo sapiens` is written `'Homo sapiens'`.
+
+### New
+
+- `parseNewick` reads quoted labels, in single or double quotes, with a
+  doubled quote standing for one (`'O''Brien'`).
+- NHX annotations (`[&&NHX:key=value:...]`) are read into the `data.nhx` of the
+  Branch they follow, and `toNewick` writes them back.
+
+### Fixes
+
+- A tree that's a single Branch keeps its label: `"A;"` used to be read as an
+  unlabeled Branch.
+- Every id round-trips through `toNewick` and `parseNewick`.
+
+### Performance
+
+- `parseNewick` scans the string once, without a regex split. That makes it
+  about 1.7× faster on large trees: a 100,000-tip tree takes 117 ms instead of
+  190 ms.
+
 ## 0.7.0
 
 A rewrite for speed, memory and correctness. Trees are now stored in typed
