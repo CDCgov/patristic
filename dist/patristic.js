@@ -11,7 +11,7 @@
      * @example
      * console.log(patristic.version);
      */
-    const version = "0.7.0";
+    const version = "0.7.1";
     // No parent, child or sibling.
     const NONE = -1;
     // The parent of a slot whose Branch has moved to another Store.
