@@ -38,7 +38,10 @@ export interface Link {
     source: Branch;
     target: Branch;
 }
-/** The second argument to JSON.stringify. */
+/**
+ * The second argument to JSON.stringify.
+ * @private
+ */
 type Replacer = ((this: unknown, key: string, value: unknown) => unknown) | (string | number)[] | null;
 /**
  * A class for representing Branches in trees.

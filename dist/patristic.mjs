@@ -11,6 +11,7 @@ const NONE = -1;
 // The parent of a slot whose Branch has moved to another Store.
 const MOVED = -2;
 /**
+ * @private
  * @internal
  * The storage behind Branches: a forest kept in parallel arrays, one slot per
  * Branch. Each tree lives in one Store; Branch objects are views onto slots,
@@ -211,6 +212,7 @@ class Store {
     }
 }
 /**
+ * @private
  * Facts about one tree that take a traversal to work out, kept until the
  * tree's structure changes: its slots in pre-order, where each slot falls in
  * that order, how many slots each subtree has (so a subtree is a contiguous
@@ -296,6 +298,7 @@ function bind(view, store, index) {
     store.views[index] = view;
 }
 /**
+ * @private
  * Moves the subtree under root slot `root` of `from` into `to`, and returns
  * its new root slot. Views of the moved Branches are re-pointed, so they keep
  * their identity; their old slots are left empty.
@@ -340,6 +343,7 @@ function checkNotAncestor(child, parent) {
     }
 }
 /**
+ * @private
  * Makes `child` a child of `parent`: before `before` (one of parent's
  * children) or last. The child is detached from wherever it was, and moved
  * into parent's Store if it's in another.
@@ -1673,6 +1677,7 @@ function parseMatrix(matrix, labels, options) {
     return store.view(join(node1, node2)).fixDistances();
 }
 /**
+ * @private
  * The distance matrix and search structures of a neighbor-joining run, after
  * RapidNJ (Simonsen, Mailund & Pedersen, 2008): each row keeps its distances
  * sorted, so the search for the pair to join can stop scanning a row once
@@ -1829,6 +1834,7 @@ class NeighborJoining {
     }
 }
 /**
+ * @private
  * Sorts items (column indices) by their keys (distances), stably: items with
  * equal keys stay in the order given. A bottom-up merge sort on typed arrays,
  * which avoids Array.prototype.sort's comparator calls.
