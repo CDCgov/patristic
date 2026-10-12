@@ -359,16 +359,20 @@
                 attach(this, parent);
         }
         /**
-         * This Branch's children, as a new array: changing the array doesn't change
-         * the tree. Assigning an array of Branches makes them the children, in that
-         * order; children left out are detached.
+         * This Branch's children, as a new array, or undefined for a leaf (as in
+         * d3-hierarchy). Changing the array doesn't change the tree. Assigning an
+         * array of Branches makes them the children, in that order; children left
+         * out are detached, and assigning null or an empty array makes this Branch
+         * a leaf.
          */
         get children() {
             let store = this._store;
+            let c = store.firstChild[this._index];
+            if (c === NONE)
+                return undefined;
             let children = [];
-            for (let c = store.firstChild[this._index]; c !== NONE; c = store.nextSibling[c]) {
+            for (; c !== NONE; c = store.nextSibling[c])
                 children.push(store.view(c));
-            }
             return children;
         }
         set children(children) {
@@ -591,7 +595,7 @@
          * @return {Branch} The Branch on which it was called.
          */
         eachChild(callback) {
-            this.children.forEach(callback);
+            (this.children ?? []).forEach(callback);
             return this;
         }
         /**
@@ -601,7 +605,7 @@
          * excised Branch was the root.
          */
         excise() {
-            let children = this.children;
+            let children = this.children ?? [];
             if (this.isRoot()) {
                 if (children.length > 1) {
                     throw new Error("Cannot excise a root Branch with multiple children.");
@@ -694,7 +698,7 @@
          * child doesn't exist.
          */
         getChild(childID) {
-            return this.children.find(c => c.id === childID);
+            return this.children?.find(c => c.id === childID);
         }
         /**
          * Given an id string, returns the descendant Branch with that ID, or
@@ -782,7 +786,7 @@
                 return child.parent === this;
             }
             else if (typeof child === "string") {
-                return this.children.some(c => c.id === child);
+                return (this.children ?? []).some(c => c.id === child);
             }
             throw Error(`Unknown type of child (${typeof child}) passed to Branch.hasChild!`);
         }
@@ -1034,7 +1038,7 @@
         removeIfNoChildren(nonrecursive) {
             let root = this.getRoot();
             let parent = this.parent;
-            if (this.children.length === 0 && parent) {
+            if (this.isLeaf() && parent) {
                 this.remove();
                 if (!nonrecursive) {
                     parent.removeIfNoChildren();
@@ -1117,8 +1121,9 @@
                 // Excising this Branch would detach it from the tree we return.
                 if (branch === this)
                     return;
-                if (branch.children.length == 1) {
-                    let child = branch.children[0];
+                let children = branch.children;
+                if (children && children.length == 1) {
+                    let child = children[0];
                     child.id = joinIds(branch.id, child.id);
                     branch.excise();
                 }
@@ -1136,8 +1141,11 @@
                 comparator = (a, b) => a.value - b.value;
             let compare = comparator;
             return this.eachBefore(d => {
-                let sorted = d.children.sort(compare);
-                d._store.reorder(d._index, sorted.map(c => c._index));
+                let children = d.children;
+                if (!children)
+                    return;
+                children.sort(compare);
+                d._store.reorder(d._index, children.map(c => c._index));
             });
         }
         /**
@@ -1160,7 +1168,8 @@
         sum(value) {
             if (!value)
                 value = d => d.value;
-            return this.eachAfter(d => (d.value = value(d) + d.children.reduce((a, c) => a + c.value, 0)));
+            return this.eachAfter(d => (d.value =
+                value(d) + (d.children ?? []).reduce((a, c) => a + c.value, 0)));
         }
         /**
          * Determines whether this Branch is likelier to be a target of `cousin`, or
@@ -1411,7 +1420,7 @@
         let nodes = [root], arrays = [], indices = [];
         if (before)
             before(root);
-        arrays.push(root.children);
+        arrays.push(root.children ?? []);
         indices.push(0);
         while (nodes.length) {
             let top = nodes.length - 1, i = indices[top], array = arrays[top];
@@ -1421,7 +1430,7 @@
                 if (before)
                     before(child);
                 nodes.push(child);
-                arrays.push(child.children);
+                arrays.push(child.children ?? []);
                 indices.push(0);
             }
             else {

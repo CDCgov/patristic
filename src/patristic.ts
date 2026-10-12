@@ -419,16 +419,18 @@ export class Branch {
   }
 
   /**
-   * This Branch's children, as a new array: changing the array doesn't change
-   * the tree. Assigning an array of Branches makes them the children, in that
-   * order; children left out are detached.
+   * This Branch's children, as a new array, or undefined for a leaf (as in
+   * d3-hierarchy). Changing the array doesn't change the tree. Assigning an
+   * array of Branches makes them the children, in that order; children left
+   * out are detached, and assigning null or an empty array makes this Branch
+   * a leaf.
    */
-  get children(): Branch[] {
+  get children(): Branch[] | undefined {
     let store = this._store;
+    let c = store.firstChild[this._index];
+    if (c === NONE) return undefined;
     let children: Branch[] = [];
-    for (let c = store.firstChild[this._index]; c !== NONE; c = store.nextSibling[c]) {
-      children.push(store.view(c));
-    }
+    for (; c !== NONE; c = store.nextSibling[c]) children.push(store.view(c));
     return children;
   }
   set children(children: Branch[] | null | undefined) {
@@ -666,7 +668,7 @@ export class Branch {
   eachChild(
     callback: (child: Branch, index: number, children: Branch[]) => void
   ): this {
-    this.children.forEach(callback);
+    (this.children ?? []).forEach(callback);
     return this;
   }
 
@@ -677,7 +679,7 @@ export class Branch {
    * excised Branch was the root.
    */
   excise(): Branch {
-    let children = this.children;
+    let children = this.children ?? [];
     if (this.isRoot()) {
       if (children.length > 1) {
         throw new Error("Cannot excise a root Branch with multiple children.");
@@ -776,7 +778,7 @@ export class Branch {
    * child doesn't exist.
    */
   getChild(childID: Id): Branch | undefined {
-    return this.children.find(c => c.id === childID);
+    return this.children?.find(c => c.id === childID);
   }
 
   /**
@@ -872,7 +874,7 @@ export class Branch {
     if (child instanceof Branch) {
       return child.parent === this;
     } else if (typeof child === "string") {
-      return this.children.some(c => c.id === child);
+      return (this.children ?? []).some(c => c.id === child);
     }
     throw Error(
       `Unknown type of child (${typeof child}) passed to Branch.hasChild!`
@@ -1135,7 +1137,7 @@ export class Branch {
     let root = this.getRoot();
     let parent = this.parent;
 
-    if (this.children.length === 0 && parent) {
+    if (this.isLeaf() && parent) {
       this.remove();
       if (!nonrecursive) {
         parent.removeIfNoChildren();
@@ -1226,8 +1228,9 @@ export class Branch {
     this.eachAfter(branch => {
       // Excising this Branch would detach it from the tree we return.
       if (branch === this) return;
-      if(branch.children.length == 1){
-        let child = branch.children[0];
+      let children = branch.children;
+      if (children && children.length == 1) {
+        let child = children[0];
         child.id = joinIds(branch.id, child.id);
         branch.excise();
       }
@@ -1245,8 +1248,10 @@ export class Branch {
     if (!comparator) comparator = (a, b) => a.value - b.value;
     let compare = comparator;
     return this.eachBefore(d => {
-      let sorted = d.children.sort(compare);
-      d._store.reorder(d._index, sorted.map(c => c._index));
+      let children = d.children;
+      if (!children) return;
+      children.sort(compare);
+      d._store.reorder(d._index, children.map(c => c._index));
     });
   }
 
@@ -1272,7 +1277,9 @@ export class Branch {
   sum(value?: (branch: Branch) => number): this {
     if (!value) value = d => d.value;
     return this.eachAfter(
-      d => (d.value = value(d) + d.children.reduce((a, c) => a + c.value, 0))
+      d =>
+        (d.value =
+          value(d) + (d.children ?? []).reduce((a, c) => a + c.value, 0))
     );
   }
 
@@ -1535,7 +1542,7 @@ function walk(
     arrays: Branch[][] = [],
     indices: number[] = [];
   if (before) before(root);
-  arrays.push(root.children);
+  arrays.push(root.children ?? []);
   indices.push(0);
   while (nodes.length) {
     let top = nodes.length - 1,
@@ -1546,7 +1553,7 @@ function walk(
       let child = array[i];
       if (before) before(child);
       nodes.push(child);
-      arrays.push(child.children);
+      arrays.push(child.children ?? []);
       indices.push(0);
     } else {
       let node = nodes.pop()!;

@@ -88,11 +88,13 @@ export declare class Branch {
     get parent(): Branch | null;
     set parent(parent: Branch | null);
     /**
-     * This Branch's children, as a new array: changing the array doesn't change
-     * the tree. Assigning an array of Branches makes them the children, in that
-     * order; children left out are detached.
+     * This Branch's children, as a new array, or undefined for a leaf (as in
+     * d3-hierarchy). Changing the array doesn't change the tree. Assigning an
+     * array of Branches makes them the children, in that order; children left
+     * out are detached, and assigning null or an empty array makes this Branch
+     * a leaf.
      */
-    get children(): Branch[];
+    get children(): Branch[] | undefined;
     set children(children: Branch[] | null | undefined);
     /**
      * Adds a new child to this Branch

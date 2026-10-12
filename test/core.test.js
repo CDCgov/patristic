@@ -24,7 +24,7 @@ describe("parseNewick", () => {
     expect(ids(tree.children[2].children)).toEqual(["C", "D"]);
     expect(tree.children.map(c => c.length)).toEqual([0.1, 0.2, 0.5]);
     expect(tree.children[2].children.map(c => c.length)).toEqual([0.3, 0.4]);
-    expect(tree.children[0].children).toHaveLength(0);
+    expect(tree.children[0].children).toBeUndefined();
     expect(tree.isConsistent()).toBe(true);
   });
 
@@ -88,7 +88,7 @@ describe("Branch constructor", () => {
       expect(b.height).toBe(0);
       expect(b.value).toBe(1);
       expect(b.parent).toBeNull();
-      expect(b.children).toEqual([]);
+      expect(b.children).toBeUndefined();
       expect(b._guid).toBeDefined();
     }
     let guids = tree.descendants().map(d => d._guid);
@@ -102,7 +102,7 @@ describe("Branch constructor", () => {
     );
     expect(branch.id).toBe("test");
     expect(ids(branch.children)).toEqual(["child1"]);
-    expect(new patristic.Branch({}, () => []).children).toEqual([]);
+    expect(new patristic.Branch({}, () => []).children).toBeUndefined();
   });
 });
 
@@ -332,7 +332,9 @@ describe("distances", () => {
     // Include a polytomy, and an internal Branch's subtree.
     let internal = t.descendants().filter(d => !d.isRoot() && !d.isLeaf());
     internal[3].excise();
-    expect(Math.max(...t.descendants().map(d => d.children.length))).toBe(3);
+    expect(
+      Math.max(...t.descendants().map(d => (d.children ?? []).length))
+    ).toBe(3);
     let subtree = internal.find(d => d !== internal[3] && d.value > 15);
     for (let root of [t, subtree]) {
       let leaves = root.getLeaves();
@@ -506,7 +508,7 @@ describe("restructuring", () => {
   test("consolidate excises near-zero-length Branches", () => {
     tree.children[0].addChild({ id: "short", length: 0.0001 });
     tree.consolidate();
-    expect(tree.children[0].children).toHaveLength(0);
+    expect(tree.children[0].children).toBeUndefined();
     expect(tree.children[0].id).toBe("A+short");
   });
 
@@ -803,6 +805,18 @@ describe("Branches are views over shared storage", () => {
     expect(tree.getDescendant("C")).toBe(tree.children[2].children[0]);
     expect(tree.children[2].children[0].parent.parent).toBe(tree);
     expect(tree.getLeaves()[2]).toBe(tree.children[2].children[0]);
+  });
+
+  test("leaves have no children array, as in d3-hierarchy", () => {
+    let a = tree.children[0];
+    expect(a.children).toBeUndefined();
+    expect(a.isLeaf()).toBe(true);
+    a.children = [];
+    expect(a.children).toBeUndefined();
+    let x = tree.children[2];
+    x.children = null;
+    expect(x.children).toBeUndefined();
+    expect(tree.toNewick()).toBe("(A:0.1,B:0.2,:0.5);");
   });
 
   test("properties set on a Branch stay with it", () => {
