@@ -1,8 +1,40 @@
-// A textbook O(n^3) implementation of BIONJ, as a reference for
-// parseMatrix's. It returns a tree as nested { id, length, children }.
+// Textbook O(n^3) implementations of UPGMA and BIONJ, as references for
+// parseMatrix's. Each returns a tree as nested { id, length, children }.
 
 function leaves(n, labels) {
   return Array.from({ length: n }, (_, i) => ({ id: labels[i], length: 0 }));
+}
+
+// UPGMA: repeatedly merge the closest pair of clusters at half their
+// distance; a merged cluster's distance to another is the size-weighted mean.
+function upgma(matrix, labels) {
+  let n = matrix.length;
+  let D = matrix.map(row => row.map(Number));
+  let active = [...Array(n).keys()];
+  let node = leaves(n, labels);
+  let height = new Array(n).fill(0);
+  let size = new Array(n).fill(1);
+  while (active.length > 1) {
+    let best = Infinity, bi = -1, bj = -1;
+    for (let a = 0; a < active.length; a++)
+      for (let b = a + 1; b < active.length; b++) {
+        let d = D[active[a]][active[b]];
+        if (d < best) [best, bi, bj] = [d, a, b];
+      }
+    let i = active[bi], j = active[bj];
+    let h = best / 2;
+    node[i].length = h - height[i];
+    node[j].length = h - height[j];
+    for (let k of active) {
+      if (k === i || k === j) continue;
+      D[i][k] = D[k][i] = (size[i] * D[i][k] + size[j] * D[j][k]) / (size[i] + size[j]);
+    }
+    node[i] = { id: "", length: 0, children: [node[i], node[j]] };
+    height[i] = h;
+    size[i] += size[j];
+    active.splice(bj, 1);
+  }
+  return node[active[0]];
 }
 
 // BIONJ (Gascuel 1997): neighbor joining's choice of pair and branch lengths,
@@ -57,4 +89,4 @@ function bionj(matrix, labels, lastTie = 0) {
   return { id: "", length: 0, children: [node[i], node[j]] };
 }
 
-module.exports = { bionj };
+module.exports = { upgma, bionj };

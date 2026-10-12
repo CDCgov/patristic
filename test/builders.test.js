@@ -58,6 +58,60 @@ function expectSameDistances(a, b) {
   for (let key in da) expect(da[key]).toBeCloseTo(db[key], 9);
 }
 
+// The textbook example from Wikipedia's UPGMA article (5S ribosomal RNA).
+const fiveS = [
+  [0, 17, 21, 31, 23],
+  [17, 0, 30, 34, 21],
+  [21, 30, 0, 28, 39],
+  [31, 34, 28, 0, 43],
+  [23, 21, 39, 43, 0]
+];
+
+describe("UPGMA", () => {
+  test("builds the textbook example's tree", () => {
+    let t = patristic.parseMatrix(fiveS, ["a", "b", "c", "d", "e"], {
+      method: "upgma"
+    });
+    let lengths = Object.fromEntries(t.getLeaves().map(l => [l.id, l.length]));
+    expect(lengths).toEqual({ a: 8.5, b: 8.5, c: 14, d: 14, e: 11 });
+    expect(clades(t)).toEqual(new Set(["a,b", "a,b,e", "c,d"]));
+    expect(t.getDescendant("a").parent.length).toBe(2.5);
+    expect(t.getDescendant("e").parent.length).toBe(5.5);
+    expect(t.getDescendant("c").parent.length).toBe(2.5);
+  });
+
+  test("builds an ultrametric tree: every leaf is as far from the root", () => {
+    let t = patristic.parseMatrix(euclidean(60, 7), null, { method: "upgma" });
+    let depths = t.getLeaves().map(l => t.depthOf(l));
+    for (let d of depths) expect(d).toBeCloseTo(depths[0], 12);
+  });
+
+  test("matches a textbook implementation on random matrices", () => {
+    for (let trial = 0; trial < 20; trial++) {
+      let n = 3 + trial * 4;
+      let m = euclidean(n, 100 + trial);
+      let labels = [...Array(n).keys()];
+      let ours = patristic.parseMatrix(m, null, { method: "upgma" });
+      let theirs = patristic.parseJSON(reference.upgma(m, labels));
+      expect(clades(ours)).toEqual(clades(theirs));
+      expectSameDistances(ours, theirs);
+    }
+  });
+
+  test("handles two taxa and leaves the input alone", () => {
+    let m = [
+      [0, 3],
+      [3, 0]
+    ];
+    let t = patristic.parseMatrix(m, ["x", "y"], { method: "upgma" });
+    expect(t.toNewick()).toBe("(x:1.5,y:1.5);");
+    expect(m).toEqual([
+      [0, 3],
+      [3, 0]
+    ]);
+  });
+});
+
 describe("BIONJ", () => {
   test("recovers an additive matrix exactly", () => {
     let additive = [
@@ -111,13 +165,18 @@ describe("parseMatrix methods", () => {
   });
 
   test("reject unknown methods", () => {
-    expect(() =>
-      patristic.parseMatrix(euclidean(5, 1), null, { method: "wpgma" })
-    ).toThrow('Unknown parseMatrix method "wpgma"');
+    expect(() => patristic.parseMatrix(fiveS, null, { method: "wpgma" })).toThrow(
+      'Unknown parseMatrix method "wpgma"'
+    );
   });
 
   test("work with float32", () => {
     let m = euclidean(30, 12);
+    let a = distances(patristic.parseMatrix(m, null, { method: "upgma" }));
+    let b = distances(
+      patristic.parseMatrix(m, null, { method: "upgma", float32: true })
+    );
+    for (let key in a) expect(b[key]).toBeCloseTo(a[key], 5);
     // BIONJ's lengths depend on how rounding breaks its last tie (see above),
     // but the tree's shape doesn't.
     expect(

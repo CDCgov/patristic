@@ -1792,6 +1792,8 @@ export function parseJSON(
  * - `"bionj"`: BIONJ (Gascuel 1997), which joins the same way but computes
  *   the new node's distances to reduce their variance, and is usually more
  *   accurate than neighbor joining when distances are noisy.
+ * - `"upgma"`: UPGMA, which builds a rooted tree with every leaf the same
+ *   distance from the root (assuming a molecular clock).
  *
  * Neighbor joining and BIONJ trees are unrooted at heart; they're rooted
  * where the last two nodes are joined.
@@ -1814,8 +1816,11 @@ export function parseMatrix(
   if (!labels) labels = [...Array(N).keys()];
   let method = options?.method ?? "nj";
   let float32 = options?.float32 ?? false;
+  if (method === "upgma") return upgma(matrix, labels, float32);
   if (method !== "nj" && method !== "bionj") {
-    throw new Error(`Unknown parseMatrix method "${method}"; use "nj" or "bionj".`);
+    throw new Error(
+      `Unknown parseMatrix method "${method}"; use "nj", "bionj" or "upgma".`
+    );
   }
   let nj = new NeighborJoining(matrix, float32, method === "bionj");
   // currIndexToLabel maps each row to the label of the taxon or joined node
@@ -1873,10 +1878,10 @@ export function parseMatrix(
 /** Options for [parseMatrix](#parseMatrix). */
 export interface ParseMatrixOptions {
   /**
-   * The algorithm: neighbor joining (`"nj"`, the default) or BIONJ
-   * (`"bionj"`).
+   * The algorithm: neighbor joining (`"nj"`, the default), BIONJ
+   * (`"bionj"`) or UPGMA (`"upgma"`).
    */
-  method?: "nj" | "bionj" | undefined;
+  method?: "nj" | "bionj" | "upgma" | undefined;
   /**
    * Store distances as 32-bit floats, which halves the memory they take
    * (the matrix and each row's sorted copy) at the cost of precision:
@@ -2150,6 +2155,98 @@ class NeighborJoining {
   }
 }
 
+/**
+ * Builds a tree by UPGMA: repeatedly merges the two closest clusters into a
+ * node at half their distance (so every leaf ends up equally far from the
+ * root), and takes the merged cluster's distance to each other cluster to be
+ * the size-weighted mean of its parts'. Each row remembers its nearest
+ * neighbor, so finding the closest pair is O(n) per merge.
+ */
+function upgma(
+  matrix: ArrayLike<ArrayLike<number | string>>,
+  labels: Id[],
+  float32: boolean
+): Branch {
+  let N = matrix.length;
+  if (N === 0) throw new Error("parseMatrix needs at least one taxon.");
+  let rowStart = new Float64Array(N);
+  for (let i = 0; i < N; i++) rowStart[i] = (i * (i - 1)) / 2;
+  let D = new (float32 ? Float32Array : Float64Array)((N * (N - 1)) / 2);
+  for (let i = 0; i < N; i++) {
+    let row = matrix[i];
+    for (let j = 0; j < i; j++) D[rowStart[i] + j] = Number(row[j]);
+  }
+  let at = (a: number, b: number) => (a > b ? rowStart[a] + b : rowStart[b] + a);
+
+  let store = new Store(2 * N);
+  let node = new Int32Array(N),
+    size = new Int32Array(N).fill(1),
+    height = new Float64Array(N),
+    removed = new Uint8Array(N),
+    nearest = new Int32Array(N),
+    nearestDistance = new Float64Array(N);
+  for (let i = 0; i < N; i++) node[i] = store.add(labels[i], 0);
+
+  // Finds row i's nearest other row (the lowest-numbered, on ties).
+  function findNearest(i: number): void {
+    let best = Infinity,
+      bestRow = -1;
+    for (let k = 0; k < N; k++) {
+      if (removed[k] || k === i) continue;
+      let d = D[at(i, k)];
+      if (d < best) {
+        best = d;
+        bestRow = k;
+      }
+    }
+    nearest[i] = bestRow;
+    nearestDistance[i] = best;
+  }
+  for (let i = 0; i < N; i++) findNearest(i);
+
+  for (let left = N; left > 1; left--) {
+    // The closest pair, taking the lowest-numbered row on ties.
+    let i = -1;
+    for (let k = 0; k < N; k++) {
+      if (removed[k]) continue;
+      if (i === -1 || nearestDistance[k] < nearestDistance[i]) i = k;
+    }
+    let a = Math.min(i, nearest[i]),
+      b = Math.max(i, nearest[i]);
+    let h = D[at(a, b)] / 2;
+    store.length[node[a]] = h - height[a];
+    store.length[node[b]] = h - height[b];
+    let parent = store.add("", 0);
+    store.link(node[a], parent, NONE);
+    store.link(node[b], parent, NONE);
+    // Row a becomes the merged cluster; row b goes.
+    for (let k = 0; k < N; k++) {
+      if (removed[k] || k === a || k === b) continue;
+      D[at(a, k)] =
+        (size[a] * D[at(a, k)] + size[b] * D[at(b, k)]) / (size[a] + size[b]);
+    }
+    removed[b] = 1;
+    size[a] += size[b];
+    height[a] = h;
+    node[a] = parent;
+    findNearest(a);
+    for (let k = 0; k < N; k++) {
+      if (removed[k] || k === a) continue;
+      if (nearest[k] === a || nearest[k] === b) {
+        findNearest(k);
+      } else {
+        let d = D[at(a, k)];
+        if (d < nearestDistance[k] || (d === nearestDistance[k] && a < nearest[k])) {
+          nearest[k] = a;
+          nearestDistance[k] = d;
+        }
+      }
+    }
+  }
+  let root = 0;
+  while (removed[root]) root++;
+  return store.view(node[root]).fixDistances();
+}
 
 /**
  * @private

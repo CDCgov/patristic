@@ -579,6 +579,8 @@ export declare function parseJSON(json: string | object, idLabel?: string, lengt
  * - `"bionj"`: BIONJ (Gascuel 1997), which joins the same way but computes
  *   the new node's distances to reduce their variance, and is usually more
  *   accurate than neighbor joining when distances are noisy.
+ * - `"upgma"`: UPGMA, which builds a rooted tree with every leaf the same
+ *   distance from the root (assuming a molecular clock).
  *
  * Neighbor joining and BIONJ trees are unrooted at heart; they're rooted
  * where the last two nodes are joined.
@@ -596,10 +598,10 @@ export declare function parseMatrix(matrix: ArrayLike<ArrayLike<number | string>
 /** Options for [parseMatrix](#parseMatrix). */
 export interface ParseMatrixOptions {
     /**
-     * The algorithm: neighbor joining (`"nj"`, the default) or BIONJ
-     * (`"bionj"`).
+     * The algorithm: neighbor joining (`"nj"`, the default), BIONJ
+     * (`"bionj"`) or UPGMA (`"upgma"`).
      */
-    method?: "nj" | "bionj" | undefined;
+    method?: "nj" | "bionj" | "upgma" | undefined;
     /**
      * Store distances as 32-bit floats, which halves the memory they take
      * (the matrix and each row's sorted copy) at the cost of precision:
