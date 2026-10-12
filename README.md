@@ -63,6 +63,31 @@ tree.toObject();
 (`tree.toJSON` aliases that, so you can `JSON.stringify` a Branch and it just
 works. 😉)
 
+### Editing trees
+
+A tree's data lives in typed arrays, and each `Branch` is a view onto it.
+`parent` and `children` work as they do in
+[d3-hierarchy](https://github.com/d3/d3-hierarchy), and the two always agree:
+
+```javascript
+var a = tree.children[0];
+a.children;                // undefined: a is a leaf
+a.parent = tree.children[2]; // moves a (and its subtree) under another Branch
+tree.children = tree.children.filter(b => b.id !== "B"); // detaches B
+```
+
+`children` returns a new array each time, so changing that array (with `push`,
+`splice`, `sort` and so on) doesn't change the tree: assign to `children`, set
+`parent`, or use methods like `addChild`, `remove` and `sort` instead.
+
+d3-hierarchy's layouts (`d3.tree`, `d3.cluster`, `d3.partition`, `d3.treemap`,
+`d3.pack`) work on a tree directly:
+
+```javascript
+d3.cluster().size([width, height])(tree.count());
+tree.descendants().forEach(b => draw(b.x, b.y));
+```
+
 For more details, check out our [Full Documentation](https://cdcgov.github.io/patristic/docs/#table-of-contents).
 
 ## Public Domain
