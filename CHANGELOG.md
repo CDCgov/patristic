@@ -54,6 +54,8 @@
 
 - `npm run coverage` reports coverage of `src/patristic.ts`, through the
   bundles' source maps, rather than of the bundle.
+- Every line and branch of `src/patristic.ts` is tested, and CI runs
+  `npm run coverage`, which fails if coverage drops below 100%.
 
 ## 0.7.0
 
