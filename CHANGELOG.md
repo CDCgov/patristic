@@ -14,6 +14,9 @@
   starts with a quote is read as a quoted label.
 - `toNewick` writes ids containing whitespace, punctuation, brackets or quotes
   in single quotes, so `Homo sapiens` is written `'Homo sapiens'`.
+- The npm package contains only `dist/`, the README, the changelog and the
+  license. It used to include the whole repository, so paths like
+  `patristic/demo/...` or `patristic/test/...` no longer resolve.
 
 ### New
 

@@ -7,6 +7,10 @@
   "main": "dist/patristic.js",
   "module": "dist/patristic.mjs",
   "types": "dist/patristic.d.ts",
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
   "exports": {
     ".": {
       "import": {
