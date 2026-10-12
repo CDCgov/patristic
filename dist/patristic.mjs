@@ -6,12 +6,362 @@
  * console.log(patristic.version);
  */
 const version = "0.6.0";
+// No parent, child or sibling.
+const NONE = -1;
+// The parent of a slot whose Branch has moved to another Store.
+const MOVED = -2;
+/**
+ * @internal
+ * The storage behind Branches: a forest kept in parallel arrays, one slot per
+ * Branch. Each tree lives in one Store; Branch objects are views onto slots,
+ * made the first time they're asked for and kept, so a Branch is always the
+ * same object.
+ */
+class Store {
+    constructor(capacity = 16) {
+        this.size = 0;
+        this.ids = [];
+        this.data = [];
+        this.views = [];
+        /** Counts changes to the structure, so the index knows when it's stale. */
+        this.version = 0;
+        /** Counts changes to ids, for the index's id lookup. */
+        this.idVersion = 0;
+        this.capacity = Math.max(capacity, 1);
+        this.parent = new Int32Array(this.capacity);
+        this.firstChild = new Int32Array(this.capacity);
+        this.lastChild = new Int32Array(this.capacity);
+        this.nextSibling = new Int32Array(this.capacity);
+        this.prevSibling = new Int32Array(this.capacity);
+        this.length = new Float64Array(this.capacity);
+        this.value = new Float64Array(this.capacity);
+        this.depth = new Int32Array(this.capacity);
+        this.height = new Int32Array(this.capacity);
+        this.representing = new Int32Array(this.capacity);
+    }
+    grow() {
+        let capacity = this.capacity * 2;
+        let resize = (array) => {
+            let bigger = new array.constructor(capacity);
+            bigger.set(array);
+            return bigger;
+        };
+        this.parent = resize(this.parent);
+        this.firstChild = resize(this.firstChild);
+        this.lastChild = resize(this.lastChild);
+        this.nextSibling = resize(this.nextSibling);
+        this.prevSibling = resize(this.prevSibling);
+        this.length = resize(this.length);
+        this.value = resize(this.value);
+        this.depth = resize(this.depth);
+        this.height = resize(this.height);
+        this.representing = resize(this.representing);
+        this.capacity = capacity;
+    }
+    /** Adds a slot for a new root Branch and returns its index. */
+    add(id, length, data) {
+        if (this.size === this.capacity)
+            this.grow();
+        let i = this.size++;
+        this.parent[i] = NONE;
+        this.firstChild[i] = NONE;
+        this.lastChild[i] = NONE;
+        this.nextSibling[i] = NONE;
+        this.prevSibling[i] = NONE;
+        this.length[i] = length;
+        this.value[i] = 1;
+        this.depth[i] = 0;
+        this.height[i] = 0;
+        this.representing[i] = 1;
+        this.ids[i] = id;
+        this.data[i] = data;
+        this.views[i] = undefined;
+        this.version++;
+        return i;
+    }
+    /** The Branch for slot i. */
+    view(i) {
+        let view = this.views[i];
+        if (view === undefined) {
+            view = Object.create(Branch.prototype);
+            bind(view, this, i);
+        }
+        return view;
+    }
+    /**
+     * Links root slot `child` under `parent`, before its child `before`, or
+     * last if `before` is NONE.
+     */
+    link(child, parent, before) {
+        let { firstChild, lastChild, nextSibling, prevSibling } = this;
+        this.version++;
+        this.parent[child] = parent;
+        if (before === NONE) {
+            let last = lastChild[parent];
+            prevSibling[child] = last;
+            nextSibling[child] = NONE;
+            if (last === NONE)
+                firstChild[parent] = child;
+            else
+                nextSibling[last] = child;
+            lastChild[parent] = child;
+        }
+        else {
+            let previous = prevSibling[before];
+            prevSibling[child] = previous;
+            nextSibling[child] = before;
+            prevSibling[before] = child;
+            if (previous === NONE)
+                firstChild[parent] = child;
+            else
+                nextSibling[previous] = child;
+        }
+    }
+    /** Unlinks slot `child` from its parent, if it has one. */
+    unlink(child) {
+        let parent = this.parent[child];
+        if (parent < 0)
+            return;
+        this.version++;
+        let { nextSibling, prevSibling } = this;
+        let previous = prevSibling[child], next = nextSibling[child];
+        if (previous === NONE)
+            this.firstChild[parent] = next;
+        else
+            nextSibling[previous] = next;
+        if (next === NONE)
+            this.lastChild[parent] = previous;
+        else
+            prevSibling[next] = previous;
+        this.parent[child] = NONE;
+        nextSibling[child] = NONE;
+        prevSibling[child] = NONE;
+    }
+    /** The slots of i's children, in order. */
+    children(i) {
+        let children = [];
+        for (let c = this.firstChild[i]; c !== NONE; c = this.nextSibling[c]) {
+            children.push(c);
+        }
+        return children;
+    }
+    /** The slots of the subtree under i, in pre-order. */
+    preorder(i) {
+        let order = [];
+        let stack = [i];
+        let { lastChild, prevSibling } = this;
+        while (stack.length) {
+            let j = stack.pop();
+            order.push(j);
+            for (let c = lastChild[j]; c !== NONE; c = prevSibling[c])
+                stack.push(c);
+        }
+        return order;
+    }
+    /** The slots of the subtree under i, in post-order. */
+    postorder(i) {
+        // Visiting children last to first and reversing gives post-order.
+        let order = [];
+        let stack = [i];
+        let { firstChild, nextSibling } = this;
+        while (stack.length) {
+            let j = stack.pop();
+            order.push(j);
+            for (let c = firstChild[j]; c !== NONE; c = nextSibling[c])
+                stack.push(c);
+        }
+        return order.reverse();
+    }
+    /** Puts i's children in the given order. */
+    reorder(i, children) {
+        this.version++;
+        let previous = NONE;
+        for (let c of children) {
+            this.prevSibling[c] = previous;
+            if (previous === NONE)
+                this.firstChild[i] = c;
+            else
+                this.nextSibling[previous] = c;
+            previous = c;
+        }
+        if (previous !== NONE)
+            this.nextSibling[previous] = NONE;
+        this.lastChild[i] = previous;
+    }
+    /** Whether slot a is slot b or one of its ancestors. */
+    isAncestorOrSelf(a, b) {
+        for (let j = b; j >= 0; j = this.parent[j])
+            if (j === a)
+                return true;
+        return false;
+    }
+    /**
+     * The index of the tree containing slot i, built if the tree has changed
+     * since it was last built (or it's for another tree in this Store).
+     */
+    treeIndex(i) {
+        let index = this.index;
+        if (index && index.version === this.version && index.position[i] >= 0) {
+            return index;
+        }
+        let root = i;
+        while (this.parent[root] >= 0)
+            root = this.parent[root];
+        return (this.index = new TreeIndex(this, root));
+    }
+}
+/**
+ * Facts about one tree that take a traversal to work out, kept until the
+ * tree's structure changes: its slots in pre-order, where each slot falls in
+ * that order, how many slots each subtree has (so a subtree is a contiguous
+ * run of the order), each slot's number of edges from the root, and (built
+ * when first needed) where each id appears.
+ */
+class TreeIndex {
+    constructor(store, root) {
+        this.idVersion = -1;
+        this.idPositions = new Map();
+        this.store = store;
+        this.version = store.version;
+        let order = (this.order = store.preorder(root));
+        let position = (this.position = new Int32Array(store.size).fill(-1));
+        let size = (this.size = new Int32Array(store.size));
+        let level = (this.level = new Int32Array(store.size));
+        let parent = store.parent;
+        for (let k = 0; k < order.length; k++) {
+            let i = order[k];
+            position[i] = k;
+            if (i !== root)
+                level[i] = level[parent[i]] + 1;
+        }
+        for (let k = order.length - 1; k >= 0; k--) {
+            let i = order[k];
+            size[i] += 1;
+            if (i !== root)
+                size[parent[i]] += size[i];
+        }
+    }
+    /** Whether slot d is in the subtree under slot a (counting a itself). */
+    contains(a, d) {
+        let p = this.position[a], q = this.position[d];
+        return q >= p && q < p + this.size[a];
+    }
+    /**
+     * The first slot in pre-order, in the subtree under `under` (excluding
+     * `under` itself if `strict`), whose id is `id` and which passes `test`.
+     */
+    find(under, id, strict, test) {
+        let store = this.store;
+        if (this.idVersion !== store.idVersion) {
+            this.idPositions.clear();
+            for (let k = 0; k < this.order.length; k++) {
+                let key = store.ids[this.order[k]];
+                let positions = this.idPositions.get(key);
+                if (positions)
+                    positions.push(k);
+                else
+                    this.idPositions.set(key, [k]);
+            }
+            this.idVersion = store.idVersion;
+        }
+        let positions = this.idPositions.get(id);
+        if (!positions)
+            return NONE;
+        let start = this.position[under] + (strict ? 1 : 0), end = this.position[under] + this.size[under];
+        // Binary search for the first position at or after start.
+        let lo = 0, hi = positions.length;
+        while (lo < hi) {
+            let mid = (lo + hi) >> 1;
+            if (positions[mid] < start)
+                lo = mid + 1;
+            else
+                hi = mid;
+        }
+        for (let k = lo; k < positions.length && positions[k] < end; k++) {
+            let i = this.order[positions[k]];
+            if (!test || test(i))
+                return i;
+        }
+        return NONE;
+    }
+}
+// Each Branch's _guid is unique within this copy of the library.
+let lastGuid = 0;
+// Points a view at a slot, and the slot at the view.
+function bind(view, store, index) {
+    view._store = store;
+    view._index = index;
+    if (view._guid === undefined)
+        view._guid = ++lastGuid;
+    store.views[index] = view;
+}
+/**
+ * Moves the subtree under root slot `root` of `from` into `to`, and returns
+ * its new root slot. Views of the moved Branches are re-pointed, so they keep
+ * their identity; their old slots are left empty.
+ */
+function move(from, root, to) {
+    let order = from.preorder(root);
+    let slots = new Map();
+    for (let i of order) {
+        let j = to.add(from.ids[i], from.length[i], from.data[i]);
+        to.value[j] = from.value[i];
+        to.depth[j] = from.depth[i];
+        to.height[j] = from.height[i];
+        to.representing[j] = from.representing[i];
+        slots.set(i, j);
+        let parent = from.parent[i];
+        if (i !== root)
+            to.link(j, slots.get(parent), NONE);
+        let view = from.views[i];
+        if (view !== undefined)
+            bind(view, to, j);
+    }
+    from.version++;
+    for (let i of order) {
+        from.parent[i] = MOVED;
+        from.firstChild[i] = NONE;
+        from.lastChild[i] = NONE;
+        from.ids[i] = "";
+        from.data[i] = undefined;
+        from.views[i] = undefined;
+    }
+    return slots.get(root);
+}
+// Removes a Branch from its parent's children, if it has a parent.
+function detach(branch) {
+    branch._store.unlink(branch._index);
+}
+// Throws if `child` is `parent` or one of its ancestors.
+function checkNotAncestor(child, parent) {
+    let store = parent._store;
+    if (child._store === store && store.isAncestorOrSelf(child._index, parent._index)) {
+        throw new Error("Cannot make a Branch a descendant of itself.");
+    }
+}
+/**
+ * Makes `child` a child of `parent`: before `before` (one of parent's
+ * children) or last. The child is detached from wherever it was, and moved
+ * into parent's Store if it's in another.
+ */
+function attach(child, parent, before) {
+    let store = parent._store;
+    checkNotAncestor(child, parent);
+    detach(child);
+    if (child._store !== store)
+        move(child._store, child._index, store);
+    store.link(child._index, parent._index, before ? before._index : NONE);
+}
 /**
  * A class for representing Branches in trees.
  * It's written predominantly for phylogenetic trees (hence the
  * [Newick parser](#parseNewick),
  * [neighbor-joining implementation](#parseMatrix), etc.), but could
  * conceivably be useful for representing other types of trees as well.
+ *
+ * A tree's data is stored in typed arrays; a Branch is a view onto one entry,
+ * made when it's first asked for and kept from then on. Its links (`parent`
+ * and `children`) can't disagree: setting either updates both sides.
  * @param {Object} [data] An object containing data you wish to assign to
  * this Branch object. In particular, intended to overwrite the default
  * attributes of a Branch, namely `id`, `parent`, `length`, and `children`.
@@ -21,16 +371,112 @@ class Branch {
     constructor(data, children) {
         if (!data)
             data = {};
-        this._guid = ++lastGuid;
-        this.id = data.id ?? "";
-        this.data = data;
-        this.depth = data.depth ?? 0;
-        this.height = data.height ?? 0;
-        this.length = data.length ?? 0;
-        this.parent = data.parent ?? null;
-        this.children = (children ? children(data) : data.children) || [];
-        this.value = data.value ?? 1;
-        this.representing = 1;
+        let store = new Store(1);
+        let i = store.add(data.id ?? "", data.length ?? 0, data);
+        store.depth[i] = data.depth ?? 0;
+        store.height[i] = data.height ?? 0;
+        store.value[i] = data.value ?? 1;
+        bind(this, store, i);
+        let kids = (children ? children(data) : data.children) || [];
+        kids.forEach(kid => this.addChild(kid));
+        if (data.parent)
+            attach(this, data.parent);
+    }
+    /** This Branch's identifier. */
+    get id() {
+        return this._store.ids[this._index];
+    }
+    set id(id) {
+        this._store.ids[this._index] = id;
+        this._store.idVersion++;
+    }
+    /** The length of the edge from this Branch to its parent. */
+    get length() {
+        return this._store.length[this._index];
+    }
+    set length(length) {
+        this._store.length[this._index] = length;
+    }
+    /** The number of edges from the root (set by fixDistances). */
+    get depth() {
+        return this._store.depth[this._index];
+    }
+    set depth(depth) {
+        this._store.depth[this._index] = depth;
+    }
+    /** The greatest number of edges to a leaf below (set by fixDistances). */
+    get height() {
+        return this._store.height[this._index];
+    }
+    set height(height) {
+        this._store.height[this._index] = height;
+    }
+    /** A value for layouts and sorting (see count, sum and fixDistances). */
+    get value() {
+        return this._store.value[this._index];
+    }
+    set value(value) {
+        this._store.value[this._index] = value;
+    }
+    /** How many Branches this one stands for, after excising others into it. */
+    get representing() {
+        return this._store.representing[this._index];
+    }
+    set representing(representing) {
+        this._store.representing[this._index] = representing;
+    }
+    /** The data this Branch was made from, or an empty object. */
+    get data() {
+        var _a, _b;
+        let store = this._store;
+        return ((_a = store.data)[_b = this._index] ?? (_a[_b] = {}));
+    }
+    set data(data) {
+        this._store.data[this._index] = data;
+    }
+    /**
+     * This Branch's parent, or null for a root. Setting it moves this Branch
+     * (with its subtree) to be the last child of the new parent, or detaches
+     * it if set to null.
+     */
+    get parent() {
+        let parent = this._store.parent[this._index];
+        return parent < 0 ? null : this._store.view(parent);
+    }
+    set parent(parent) {
+        if (parent === this.parent)
+            return;
+        if (parent === null)
+            detach(this);
+        else
+            attach(this, parent);
+    }
+    /**
+     * This Branch's children, as a new array, or undefined for a leaf (as in
+     * d3-hierarchy). Changing the array doesn't change the tree. Assigning an
+     * array of Branches makes them the children, in that order; children left
+     * out are detached, and assigning null or an empty array makes this Branch
+     * a leaf.
+     */
+    get children() {
+        let store = this._store;
+        let c = store.firstChild[this._index];
+        if (c === NONE)
+            return undefined;
+        let children = [];
+        for (; c !== NONE; c = store.nextSibling[c])
+            children.push(store.view(c));
+        return children;
+    }
+    set children(children) {
+        let store = this._store;
+        // Check every new child before changing anything.
+        if (children)
+            children.forEach(child => checkNotAncestor(child, this));
+        for (let c of store.children(this._index))
+            store.unlink(c);
+        if (children)
+            children.forEach(child => attach(child, this));
     }
     /**
      * Adds a new child to this Branch
@@ -38,17 +484,19 @@ class Branch {
      * @return {Branch} The (possibly new) child Branch
      */
     addChild(data) {
-        let c;
         if (data instanceof Branch) {
-            c = data;
-            c.parent = this;
+            attach(data, this);
+            return data;
         }
-        else {
-            c = new Branch(data);
-            c.parent = this;
+        if (!data) {
+            let store = this._store;
+            let i = store.add("", 0);
+            store.link(i, this._index, NONE);
+            return store.view(i);
         }
-        this.children.push(c);
-        return c;
+        let child = new Branch(data);
+        attach(child, this);
+        return child;
     }
     /**
      * Adds a new parent to this Branch, inserting it between this Branch and its
@@ -63,28 +511,18 @@ class Branch {
     addParent(data, siblings) {
         if (!siblings)
             siblings = [];
-        let c;
-        if (data instanceof Branch) {
-            c = data;
-            detach(c);
-        }
-        else {
-            if (!data)
-                data = {};
-            c = new Branch(Object.assign(data));
-        }
+        let c = data instanceof Branch ? data : new Branch(data ?? {});
+        detach(c);
         let oldParent = this.parent;
         if (oldParent) {
-            oldParent.children[oldParent.children.indexOf(this)] = c;
+            attach(c, oldParent, this);
         }
-        c.parent = oldParent;
-        this.parent = c;
-        c.children.push(this);
-        siblings.forEach(sib => {
-            detach(sib);
-            sib.parent = c;
-            c.children.push(sib);
-        });
+        else if (c._store !== this._store) {
+            // Move the new parent into this tree's Store rather than the reverse.
+            move(c._store, c._index, this._store);
+        }
+        attach(this, c);
+        siblings.forEach(sib => attach(sib, c));
         return this;
     }
     /**
@@ -134,11 +572,21 @@ class Branch {
         return copyTree(this);
     }
     /**
-     * Sets the values of all nodes to be equal to the number of their descendants.
+     * Sets the value of each Branch to the number of leaves in its subtree (1
+     * for a leaf), as d3-hierarchy's count does.
+     * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_count)
      * @return {Branch} The Branch on which it was called
      */
     count() {
-        return this.sum(() => 1);
+        let store = this._store;
+        for (let i of store.postorder(this._index)) {
+            let sum = 0;
+            for (let c = store.firstChild[i]; c !== NONE; c = store.nextSibling[c]) {
+                sum += store.value[c];
+            }
+            store.value[i] = store.firstChild[i] === NONE ? 1 : sum;
+        }
+        return this;
     }
     /**
      * Returns an array pf descendants, starting with this Branch.
@@ -240,7 +688,7 @@ class Branch {
      * @return {Branch} The Branch on which it was called.
      */
     eachChild(callback) {
-        this.children.forEach(callback);
+        (this.children ?? []).forEach(callback);
         return this;
     }
     /**
@@ -250,35 +698,25 @@ class Branch {
      * excised Branch was the root.
      */
     excise() {
+        let children = this.children ?? [];
         if (this.isRoot()) {
-            if (this.children.length > 1) {
+            if (children.length > 1) {
                 throw new Error("Cannot excise a root Branch with multiple children.");
             }
-            let child = this.children.pop();
+            let child = children[0];
             if (!child)
                 throw new Error("Cannot excise a root Branch with no children.");
             child.length += this.length;
-            child.parent = null;
+            detach(child);
             return child;
         }
         let parent = this.parent;
-        this.eachChild(child => {
+        // Put the children in this Branch's place among its siblings.
+        children.forEach(child => {
             child.length += this.length;
-            child.parent = parent;
+            attach(child, parent, this);
         });
-        // Replace this Branch with its children in place. Spreading the children
-        // into splice's arguments would overflow the stack for very many children.
-        let siblings = parent.children;
-        let index = siblings.indexOf(this);
-        if (this.children.length === 1) {
-            siblings[index] = this.children[0];
-        }
-        else {
-            let after = siblings.splice(index);
-            after.shift();
-            this.children.forEach(child => siblings.push(child));
-            after.forEach(sibling => siblings.push(sibling));
-        }
+        detach(this);
         parent.representing++;
         return parent;
     }
@@ -289,15 +727,23 @@ class Branch {
      * @return {Branch} The Branch on which it is called.
      */
     fixDistances() {
-        this.getRoot().depth = 0;
-        this.eachBefore(d => {
-            if (d.isRoot())
-                return;
-            d.depth = d.parent.depth + 1;
-        }).eachAfter(d => {
-            d.height = d.children.reduce((a, c) => Math.max(a, c.height + 1), 0);
-            d.value = 1 + d.children.reduce((a, c) => a + c.value, 0);
-        });
+        let store = this._store;
+        let { parent, depth, height, value, firstChild, nextSibling } = store;
+        depth[this.getRoot()._index] = 0;
+        for (let i of store.preorder(this._index)) {
+            if (parent[i] >= 0)
+                depth[i] = depth[parent[i]] + 1;
+        }
+        for (let i of store.postorder(this._index)) {
+            let h = 0, v = 1;
+            for (let c = firstChild[i]; c !== NONE; c = nextSibling[c]) {
+                if (height[c] + 1 > h)
+                    h = height[c] + 1;
+                v += value[c];
+            }
+            height[i] = h;
+            value[i] = v;
+        }
         return this;
     }
     /**
@@ -311,15 +757,7 @@ class Branch {
      * @return {Branch} The Branch on which it was called.
      */
     fixParenthood(nonrecursive) {
-        let stack = [this];
-        while (stack.length) {
-            let branch = stack.pop();
-            branch.children.forEach(child => {
-                child.parent = branch;
-                if (!nonrecursive)
-                    stack.push(child);
-            });
-        }
+        // Parent and child links are stored together and can't disagree.
         return this;
     }
     /**
@@ -353,7 +791,7 @@ class Branch {
      * child doesn't exist.
      */
     getChild(childID) {
-        return this.children.find(c => c.id === childID);
+        return this.children?.find(c => c.id === childID);
     }
     /**
      * Given an id string, returns the descendant Branch with that ID, or
@@ -363,14 +801,9 @@ class Branch {
      * doesn't exist
      */
     getDescendant(id) {
-        let stack = [this];
-        while (stack.length) {
-            let branch = stack.pop();
-            if (branch.id === id)
-                return branch;
-            pushChildren(stack, branch);
-        }
-        return undefined;
+        let store = this._store;
+        let found = store.treeIndex(this._index).find(this._index, id, false);
+        return found === NONE ? undefined : store.view(found);
     }
     /**
      * Returns an array of all Branches which are descendants of this Branch
@@ -379,13 +812,12 @@ class Branch {
      * @return {Array} An array of all Branches descended from this Branch
      */
     getDescendants(includeSelf) {
-        let descendants = includeSelf ? [this] : [];
-        let stack = [];
-        pushChildren(stack, this);
-        while (stack.length) {
-            let branch = stack.pop();
-            descendants.push(branch);
-            pushChildren(stack, branch);
+        let store = this._store;
+        let index = store.treeIndex(this._index);
+        let start = index.position[this._index], end = start + index.size[this._index];
+        let descendants = [];
+        for (let k = includeSelf ? start : start + 1; k < end; k++) {
+            descendants.push(store.view(index.order[k]));
         }
         return descendants;
     }
@@ -403,14 +835,14 @@ class Branch {
      * @return {Array} An array of all leaves descended from this Branch
      */
     getLeaves() {
+        let store = this._store;
+        let index = store.treeIndex(this._index);
+        let start = index.position[this._index], end = start + index.size[this._index];
         let leaves = [];
-        let stack = [this];
-        while (stack.length) {
-            let branch = stack.pop();
-            if (branch.isLeaf())
-                leaves.push(branch);
-            else
-                pushChildren(stack, branch);
+        for (let k = start; k < end; k++) {
+            let i = index.order[k];
+            if (store.firstChild[i] === NONE)
+                leaves.push(store.view(i));
         }
         return leaves;
     }
@@ -423,7 +855,7 @@ class Branch {
      * which it was called and the `cousin`.
      */
     getMRCA(cousin) {
-        return climbToMRCA(this, cousin)[0];
+        return this._store.view(climbToMRCA(this, cousin));
     }
     /**
      * Traverses the tree upward until it finds the root Branch, and returns the
@@ -431,10 +863,11 @@ class Branch {
      * @return {Branch} The root Branch of the tree
      */
     getRoot() {
-        let branch = this;
-        while (!branch.isRoot())
-            branch = branch.parent;
-        return branch;
+        let store = this._store;
+        let i = this._index;
+        while (store.parent[i] >= 0)
+            i = store.parent[i];
+        return store.view(i);
     }
     /**
      * Determines if a given Branch (or ID) is a child of this Branch
@@ -443,10 +876,10 @@ class Branch {
      */
     hasChild(child) {
         if (child instanceof Branch) {
-            return this.children.includes(child);
+            return child.parent === this;
         }
         else if (typeof child === "string") {
-            return this.children.some(c => c.id === child);
+            return (this.children ?? []).some(c => c.id === child);
         }
         throw Error(`Unknown type of child (${typeof child}) passed to Branch.hasChild!`);
     }
@@ -463,7 +896,8 @@ class Branch {
             return descendant.isDescendantOf(this);
         }
         else if (typeof descendant === "string") {
-            return findBelow(this, d => d.id === descendant) !== undefined;
+            let index = this._store.treeIndex(this._index);
+            return index.find(this._index, descendant, true) !== NONE;
         }
         throw Error("Unknown type of descendant passed to Branch.hasDescendant!");
     }
@@ -480,7 +914,10 @@ class Branch {
         else if (typeof leaf === "string") {
             if (this.isLeaf())
                 return this.id === leaf;
-            return findBelow(this, d => d.isLeaf() && d.id === leaf) !== undefined;
+            let store = this._store;
+            let index = store.treeIndex(this._index);
+            let isLeaf = (i) => store.firstChild[i] === NONE;
+            return index.find(this._index, leaf, true, isLeaf) !== NONE;
         }
         throw Error("Unknown type of leaf passed to Branch.hasLeaf.");
     }
@@ -495,10 +932,12 @@ class Branch {
             let temp = oldParent.length;
             oldParent.length = this.length;
             this.length = temp;
-            this.parent = oldParent.parent;
-            this.children.push(oldParent);
-            oldParent.parent = this;
-            oldParent.children.splice(oldParent.children.indexOf(this), 1);
+            let grandparent = oldParent.parent;
+            if (grandparent)
+                attach(this, grandparent, oldParent);
+            else
+                detach(this);
+            attach(oldParent, this);
         }
         else {
             throw Error("Cannot invert root node!");
@@ -526,25 +965,13 @@ class Branch {
      * @return {Boolean} True if consistent, otherwise false
      */
     isConsistent() {
-        if (!this.isRoot()) {
-            if (!this.parent.children.includes(this))
-                return false;
-        }
-        // Below this Branch, a child whose parent points back at the Branch whose
-        // children it's in is consistent from both sides. A Branch seen twice means
-        // the tree has a cycle (or a Branch listed twice), which would otherwise
-        // loop forever.
-        let seen = new Set([this]);
-        let stack = [this];
-        while (stack.length) {
-            let branch = stack.pop();
-            let children = branch.children;
-            for (let i = 0; i < children.length; i++) {
-                let child = children[i];
-                if (child.parent !== branch || seen.has(child))
+        // Every child's parent link is checked against the list it's in, though
+        // the two are kept together and can't disagree.
+        let store = this._store;
+        for (let i of store.preorder(this._index)) {
+            for (let c = store.firstChild[i]; c !== NONE; c = store.nextSibling[c]) {
+                if (store.parent[c] !== i)
                     return false;
-                seen.add(child);
-                stack.push(child);
             }
         }
         return true;
@@ -558,8 +985,15 @@ class Branch {
     isDescendantOf(ancestor) {
         if (!ancestor)
             return false;
-        for (let current = this.parent; current; current = current.parent) {
-            if (current === ancestor || current.id === ancestor)
+        let store = this._store;
+        if (ancestor instanceof Branch) {
+            if (ancestor._store !== store || ancestor === this)
+                return false;
+            return store.treeIndex(this._index).contains(ancestor._index, this._index);
+        }
+        let parent = store.parent;
+        for (let i = parent[this._index]; i >= 0; i = parent[i]) {
+            if (store.ids[i] === ancestor)
                 return true;
         }
         return false;
@@ -570,7 +1004,7 @@ class Branch {
      * @return {Boolean} True is this Branch is a leaf, otherwise false.
      */
     isLeaf() {
-        return this.children.length === 0;
+        return this._store.firstChild[this._index] === NONE;
     }
     /**
      * Returns a boolean indicating whether or not this Branch is olate.
@@ -583,9 +1017,10 @@ class Branch {
      * @return {Branch} The Branch object on which it was called.
      */
     isolate() {
-        let index = this.parent.children.indexOf(this);
-        this.parent.children.splice(index, 1);
-        this.setParent(null);
+        if (this.isRoot()) {
+            throw new TypeError("Cannot isolate a root Branch.");
+        }
+        detach(this);
         return this;
     }
     /**
@@ -594,7 +1029,7 @@ class Branch {
      * @return {Boolean} True if this Branch is the root, otherwise false.
      */
     isRoot() {
-        return this.parent === null;
+        return this._store.parent[this._index] < 0;
     }
     /**
      * Returns the array of leaf nodes in traversal order; leaves are nodes with no
@@ -706,7 +1141,7 @@ class Branch {
     removeIfNoChildren(nonrecursive) {
         let root = this.getRoot();
         let parent = this.parent;
-        if (this.children.length === 0 && parent) {
+        if (this.isLeaf() && parent) {
             this.remove();
             if (!nonrecursive) {
                 parent.removeIfNoChildren();
@@ -727,10 +1162,8 @@ class Branch {
         if (!parent)
             throw new Error("Cannot replace a root Branch.");
         let root = this.getRoot();
-        detach(replacement);
-        parent.children[parent.children.indexOf(this)] = replacement;
-        replacement.parent = parent;
-        this.parent = null;
+        attach(replacement, parent, this);
+        detach(this);
         return root;
     }
     /**
@@ -757,9 +1190,8 @@ class Branch {
      * @return {Branch} The Branch on which this was called.
      */
     rotate(recursive) {
-        if (!this.children)
-            return this;
-        this.children.reverse();
+        let store = this._store;
+        store.reorder(this._index, store.children(this._index).reverse());
         return this;
     }
     /**
@@ -792,8 +1224,9 @@ class Branch {
             // Excising this Branch would detach it from the tree we return.
             if (branch === this)
                 return;
-            if (branch.children.length == 1) {
-                let child = branch.children[0];
+            let children = branch.children;
+            if (children && children.length == 1) {
+                let child = children[0];
                 child.id = joinIds(branch.id, child.id);
                 branch.excise();
             }
@@ -809,7 +1242,14 @@ class Branch {
     sort(comparator) {
         if (!comparator)
             comparator = (a, b) => a.value - b.value;
-        return this.eachBefore(d => d.children.sort(comparator));
+        let compare = comparator;
+        return this.eachBefore(d => {
+            let children = d.children;
+            if (!children)
+                return;
+            children.sort(compare);
+            d._store.reorder(d._index, children.map(c => c._index));
+        });
     }
     /**
      * Determines whether this Branch is likelier to be a source of `cousin`, or
@@ -831,7 +1271,8 @@ class Branch {
     sum(value) {
         if (!value)
             value = d => d.value;
-        return this.eachAfter(d => (d.value = value(d) + d.children.reduce((a, c) => a + c.value, 0)));
+        return this.eachAfter(d => (d.value =
+            value(d) + (d.children ?? []).reduce((a, c) => a + c.value, 0)));
     }
     /**
      * Determines whether this Branch is likelier to be a target of `cousin`, or
@@ -859,7 +1300,13 @@ class Branch {
      * Array of `id`s corresponding to the rows (and columns) of the matrix.
      */
     toMatrix() {
-        let leafs = this.getLeaves();
+        let store = this._store;
+        let { firstChild, nextSibling, length } = store;
+        let order = store.postorder(this._index);
+        let leafs = [];
+        for (let i of order)
+            if (firstChild[i] === NONE)
+                leafs.push(i);
         let n = leafs.length;
         let matrix = new Array(n);
         for (let i = 0; i < n; i++)
@@ -870,23 +1317,26 @@ class Branch {
         // to the subtree's root. Each pair of leaves is visited once, at its MRCA,
         // so this is O(n^2) in the number of leaves.
         let indexStack = [], distanceStack = [];
-        this.eachAfter(branch => {
-            if (branch.isLeaf()) {
+        for (let branch of order) {
+            if (firstChild[branch] === NONE) {
                 // Leaves come in the same order as getLeaves lists them.
                 indexStack.push([nextLeaf++]);
                 distanceStack.push([0]);
-                return;
+                continue;
             }
-            let k = branch.children.length;
+            let k = 0;
+            for (let c = firstChild[branch]; c !== NONE; c = nextSibling[c])
+                k++;
             let first = indexStack.length - k;
             // Every internal Branch has a first child, which sets these.
             let indices, distances;
-            for (let c = 0; c < k; c++) {
-                let length = branch.children[c].length;
+            let c = 0;
+            for (let child = firstChild[branch]; child !== NONE; child = nextSibling[child], c++) {
+                let childLength = length[child];
                 let childIndices = indexStack[first + c], childDistances = distanceStack[first + c];
                 // Sum each leaf's lengths upward, in the order depthOf sums them.
                 for (let y = 0; y < childDistances.length; y++)
-                    childDistances[y] += length;
+                    childDistances[y] += childLength;
                 // Extend the first child's list rather than copying it.
                 if (c === 0) {
                     indices = childIndices;
@@ -910,10 +1360,10 @@ class Branch {
             distanceStack.length = first;
             indexStack.push(indices);
             distanceStack.push(distances);
-        });
+        }
         return {
             matrix: matrix,
-            ids: leafs.map(d => d.id)
+            ids: leafs.map(i => store.ids[i])
         };
     }
     /**
@@ -926,24 +1376,26 @@ class Branch {
      * representation of the Branch.
      */
     toNewick(nonterminus) {
+        let store = this._store;
+        let { firstChild, lastChild, prevSibling } = store;
         let parts = [];
-        // The stack holds Branches still to write, and strings to write as they are.
-        let stack = [this];
+        // The stack holds slots still to write (as numbers), and strings to write
+        // as they are.
+        let stack = [this._index];
         while (stack.length) {
             let item = stack.pop();
             if (typeof item === "string") {
                 parts.push(item);
             }
-            else if (item.isLeaf()) {
-                parts.push(newickLabel(item));
+            else if (firstChild[item] === NONE) {
+                parts.push(newickLabel(store, item));
             }
             else {
                 parts.push("(");
-                stack.push(")" + newickLabel(item));
-                let children = item.children;
-                for (let i = children.length - 1; i >= 0; i--) {
-                    stack.push(children[i]);
-                    if (i > 0)
+                stack.push(")" + newickLabel(store, item));
+                for (let c = lastChild[item]; c !== NONE; c = prevSibling[c]) {
+                    stack.push(c);
+                    if (c !== firstChild[item])
                         stack.push(",");
                 }
             }
@@ -962,24 +1414,25 @@ class Branch {
      * Branch and its descendants.
      */
     toObject() {
+        let store = this._store;
+        let { firstChild, lastChild, prevSibling } = store;
         let output;
-        // Pairs of a Branch and the children array its object belongs in.
-        let stack = [[this, null]];
+        // Pairs of a slot and the children array its object belongs in.
+        let stack = [[this._index, null]];
         while (stack.length) {
-            let [branch, siblings] = stack.pop();
+            let [i, siblings] = stack.pop();
             let object = {
-                id: branch.id,
-                length: branch.length
+                id: store.ids[i],
+                length: store.length[i]
             };
             if (siblings)
                 siblings.push(object);
             else
                 output = object;
-            let children = branch.children;
-            if (children.length > 0) {
+            if (firstChild[i] !== NONE) {
                 let objects = (object.children = []);
-                for (let i = children.length - 1; i >= 0; i--) {
-                    stack.push([children[i], objects]);
+                for (let c = lastChild[i]; c !== NONE; c = prevSibling[c]) {
+                    stack.push([c, objects]);
                 }
             }
         }
@@ -1003,33 +1456,20 @@ class Branch {
         return JSON.stringify(this, replacer, width);
     }
 }
-// Each Branch's _guid is unique within this copy of the library.
-let lastGuid = 0;
-// Removes a Branch from its parent's children, if it has a parent.
-function detach(branch) {
-    let parent = branch.parent;
-    if (!parent)
-        return;
-    let index = parent.children.indexOf(branch);
-    if (index !== -1)
-        parent.children.splice(index, 1);
-    branch.parent = null;
-}
-// Copies the ids, lengths and structure of a subtree into new Branches, and
+// Copies the ids, lengths and structure of a subtree into a new Store, and
 // returns the new root with depth, height and value computed afresh.
 function copyTree(root) {
-    let newRoot = new Branch({ id: root.id, length: root.length });
-    let stack = [root, newRoot];
-    while (stack.length) {
-        let copy = stack.pop(), original = stack.pop();
-        original.children.forEach(child => {
-            let childCopy = new Branch({ id: child.id, length: child.length });
-            childCopy.parent = copy;
-            copy.children.push(childCopy);
-            stack.push(child, childCopy);
-        });
+    let from = root._store;
+    let order = from.preorder(root._index);
+    let to = new Store(order.length);
+    let slots = new Map();
+    for (let i of order) {
+        let j = to.add(from.ids[i], from.length[i]);
+        slots.set(i, j);
+        if (i !== root._index)
+            to.link(j, slots.get(from.parent[i]), NONE);
     }
-    return newRoot.fixDistances();
+    return to.view(0).fixDistances();
 }
 // Combines the ids of two merged Branches, ignoring empty ones.
 function joinIds(a, b) {
@@ -1039,94 +1479,78 @@ function joinIds(a, b) {
         return a;
     return a + "+" + b;
 }
-// Finds the MRCA of two Branches along with each one's distance to it, in a
-// single climb from each side. Returns [mrca, distanceFromA, distanceFromB].
-// Lengths are summed from each Branch upward, as depthOf sums them.
+// Finds the MRCA of two Branches along with each one's distance to it.
+// Returns [mrca, distanceFromA, distanceFromB]. Lengths are summed from each
+// Branch upward, as depthOf sums them.
 function distancesToMRCA(a, b) {
-    let [mrca, i, j, fromA, fromB] = climbToMRCA(a, b);
+    let mrca = climbToMRCA(a, b);
+    let { parent, length } = a._store;
     let distanceA = 0, distanceB = 0;
-    for (let k = 0; k < i; k++)
-        distanceA += fromA[k].length;
-    for (let k = 0; k < j; k++)
-        distanceB += fromB[k].length;
-    return [mrca, distanceA, distanceB];
+    for (let i = a._index; i !== mrca; i = parent[i])
+        distanceA += length[i];
+    for (let i = b._index; i !== mrca; i = parent[i])
+        distanceB += length[i];
+    return [a._store.view(mrca), distanceA, distanceB];
 }
-// Lists the ancestors of two Branches (each including itself) and matches
-// them up from the root down; the last match is the MRCA. Returns
-// [mrca, i, j, fromA, fromB], where fromA[i] and fromB[j] are the MRCA.
+// Finds the slot of the MRCA of two Branches, climbing only from each up to
+// it: first the deeper one to the other's level, then both together.
 function climbToMRCA(a, b) {
-    let fromA = a.getAncestors(true), fromB = b.getAncestors(true);
-    let i = fromA.length - 1, j = fromB.length - 1;
-    if (fromA[i] !== fromB[j]) {
+    let store = a._store;
+    if (b._store !== store) {
         throw Error("Branch and cousin do not appear to share a common ancestor!");
     }
-    while (i > 0 && j > 0 && fromA[i - 1] === fromB[j - 1]) {
-        i--;
-        j--;
+    let index = store.treeIndex(a._index);
+    if (index.position[b._index] < 0) {
+        throw Error("Branch and cousin do not appear to share a common ancestor!");
     }
-    return [fromA[i], i, j, fromA, fromB];
+    let { level } = index;
+    let parent = store.parent;
+    let i = a._index, j = b._index;
+    while (level[i] > level[j])
+        i = parent[i];
+    while (level[j] > level[i])
+        j = parent[j];
+    while (i !== j) {
+        i = parent[i];
+        j = parent[j];
+    }
+    return i;
 }
 // Depth-first traversal with an explicit stack, so that deep trees can't
 // overflow the call stack. Calls `before` on entering each Branch and `after`
-// on leaving it. Children are read the way Array.prototype.forEach reads them
-// in a recursive traversal (after `before`, with the length fixed on entry),
-// so callbacks that edit the tree behave as they did with recursion.
+// on leaving it. Each Branch's children are read after `before` is called on
+// it, so callbacks can edit the tree as they could with a recursive traversal.
 function walk(root, before, after) {
-    let nodes = [root], arrays = [], lengths = [], indices = [];
+    let nodes = [root], arrays = [], indices = [];
     if (before)
         before(root);
-    arrays.push(root.children);
-    lengths.push(root.children.length);
+    arrays.push(root.children ?? []);
     indices.push(0);
     while (nodes.length) {
-        let top = nodes.length - 1, i = indices[top];
-        if (i < lengths[top]) {
+        let top = nodes.length - 1, i = indices[top], array = arrays[top];
+        if (i < array.length) {
             indices[top] = i + 1;
-            let array = arrays[top];
-            if (!(i in array))
-                continue;
             let child = array[i];
             if (before)
                 before(child);
             nodes.push(child);
-            arrays.push(child.children);
-            lengths.push(child.children.length);
+            arrays.push(child.children ?? []);
             indices.push(0);
         }
         else {
             let node = nodes.pop();
             arrays.pop();
-            lengths.pop();
             indices.pop();
             if (after)
                 after(node);
         }
     }
 }
-// Pushes a Branch's children onto a stack so that they pop in order.
-function pushChildren(stack, branch) {
-    let children = branch.children;
-    for (let i = children.length - 1; i >= 0; i--)
-        stack.push(children[i]);
-}
-// Returns the first descendant of `branch` (in pre-order, excluding `branch`
-// itself) for which `test` returns true, or undefined if there is none.
-function findBelow(branch, test) {
-    let stack = [];
-    pushChildren(stack, branch);
-    while (stack.length) {
-        let d = stack.pop();
-        if (test(d))
-            return d;
-        pushChildren(stack, d);
-    }
-    return undefined;
-}
 // A Branch's id and (if it has one) length, as written in Newick.
-function newickLabel(branch) {
-    let label = "" + branch.id;
-    if (branch.length)
-        label += ":" + numberToString(branch.length);
+function newickLabel(store, i) {
+    let label = "" + store.ids[i];
+    if (store.length[i])
+        label += ":" + numberToString(store.length[i]);
     return label;
 }
 // Returns a string representation of a number that doesn't use scientific
@@ -1165,27 +1589,22 @@ function parseJSON(json, idLabel, lengthLabel, childrenLabel) {
         childrenLabel = "children";
     if (typeof json === "string")
         json = JSON.parse(json);
-    let root;
-    let stack = [[json, null]];
+    let store = new Store();
+    let stack = [[json, NONE]];
     while (stack.length) {
         let [node, parent] = stack.pop();
-        let branch = new Branch({
-            id: node[idLabel],
-            length: node[lengthLabel]
-        });
-        if (parent)
-            parent.addChild(branch);
-        else
-            root = branch;
+        let i = store.add(node[idLabel] ?? "", node[lengthLabel] ?? 0);
+        if (parent !== NONE)
+            store.link(i, parent, NONE);
         let children = node[childrenLabel];
         if (children instanceof Array) {
-            for (let i = children.length - 1; i >= 0; i--) {
-                if (i in children)
-                    stack.push([children[i], branch]);
+            for (let k = children.length - 1; k >= 0; k--) {
+                if (k in children)
+                    stack.push([children[k], i]);
             }
         }
     }
-    return root.fixDistances();
+    return store.view(0).fixDistances();
 }
 /**
  * Parses a matrix of distances and returns the root Branch of the output tree.
@@ -1209,18 +1628,26 @@ function parseMatrix(matrix, labels, options) {
     let currIndexToLabel = new Int32Array(N);
     for (let i = 0; i < N; i++)
         currIndexToLabel[i] = i;
-    let labelToNode = new Array(2 * N);
+    // The tree is built in one Store; labelToNode maps labels to its slots.
+    let store = new Store(2 * N);
+    let labelToNode = new Int32Array(2 * N);
     let nextIndex = N;
     function setUpNode(labelIndex, distance) {
         let node;
         if (labelIndex < N) {
-            node = new Branch({ id: labels[labelIndex], length: distance });
+            node = store.add(labels[labelIndex], distance);
             labelToNode[labelIndex] = node;
         }
         else {
             node = labelToNode[labelIndex];
-            node.setLength(distance);
+            store.length[node] = distance;
         }
+        return node;
+    }
+    function join(node1, node2) {
+        let node = store.add("", 0);
+        store.link(node1, node, NONE);
+        store.link(node2, node, NONE);
         return node;
     }
     let minI, minJ, d1, d2;
@@ -1234,7 +1661,7 @@ function parseMatrix(matrix, labels, options) {
         let node1 = setUpNode(currIndexToLabel[minI], d1);
         let node2 = setUpNode(currIndexToLabel[minJ], d2);
         nj.join(minI, minJ);
-        labelToNode[nextIndex] = new Branch({ children: [node1, node2] });
+        labelToNode[nextIndex] = join(node1, node2);
         currIndexToLabel[minI] = -1;
         currIndexToLabel[minJ] = nextIndex++;
     }
@@ -1243,9 +1670,7 @@ function parseMatrix(matrix, labels, options) {
     d1 = d2 = nj.distance(minI, minJ) / 2;
     let node1 = setUpNode(currIndexToLabel[minI], d1);
     let node2 = setUpNode(currIndexToLabel[minJ], d2);
-    let tree = new Branch({ children: [node1, node2] });
-    tree.fixParenthood();
-    return tree.fixDistances();
+    return store.view(join(node1, node2)).fixDistances();
 }
 /**
  * The distance matrix and search structures of a neighbor-joining run, after
@@ -1476,18 +1901,20 @@ class ArgSorter {
  * @return {Branch} A Branch representing the root of the output tree
  */
 function parseNewick(newick) {
-    let ancestors = [], tree = new Branch(), tokens = newick.split(/\s*(;|\(|\)|,|:)\s*/), n = tokens.length;
+    let store = new Store(), ancestors = [], tree = store.add("", 0), tokens = newick.split(/\s*(;|\(|\)|,|:)\s*/), n = tokens.length;
     for (let t = 0; t < n; t++) {
         let token = tokens[t];
         let c;
         switch (token) {
             case "(": // new Branchset
-                c = tree.addChild();
+                c = store.add("", 0);
+                store.link(c, tree, NONE);
                 ancestors.push(tree);
                 tree = c;
                 break;
             case ",": // another Branch
-                c = ancestors[ancestors.length - 1].addChild();
+                c = store.add("", 0);
+                store.link(c, ancestors[ancestors.length - 1], NONE);
                 tree = c;
                 break;
             case ")": // optional name next
@@ -1498,14 +1925,14 @@ function parseNewick(newick) {
             default:
                 let x = tokens[t - 1];
                 if (x == ")" || x == "(" || x == ",") {
-                    tree.id = token;
+                    store.ids[tree] = token;
                 }
                 else if (x == ":") {
-                    tree.length = parseFloat(token);
+                    store.length[tree] = parseFloat(token);
                 }
         }
     }
-    return tree.fixDistances();
+    return store.view(0).fixDistances();
 }
 
 var patristic = /*#__PURE__*/Object.freeze({

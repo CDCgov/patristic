@@ -46,6 +46,10 @@ type Replacer = ((this: unknown, key: string, value: unknown) => unknown) | (str
  * [Newick parser](#parseNewick),
  * [neighbor-joining implementation](#parseMatrix), etc.), but could
  * conceivably be useful for representing other types of trees as well.
+ *
+ * A tree's data is stored in typed arrays; a Branch is a view onto one entry,
+ * made when it's first asked for and kept from then on. Its links (`parent`
+ * and `children`) can't disagree: setting either updates both sides.
  * @param {Object} [data] An object containing data you wish to assign to
  * this Branch object. In particular, intended to overwrite the default
  * attributes of a Branch, namely `id`, `parent`, `length`, and `children`.
@@ -54,16 +58,44 @@ type Replacer = ((this: unknown, key: string, value: unknown) => unknown) | (str
 export declare class Branch {
     /** A number unique to this Branch within the loaded library. */
     _guid: number;
-    id: Id;
-    data: BranchData;
-    depth: number;
-    height: number;
-    length: number;
-    parent: Branch | null;
-    children: Branch[];
-    value: number;
-    representing: number;
     constructor(data?: BranchData | null, children?: (data: BranchData) => Branch[] | null | undefined);
+    /** This Branch's identifier. */
+    get id(): Id;
+    set id(id: Id);
+    /** The length of the edge from this Branch to its parent. */
+    get length(): number;
+    set length(length: number);
+    /** The number of edges from the root (set by fixDistances). */
+    get depth(): number;
+    set depth(depth: number);
+    /** The greatest number of edges to a leaf below (set by fixDistances). */
+    get height(): number;
+    set height(height: number);
+    /** A value for layouts and sorting (see count, sum and fixDistances). */
+    get value(): number;
+    set value(value: number);
+    /** How many Branches this one stands for, after excising others into it. */
+    get representing(): number;
+    set representing(representing: number);
+    /** The data this Branch was made from, or an empty object. */
+    get data(): BranchData;
+    set data(data: BranchData);
+    /**
+     * This Branch's parent, or null for a root. Setting it moves this Branch
+     * (with its subtree) to be the last child of the new parent, or detaches
+     * it if set to null.
+     */
+    get parent(): Branch | null;
+    set parent(parent: Branch | null);
+    /**
+     * This Branch's children, as a new array, or undefined for a leaf (as in
+     * d3-hierarchy). Changing the array doesn't change the tree. Assigning an
+     * array of Branches makes them the children, in that order; children left
+     * out are detached, and assigning null or an empty array makes this Branch
+     * a leaf.
+     */
+    get children(): Branch[] | undefined;
+    set children(children: Branch[] | null | undefined);
     /**
      * Adds a new child to this Branch
      * @param  {(Branch|Object)} [data={}] The new Branch, or data to attach to it.
@@ -110,7 +142,9 @@ export declare class Branch {
      */
     copy(): Branch;
     /**
-     * Sets the values of all nodes to be equal to the number of their descendants.
+     * Sets the value of each Branch to the number of leaves in its subtree (1
+     * for a leaf), as d3-hierarchy's count does.
+     * [d3-hierarchy compatibility method.](https://github.com/d3/d3-hierarchy#node_count)
      * @return {Branch} The Branch on which it was called
      */
     count(): this;
