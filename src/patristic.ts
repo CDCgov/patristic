@@ -5,7 +5,7 @@
  * @example
  * console.log(patristic.version);
  */
-export const version = "0.7.0";
+export const version = "0.7.1";
 
 /** A Branch's identifier. Trees built by parseMatrix without labels use numbers. */
 export type Id = string | number;
