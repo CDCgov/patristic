@@ -24,7 +24,7 @@ describe("parseNewick", () => {
     expect(ids(tree.children[2].children)).toEqual(["C", "D"]);
     expect(tree.children.map(c => c.length)).toEqual([0.1, 0.2, 0.5]);
     expect(tree.children[2].children.map(c => c.length)).toEqual([0.3, 0.4]);
-    expect(tree.children[0].children).toHaveLength(0);
+    expect(tree.children[0].children).toBeUndefined();
     expect(tree.isConsistent()).toBe(true);
   });
 
@@ -88,9 +88,11 @@ describe("Branch constructor", () => {
       expect(b.height).toBe(0);
       expect(b.value).toBe(1);
       expect(b.parent).toBeNull();
-      expect(b.children).toEqual([]);
+      expect(b.children).toBeUndefined();
       expect(b._guid).toBeDefined();
     }
+    let guids = tree.descendants().map(d => d._guid);
+    expect(new Set(guids).size).toBe(guids.length);
   });
 
   test("accepts a children accessor", () => {
@@ -100,7 +102,7 @@ describe("Branch constructor", () => {
     );
     expect(branch.id).toBe("test");
     expect(ids(branch.children)).toEqual(["child1"]);
-    expect(new patristic.Branch({}, () => []).children).toEqual([]);
+    expect(new patristic.Branch({}, () => []).children).toBeUndefined();
   });
 });
 
@@ -111,6 +113,19 @@ describe("tree construction", () => {
     expect(child.parent).toBe(tree.children[2]);
     expect(child.length).toBe(0.6);
     expect(tree.children[2].children).toContain(child);
+  });
+
+  test("addChild keeps the caller's data object as is", () => {
+    let data = { id: "E", length: 0.6 };
+    let child = tree.addChild(data);
+    expect(data).toEqual({ id: "E", length: 0.6 });
+    expect(child.data).toBe(data);
+  });
+
+  test("Branches don't keep their parent in their data", () => {
+    let x = tree.children[2];
+    x.isolate();
+    expect(Object.values(x.data)).not.toContain(tree);
   });
 
   test("addChild with a Branch returns that Branch", () => {
@@ -204,6 +219,9 @@ describe("queries", () => {
     expect(tree.hasDescendant("D")).toBe(true);
     expect(tree.hasDescendant("nonexistent")).toBe(false);
     expect(tree.hasDescendant(tree)).toBe(false);
+    expect(tree.children[2].hasDescendant(tree.children[0])).toBe(false);
+    expect(tree.children[2].hasDescendant("A")).toBe(false);
+    expect(tree.hasDescendant(new patristic.Branch({ id: "D" }))).toBe(false);
   });
 
   test("hasLeaf", () => {
@@ -211,6 +229,12 @@ describe("queries", () => {
     expect(tree.hasLeaf("A")).toBe(true);
     expect(tree.hasLeaf("nonexistent")).toBe(false);
     expect(tree.hasLeaf(tree)).toBe(false);
+    expect(tree.hasLeaf(tree.children[2])).toBe(false);
+    expect(tree.hasLeaf("")).toBe(false);
+    expect(tree.children[2].hasLeaf("A")).toBe(false);
+    let a = tree.children[0];
+    expect(a.hasLeaf(a)).toBe(true);
+    expect(a.hasLeaf("A")).toBe(true);
   });
 
   test("isChildOf / isDescendantOf", () => {
@@ -241,6 +265,9 @@ describe("queries", () => {
     let a = tree.children[0],
       d = tree.children[2].children[1];
     expect(a.path(d)).toEqual([a, tree, tree.children[2], d]);
+    expect(d.path(a)).toEqual([d, tree.children[2], tree, a]);
+    expect(d.path(tree)).toEqual([d, tree.children[2], tree]);
+    expect(tree.path(d)).toEqual([tree, tree.children[2], d]);
   });
 
   test("links", () => {
@@ -249,10 +276,11 @@ describe("queries", () => {
     expect(links[0]).toEqual({ source: tree, target: tree.children[0] });
   });
 
-  test("isConsistent", () => {
+  test("isConsistent: links can't disagree, so trees always are", () => {
     expect(tree.isConsistent()).toBe(true);
     tree.children[0].parent = null;
-    expect(tree.isConsistent()).toBe(false);
+    expect(tree.isConsistent()).toBe(true);
+    expect(ids(tree.children)).toEqual(["B", ""]);
   });
 });
 
@@ -275,6 +303,8 @@ describe("distances", () => {
       d = tree.children[2].children[1];
     expect(a.sources(d)).toBe(true);
     expect(a.targets(d)).toBe(false);
+    expect(d.sources(a)).toBe(false);
+    expect(tree.children[2].sources(d)).toBe(true);
   });
 
   test("toMatrix", () => {
@@ -289,6 +319,35 @@ describe("distances", () => {
     for (let i = 0; i < 4; i++)
       for (let j = 0; j < 4; j++)
         expect(matrix[i][j]).toBeCloseTo(expected[i][j], 12);
+  });
+
+  test("toMatrix matches distanceTo exactly", () => {
+    let points = Array.from({ length: 40 }, (_, i) => [
+      Math.sin(i * 12.9898) % 1,
+      Math.sin(i * 78.233) % 1
+    ]);
+    let t = patristic.parseMatrix(
+      points.map(a => points.map(b => Math.hypot(a[0] - b[0], a[1] - b[1])))
+    );
+    // Include a polytomy, and an internal Branch's subtree.
+    let internal = t.descendants().filter(d => !d.isRoot() && !d.isLeaf());
+    internal[3].excise();
+    expect(
+      Math.max(...t.descendants().map(d => (d.children ?? []).length))
+    ).toBe(3);
+    let subtree = internal.find(d => d !== internal[3] && d.value > 15);
+    for (let root of [t, subtree]) {
+      let leaves = root.getLeaves();
+      let { matrix, ids: labels } = root.toMatrix();
+      expect(labels).toEqual(ids(leaves));
+      for (let i = 0; i < leaves.length; i++)
+        for (let j = 0; j < leaves.length; j++)
+          expect(matrix[i][j]).toBe(leaves[i].distanceTo(leaves[j]));
+    }
+  });
+
+  test("toMatrix of a leaf", () => {
+    expect(tree.children[0].toMatrix()).toEqual({ matrix: [[0]], ids: ["A"] });
   });
 });
 
@@ -321,10 +380,11 @@ describe("traversal", () => {
 });
 
 describe("values", () => {
-  test("count counts every Branch in each subtree", () => {
+  test("count counts the leaves in each subtree (d3-hierarchy)", () => {
     expect(tree.count()).toBe(tree);
-    expect(tree.value).toBe(6);
-    expect(tree.children[2].value).toBe(3);
+    expect(tree.value).toBe(4);
+    expect(tree.children[2].value).toBe(2);
+    expect(tree.children[0].value).toBe(1);
   });
 
   test("sum", () => {
@@ -378,6 +438,18 @@ describe("restructuring", () => {
     expect(copy.toNewick()).toBe("(C:0.3,D:0.4):0.5;");
   });
 
+  test("copy and clone recompute depth, height and value", () => {
+    tree.children[2].sum(d => d.length);
+    for (let t of [tree.children[2].copy(), tree.children[2].clone()]) {
+      expect(t.isConsistent()).toBe(true);
+      expect(t.descendants().map(d => [d.depth, d.height, d.value])).toEqual([
+        [0, 1, 3],
+        [1, 0, 1],
+        [1, 0, 1]
+      ]);
+    }
+  });
+
   test("isolate", () => {
     let inner = tree.children[2];
     expect(inner.isolate()).toBe(inner);
@@ -423,22 +495,20 @@ describe("restructuring", () => {
     expect(a.distanceTo(d.getDescendant("C"))).toBeCloseTo(0.9);
   });
 
-  test("fixParenthood", () => {
+  test("fixParenthood has nothing to fix: links can't disagree", () => {
     let [c] = tree.children[2].children;
     c.parent = null;
-    tree.children[2].parent = null;
-    tree.fixParenthood(true);
-    expect(tree.children[2].parent).toBe(tree);
+    expect(tree.fixParenthood()).toBe(tree);
+    expect(tree.fixParenthood(true)).toBe(tree);
     expect(c.parent).toBeNull();
-    tree.fixParenthood();
-    expect(c.parent).toBe(tree.children[2]);
+    expect(tree.toNewick()).toBe("(A:0.1,B:0.2,(D:0.4):0.5);");
     expect(tree.isConsistent()).toBe(true);
   });
 
   test("consolidate excises near-zero-length Branches", () => {
     tree.children[0].addChild({ id: "short", length: 0.0001 });
     tree.consolidate();
-    expect(tree.children[0].children).toHaveLength(0);
+    expect(tree.children[0].children).toBeUndefined();
     expect(tree.children[0].id).toBe("A+short");
   });
 
@@ -492,6 +562,32 @@ describe("parseMatrix", () => {
       [2, 3, 0]
     ]);
     expect(ids(t.getLeaves()).sort()).toEqual([0, 1, 2]);
+  });
+
+  test("can store distances as 32-bit floats", () => {
+    let pair = [
+      [0, 0.1],
+      [0.1, 0]
+    ];
+    expect(patristic.parseMatrix(pair).children[0].length).toBe(0.05);
+    expect(
+      patristic.parseMatrix(pair, null, { float32: true }).children[0].length
+    ).toBe(Math.fround(0.1) / 2);
+    let t = patristic.parseMatrix(copy(additive), labels, { float32: true });
+    let { matrix, ids: order } = t.toMatrix();
+    for (let i = 0; i < 4; i++)
+      for (let j = 0; j < 4; j++) {
+        let a = labels.indexOf(order[i]),
+          b = labels.indexOf(order[j]);
+        expect(matrix[i][j]).toBeCloseTo(additive[a][b], 6);
+      }
+  });
+
+  test("accepts distances given as numeric strings", () => {
+    let strings = additive.map(row => row.map(String));
+    expect(patristic.parseMatrix(strings, labels).toNewick()).toBe(
+      patristic.parseMatrix(copy(additive), labels).toNewick()
+    );
   });
 
   test("recovers an additive matrix exactly", () => {
@@ -641,6 +737,198 @@ describe("known bugs", () => {
   });
 });
 
+describe("addParent and replace keep the tree consistent", () => {
+  test("addParent inserts the new parent where this Branch was", () => {
+    let a = tree.children[0];
+    let p = new patristic.Branch({ id: "P" });
+    expect(a.addParent(p)).toBe(a);
+    expect(ids(tree.children)).toEqual(["P", "B", ""]);
+    expect(p.parent).toBe(tree);
+    expect(p.children).toEqual([a]);
+    expect(a.parent).toBe(p);
+    expect(tree.isConsistent()).toBe(true);
+    expect(tree.toNewick()).toBe("((A:0.1)P,B:0.2,(C:0.3,D:0.4):0.5);");
+  });
+
+  test("addParent detaches the given siblings from where they were", () => {
+    let [a, b] = tree.children;
+    let d = tree.children[2].children[1];
+    a.addParent({ id: "P" }, [b, d]);
+    expect(tree.isConsistent()).toBe(true);
+    expect(tree.toNewick()).toBe("((A:0.1,B:0.2,D:0.4)P,(C:0.3):0.5);");
+  });
+
+  test("addParent on a root makes the new parent the root", () => {
+    let p = new patristic.Branch({ id: "P" });
+    tree.addParent(p);
+    expect(p.isRoot()).toBe(true);
+    expect(p.children).toEqual([tree]);
+    expect(p.isConsistent()).toBe(true);
+  });
+
+  test("addParent keeps the new parent's existing children", () => {
+    let p = new patristic.Branch({ id: "P" });
+    let e = p.addChild({ id: "E" });
+    let a = tree.children[0];
+    a.addParent(p);
+    expect(p.children).toEqual([e, a]);
+    expect(tree.isConsistent()).toBe(true);
+  });
+
+  test("replace links the replacement and detaches the replaced Branch", () => {
+    let old = tree.children[2];
+    let e = new patristic.Branch({ id: "E", length: 0.5 });
+    expect(old.replace(e)).toBe(tree);
+    expect(e.parent).toBe(tree);
+    expect(old.parent).toBeNull();
+    expect(tree.isConsistent()).toBe(true);
+  });
+
+  test("replace detaches the replacement from its old parent", () => {
+    let [a, , x] = tree.children;
+    let c = x.children[0];
+    a.replace(c);
+    expect(tree.toNewick()).toBe("(C:0.3,B:0.2,(D:0.4):0.5);");
+    expect(tree.isConsistent()).toBe(true);
+  });
+
+  test("replace on a root throws a clear error", () => {
+    expect(() => tree.replace(new patristic.Branch())).toThrow(
+      "Cannot replace a root Branch."
+    );
+  });
+});
+
+describe("Branches are views over shared storage", () => {
+  test("the same Branch is always the same object", () => {
+    expect(tree.children[0]).toBe(tree.children[0]);
+    expect(tree.getDescendant("C")).toBe(tree.children[2].children[0]);
+    expect(tree.children[2].children[0].parent.parent).toBe(tree);
+    expect(tree.getLeaves()[2]).toBe(tree.children[2].children[0]);
+  });
+
+  test("leaves have no children array, as in d3-hierarchy", () => {
+    let a = tree.children[0];
+    expect(a.children).toBeUndefined();
+    expect(a.isLeaf()).toBe(true);
+    a.children = [];
+    expect(a.children).toBeUndefined();
+    let x = tree.children[2];
+    x.children = null;
+    expect(x.children).toBeUndefined();
+    expect(tree.toNewick()).toBe("(A:0.1,B:0.2,:0.5);");
+  });
+
+  test("properties set on a Branch stay with it", () => {
+    let c = tree.getDescendant("C");
+    c.x = 0.25;
+    expect(tree.children[2].children[0].x).toBe(0.25);
+  });
+
+  test("assigning children relinks the tree", () => {
+    let x = tree.children[2];
+    let [c, d] = x.children;
+    x.children = [d];
+    expect(tree.toNewick()).toBe("(A:0.1,B:0.2,(D:0.4):0.5);");
+    expect(c.parent).toBeNull();
+    expect(d.parent).toBe(x);
+    tree.children = tree.children.filter(b => b.id !== "B");
+    expect(tree.toNewick()).toBe("(A:0.1,(D:0.4):0.5);");
+  });
+
+  test("setting parent moves a Branch to the end of its new parent's children", () => {
+    let [a, , x] = tree.children;
+    a.parent = x;
+    expect(a.parent).toBe(x);
+    expect(tree.toNewick()).toBe("(B:0.2,(C:0.3,D:0.4,A:0.1):0.5);");
+    a.parent = x;
+    expect(tree.toNewick()).toBe("(B:0.2,(C:0.3,D:0.4,A:0.1):0.5);");
+    a.parent = null;
+    expect(a.isRoot()).toBe(true);
+    expect(tree.toNewick()).toBe("(B:0.2,(C:0.3,D:0.4):0.5);");
+  });
+
+  test("editing the array children returns doesn't change the tree", () => {
+    tree.children.push(new patristic.Branch({ id: "E" }));
+    tree.children.reverse();
+    expect(tree.toNewick()).toBe(newick);
+  });
+
+  test("a Branch can't be made a descendant of itself", () => {
+    let x = tree.children[2];
+    expect(() => {
+      tree.parent = x;
+    }).toThrow("descendant of itself");
+    expect(() => x.children[0].addChild(tree)).toThrow("descendant of itself");
+    expect(() => x.addChild(x)).toThrow("descendant of itself");
+    expect(() => {
+      x.children = [tree, ...x.children];
+    }).toThrow("descendant of itself");
+    expect(tree.toNewick()).toBe(newick);
+  });
+
+  test("a Branch moved to another tree keeps its identity and subtree", () => {
+    let other = patristic.parseNewick("((P:1,Q:1)X:1,Y:1);");
+    let x = other.children[0];
+    x.marker = "kept";
+    tree.addChild(x);
+    expect(x.getRoot()).toBe(tree);
+    expect(x.marker).toBe("kept");
+    expect(x.children.map(b => b.id)).toEqual(["P", "Q"]);
+    expect(x.children[0].parent).toBe(x);
+    expect(other.toNewick()).toBe("(Y:1);");
+    expect(tree.toNewick()).toBe(
+      "(A:0.1,B:0.2,(C:0.3,D:0.4):0.5,(P:1,Q:1)X:1);"
+    );
+  });
+});
+
+describe("lookups stay right as the tree changes", () => {
+  test("getDescendant after renaming, adding and detaching", () => {
+    let c = tree.getDescendant("C");
+    expect(c.id).toBe("C");
+    c.id = "Z";
+    expect(tree.getDescendant("Z")).toBe(c);
+    expect(tree.getDescendant("C")).toBeUndefined();
+    let n = tree.children[0].addChild({ id: "N" });
+    expect(tree.getDescendant("N")).toBe(n);
+    expect(tree.hasDescendant("N")).toBe(true);
+    c.parent = null;
+    expect(tree.getDescendant("Z")).toBeUndefined();
+    expect(tree.hasDescendant(c)).toBe(false);
+    expect(c.getDescendant("Z")).toBe(c);
+  });
+
+  test("getDescendant finds the first match in pre-order within the subtree", () => {
+    let t = patristic.parseNewick("((A:1,(A:1,B:1)X:1)Y:1,(A:1)W:1);");
+    let [y, w] = t.children;
+    expect(t.getDescendant("A")).toBe(y.children[0]);
+    expect(y.children[1].getDescendant("A")).toBe(y.children[1].children[0]);
+    expect(w.getDescendant("A")).toBe(w.children[0]);
+    expect(w.hasDescendant("B")).toBe(false);
+    expect(y.hasLeaf("B")).toBe(true);
+    expect(w.hasLeaf("A")).toBe(true);
+    expect(t.hasLeaf("X")).toBe(false);
+  });
+
+  test("ancestry and MRCAs after restructuring", () => {
+    let [a, b, x] = tree.children;
+    let [c, d] = x.children;
+    expect(c.getMRCA(d)).toBe(x);
+    expect(c.isDescendantOf(x)).toBe(true);
+    a.parent = x;
+    expect(a.getMRCA(c)).toBe(x);
+    expect(a.isDescendantOf(x)).toBe(true);
+    expect(a.distanceTo(d)).toBeCloseTo(0.5);
+    x.reroot();
+    expect(x.isRoot()).toBe(true);
+    expect(b.getMRCA(c)).toBe(x);
+    expect(tree.isDescendantOf(x)).toBe(true);
+    expect(x.hasDescendant(tree)).toBe(true);
+    expect(tree.hasDescendant(x)).toBe(false);
+  });
+});
+
 describe("error conditions", () => {
   test("unknown argument types throw", () => {
     expect(() => tree.hasChild(123)).toThrow("Unknown type of child");
@@ -650,5 +938,137 @@ describe("error conditions", () => {
       "Unknown type of leaf passed to Branch.hasLeaf."
     );
     expect(() => tree.isChildOf(123)).toThrow("Unknown parent type");
+  });
+});
+
+describe("less common arguments and cases", () => {
+  const labeled = "(A:0.1,B:0.2,(C:0.3,D:0.4)X:0.5)R;";
+
+  test("new Branch({ parent }) adds the Branch as the parent's last child", () => {
+    let b = new patristic.Branch({ id: "E", parent: tree });
+    expect(b.parent).toBe(tree);
+    expect(ids(tree.children)).toEqual(["A", "B", "", "E"]);
+  });
+
+  test("depth, height and data can be set", () => {
+    let a = tree.children[0];
+    a.depth = 5;
+    a.height = 7;
+    a.data = { note: "x" };
+    expect([a.depth, a.height, a.data]).toEqual([5, 7, { note: "x" }]);
+  });
+
+  test("addChild() with no argument adds an empty leaf", () => {
+    let child = tree.addChild();
+    expect(child.parent).toBe(tree);
+    expect(tree.children[3]).toBe(child);
+    expect([child.id, child.length, child.isLeaf()]).toEqual(["", 0, true]);
+  });
+
+  test("addParent() with no argument gives a root an empty parent", () => {
+    tree.addParent();
+    let root = tree.parent;
+    expect(root.isRoot()).toBe(true);
+    expect(root.id).toBe("");
+    expect(root.children).toEqual([tree]);
+  });
+
+  test("addParent on a root can take a detached Branch from the same tree", () => {
+    let a = tree.children[0];
+    a.remove();
+    tree.addParent(a);
+    expect(a.isRoot()).toBe(true);
+    expect(a.children).toEqual([tree]);
+    expect(a.toNewick()).toBe("((B:0.2,(C:0.3,D:0.4):0.5))A:0.1;");
+  });
+
+  test("hasChild with an id is false on a leaf", () => {
+    expect(tree.children[0].hasChild("B")).toBe(false);
+  });
+
+  test("invert below the root puts the Branch in its parent's place", () => {
+    let t = patristic.parseNewick(labeled);
+    let c = t.getDescendant("C"),
+      x = t.getDescendant("X");
+    c.invert();
+    expect(ids(t.children)).toEqual(["A", "B", "C"]);
+    expect(c.children).toEqual([x]);
+    expect(ids(x.children)).toEqual(["D"]);
+    expect([c.length, x.length]).toEqual([0.5, 0.3]);
+  });
+
+  test("isConsistent notices storage whose links disagree", () => {
+    // Links kept by the API can't disagree, so this corrupts the storage.
+    let t = patristic.parseNewick(labeled);
+    expect(t.isConsistent()).toBe(true);
+    let c = t.getDescendant("C");
+    t._store.parent[c._index] = t._index;
+    expect(t.isConsistent()).toBe(false);
+  });
+
+  test("isDescendantOf takes an ancestor's id", () => {
+    let t = patristic.parseNewick(labeled);
+    let c = t.getDescendant("C");
+    expect(c.isDescendantOf("X")).toBe(true);
+    expect(c.isDescendantOf("R")).toBe(true);
+    expect(c.isDescendantOf("A")).toBe(false);
+    expect(c.isDescendantOf("C")).toBe(false);
+    expect(c.isDescendantOf(null)).toBe(false);
+    expect(c.isDescendantOf("")).toBe(false);
+  });
+
+  test("isolate on a root throws", () => {
+    expect(() => tree.isolate()).toThrow("Cannot isolate a root Branch.");
+  });
+
+  test("normalize() scales values to between 0 and 1", () => {
+    tree.each(b => (b.value = b.length * 10));
+    tree.normalize();
+    let values = tree.descendants().map(b => b.value);
+    expect(Math.min(...values)).toBe(0);
+    expect(Math.max(...values)).toBe(1);
+    expect(tree.getDescendant("A").value).toBeCloseTo(0.2, 12);
+  });
+
+  test("sum() with no argument adds each Branch's value to its children's", () => {
+    tree.each(b => (b.value = 1));
+    tree.sum();
+    expect(tree.value).toBe(6);
+    expect(tree.children[2].value).toBe(3);
+  });
+
+  test("toNewick(true) leaves off the semicolon", () => {
+    expect(tree.toNewick(true)).toBe(newick.slice(0, -1));
+  });
+
+  test("toString passes a replacer and width to JSON.stringify", () => {
+    let leaf = new patristic.Branch({ id: "L", length: 2 });
+    expect(leaf.toString(["id"])).toBe('{"id":"L"}');
+    expect(leaf.toString(["id"], 1)).toBe('{\n "id": "L"\n}');
+  });
+
+  test("distanceTo a Branch detached from the tree throws", () => {
+    let a = tree.children[0];
+    a.remove();
+    expect(() => tree.children[0].distanceTo(a)).toThrow(
+      "Branch and cousin do not appear to share a common ancestor!"
+    );
+  });
+
+  test("traversals of a lone leaf visit just that leaf", () => {
+    let leaf = new patristic.Branch({ id: "L" });
+    let seen = [];
+    leaf.eachBefore(b => seen.push(b.id));
+    leaf.eachAfter(b => seen.push(b.id));
+    expect(seen).toEqual(["L", "L"]);
+  });
+});
+
+describe("parseJSON", () => {
+  test("defaults missing ids and lengths, and skips holes in children", () => {
+    // eslint-disable-next-line no-sparse-arrays
+    let t = patristic.parseJSON({ children: [{ id: "A" }, , { id: "B", length: 2 }] });
+    expect([t.id, t.length]).toEqual(["", 0]);
+    expect(t.toNewick()).toBe("(A,B:2);");
   });
 });

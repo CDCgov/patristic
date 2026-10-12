@@ -67,3 +67,10 @@ jspm_packages
 
 ## Temp
 tmp
+
+## Build
+# tsc output, bundled by rollup into dist/
+build
+
+## Coverage
+coverage

@@ -16,6 +16,24 @@ from a phylogenetic tree
 
 To install patristic with NPM use: `npm install --save patristic`
 
+Then load it whichever way suits your project:
+
+```javascript
+// ES modules
+import { parseNewick } from "patristic"; // or: import patristic from "patristic";
+
+// CommonJS
+const patristic = require("patristic");
+```
+
+```html
+<!-- In a browser, as a global named `patristic` -->
+<script src="dist/patristic.js"></script>
+```
+
+patristic is written in TypeScript and ships its type declarations, so editors
+and the TypeScript compiler pick up its types automatically.
+
 ## Usage
 
 Please note that this is a beta-stage API and may change (possibly dramatically)
@@ -34,6 +52,15 @@ We can use this tree to compute a patristic distance matrix.
 var matrix = tree.toMatrix();
 ```
 
+And we can build a tree from a distance matrix, by neighbor joining (the
+default), BIONJ or UPGMA:
+
+```javascript
+var nj = patristic.parseMatrix(matrix.matrix, matrix.ids);
+var bionj = patristic.parseMatrix(matrix.matrix, matrix.ids, { method: "bionj" });
+var upgma = patristic.parseMatrix(matrix.matrix, matrix.ids, { method: "upgma" });
+```
+
 Note that elements in the tree object maintain references to their parents,
 creating circular references. If you need a tree without circular references for
 serialization:
@@ -44,6 +71,31 @@ tree.toObject();
 
 (`tree.toJSON` aliases that, so you can `JSON.stringify` a Branch and it just
 works. 😉)
+
+### Editing trees
+
+A tree's data lives in typed arrays, and each `Branch` is a view onto it.
+`parent` and `children` work as they do in
+[d3-hierarchy](https://github.com/d3/d3-hierarchy), and the two always agree:
+
+```javascript
+var a = tree.children[0];
+a.children;                // undefined: a is a leaf
+a.parent = tree.children[2]; // moves a (and its subtree) under another Branch
+tree.children = tree.children.filter(b => b.id !== "B"); // detaches B
+```
+
+`children` returns a new array each time, so changing that array (with `push`,
+`splice`, `sort` and so on) doesn't change the tree: assign to `children`, set
+`parent`, or use methods like `addChild`, `remove` and `sort` instead.
+
+d3-hierarchy's layouts (`d3.tree`, `d3.cluster`, `d3.partition`, `d3.treemap`,
+`d3.pack`) work on a tree directly:
+
+```javascript
+d3.cluster().size([width, height])(tree.count());
+tree.descendants().forEach(b => draw(b.x, b.y));
+```
 
 For more details, check out our [Full Documentation](https://cdcgov.github.io/patristic/docs/#table-of-contents).
 
